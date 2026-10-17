@@ -57,9 +57,9 @@ function check(name, ok, detail = "") {
   await page.locator('[data-testid="vn-stage"]').click();
   const t0 = Date.now();
   let advanced = false, waited = 0;
-  while (waited < 6000) {
+  while (waited < 12000) {
     const txt = await page.locator('[data-testid="vn-overlay"] p').nth(1).textContent();
-    if (/tarjeta 2\//.test(txt ?? "")) { advanced = true; break; }
+    if (/tarjeta 2 de /.test(txt ?? "")) { advanced = true; break; }
     await page.waitForTimeout(150);
     waited = Date.now() - t0;
   }
@@ -75,7 +75,7 @@ function check(name, ok, detail = "") {
   const litThen = await page.evaluate(() => document.querySelectorAll('[data-testid="vn-card-box"] .vn-ch.on').length);
   const txtPaused = await page.locator('[data-testid="vn-overlay"] p').nth(1).textContent();
   check("pausa congela encendido", litNow === litThen, `${litNow} vs ${litThen}`);
-  check("auto NO avanza en pausa", /tarjeta 2\//.test(txtPaused ?? ""), txtPaused ?? "");
+  check("auto NO avanza en pausa", /tarjeta 2 de /.test(txtPaused ?? ""), txtPaused ?? "");
 
   console.log("=== F. REANUDAR → AUTO CONTINÚA ===");
   await page.keyboard.press(" ");
@@ -83,7 +83,7 @@ function check(name, ok, detail = "") {
   let advanced3 = false;
   while (Date.now() - t1 < 12000) {
     const txt = await page.locator('[data-testid="vn-overlay"] p').nth(1).textContent();
-    if (/tarjeta 3\//.test(txt ?? "")) { advanced3 = true; break; }
+    if (/tarjeta 3 de /.test(txt ?? "")) { advanced3 = true; break; }
     await page.waitForTimeout(200);
   }
   check("auto continúa hasta tarjeta 3", advanced3);
@@ -122,6 +122,10 @@ function check(name, ok, detail = "") {
   await page.screenshot({ path: "/home/z/my-project/scripts/vn-redesign.png" });
 
   console.log("=== I. TOGGLE OFF + ESCAPE ===");
+  // H lee CSS sin generar eventos: el chrome se auto-oculta (3.5 s) y el
+  // toggle vive ahí. Un movimiento de mouse lo despierta (diseño del overlay).
+  await page.mouse.move(720, 60);
+  await page.waitForTimeout(200);
   await autoBtn.click();
   check("auto OFF tras segundo click", (await autoBtn.getAttribute("aria-pressed")) === "false");
   await page.keyboard.press("Escape");
