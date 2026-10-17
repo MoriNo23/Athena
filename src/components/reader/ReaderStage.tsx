@@ -36,7 +36,7 @@ export function ReaderStage({
 }: ReaderStageProps) {
   const { t } = useI18n();
   return (
-    <main className="relative min-h-0 min-w-0 flex-1 bg-[oklch(0.12_0.008_75)]">
+    <main className="relative min-h-0 min-w-0 flex-1 bg-[var(--stage)]">
       {error ? (
         <div className="flex h-full flex-col items-center justify-center gap-3">
           <BookOpen className="h-8 w-8 text-muted-foreground" />

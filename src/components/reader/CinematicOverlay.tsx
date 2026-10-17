@@ -361,11 +361,17 @@ export function CinematicOverlay({
       arm();
     };
     const events: (keyof WindowEventMap)[] = ["pointermove", "pointerdown", "keydown", "wheel", "focus"];
-    events.forEach((ev) => window.addEventListener(ev, wake, { passive: true }));
+    // CAPTURA: el manejador de teclas del overlay (window, captura) hace
+    // stopPropagation() de TODAS las teclas que consume (Space, flechas, ±, M,
+    // Escape). En fase burbuja el wake nunca llegaría a dispararse: quien lee
+    // solo con teclado perdería el acceso a los controles tras el auto-ocultado
+    // (misma enfermedad P1 que la auditoría le curó al lector). Registrado
+    // primero y en captura, el wake corre ANTES que onKey y la UI despierta.
+    events.forEach((ev) => window.addEventListener(ev, wake, { passive: true, capture: true }));
     arm();
     return () => {
       if (hideTimer) window.clearTimeout(hideTimer);
-      events.forEach((ev) => window.removeEventListener(ev, wake));
+      events.forEach((ev) => window.removeEventListener(ev, wake, { capture: true }));
     };
   }, []);
 

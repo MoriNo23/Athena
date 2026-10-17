@@ -99,6 +99,11 @@
   --vn-bg: oklch(0.952 0.022 235);
   --vn-lead: oklch(0.55 0.155 250 / 26%);
 
+  /* Escenario del lector: papel cálido en claro (el «modo de papel» de la
+     casa). En el EPUB el texto flota DIRECTO sobre el escenario, así que este
+     color ES el papel del libro — debe contrastar con --foreground del tema. */
+  --stage: oklch(0.958 0.014 75);
+
   color-scheme: light;
 }
 
@@ -143,6 +148,11 @@
   --scroll-thumb: oklch(0.4 0.04 258);
   --vn-bg: oklch(0.12 0.045 253);
   --vn-lead: oklch(0.66 0.14 246 / 30%);
+
+  /* Escenario del lector: noche cálida en oscuro (idéntico al color que
+     siempre tuvo — no se toca lo aprobado). En el EPUB el texto flota
+     DIRECTO sobre este fondo. */
+  --stage: oklch(0.12 0.008 75);
 
   color-scheme: dark;
 }
@@ -724,6 +734,10 @@ html:not(.dark) .atena-hero .seal-glow {
   font-variation-settings: "opsz" 15;
   line-height: 1.85;
   color: var(--foreground);
+  /* Papel propio (idéntico al escenario: costura invisible): así la cadena de
+     filtros (brillo/sepia/noche-invert) transforma el PAPEL como en el visor
+     de PDF — sin esto, invert() voltearía solo la tinta y dejaría el fondo. */
+  background: var(--stage);
   padding: clamp(2rem, 4vh, 3.2rem) 0 6rem;
   /* Medida de imprenta: ~70 caracteres por línea a CUALQUIER tamaño de
      letra (el ancho viaja en em, así A−/A+ no estira la medida) */

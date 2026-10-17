@@ -91,7 +91,7 @@ async function tarjetaEnMarcha(page) {
     leaving: document.querySelectorAll('[data-testid="vn-card-leaving"]').length,
     boxes: document.querySelectorAll('[data-testid="vn-card-box"]').length,
   }));
-  const mStorm = stormTop.match(/tarjeta (\d+)\/(\d+)/);
+  const mStorm = stormTop.match(/tarjeta (\d+) de (\d+)/);
   const idxOk = mStorm ? +mStorm[1] >= 1 && +mStorm[1] <= +mStorm[2] : false;
   check("tarjeta siempre en rango tras tormenta", idxOk, stormTop);
   check("a lo sumo UNA capa saliente", stormState.leaving <= 1, `leaving=${stormState.leaving}`);
