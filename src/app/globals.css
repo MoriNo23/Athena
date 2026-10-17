@@ -1,0 +1,822 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ---------- Casa Atena: la psicología del azul hecha tema ----------
+   El azul sostiene el enfoque (calma + profundidad). Dos caras:
+   · Oscura: noche egea profunda — la calma de la madrugada de estudio.
+   · Clara: mañana de mármol azul — luz serena de sala de lectura.
+   Neobrutalismo: esquinas rectas, tinta sólida, sombras duras desplazadas. */
+:root {
+  /* Neobrutalismo: cero redondeos */
+  --radius: 0rem;
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
+
+  /* Tinta dura del brutalismo (bordes y sombras offset) */
+  --ink: oklch(0.22 0.045 258);
+  --brutal-shadow: 4px 4px 0 0 oklch(0.22 0.045 258 / 85%);
+  --brutal-shadow-lg: 7px 7px 0 0 oklch(0.22 0.045 258 / 78%);
+
+  --background: oklch(0.965 0.018 235);
+  --foreground: oklch(0.24 0.05 258);
+  --card: oklch(0.995 0.008 240);
+  --card-foreground: oklch(0.24 0.05 258);
+  --popover: oklch(0.995 0.008 240);
+  --popover-foreground: oklch(0.24 0.05 258);
+  --primary: oklch(0.55 0.155 250);
+  --primary-foreground: oklch(0.985 0.008 240);
+  --secondary: oklch(0.915 0.035 240);
+  --secondary-foreground: oklch(0.3 0.055 258);
+  --muted: oklch(0.93 0.02 235);
+  --muted-foreground: oklch(0.46 0.05 255);
+  --accent: oklch(0.9 0.05 240);
+  --accent-foreground: oklch(0.26 0.055 258);
+  --destructive: oklch(0.55 0.19 25);
+  --border: oklch(0.28 0.05 258 / 65%);
+  --input: oklch(0.28 0.05 258 / 80%);
+  --ring: oklch(0.55 0.155 250 / 55%);
+  --chart-1: oklch(0.55 0.155 250);
+  --chart-2: oklch(0.68 0.14 35);
+  --chart-3: oklch(0.6 0.13 150);
+  --chart-4: oklch(0.6 0.14 310);
+  --chart-5: oklch(0.62 0.11 200);
+  --sidebar: oklch(0.98 0.012 235);
+  --sidebar-foreground: oklch(0.24 0.05 258);
+  --sidebar-primary: oklch(0.55 0.155 250);
+  --sidebar-primary-foreground: oklch(0.985 0.008 240);
+  --sidebar-accent: oklch(0.9 0.05 240);
+  --sidebar-accent-foreground: oklch(0.26 0.055 258);
+  --sidebar-border: oklch(0.28 0.05 258 / 65%);
+  --sidebar-ring: oklch(0.55 0.155 250 / 55%);
+
+  /* Scroll + modo cinematográfico (fondo único, texto flotante) */
+  --scroll-thumb: oklch(0.72 0.03 245);
+  --vn-bg: oklch(0.952 0.022 235);
+  --vn-lead: oklch(0.55 0.155 250 / 26%);
+
+  color-scheme: light;
+}
+
+.dark {
+  --background: oklch(0.145 0.045 253);
+  --foreground: oklch(0.93 0.02 250);
+  --card: oklch(0.185 0.05 253);
+  --card-foreground: oklch(0.93 0.02 250);
+  --popover: oklch(0.18 0.05 253);
+  --popover-foreground: oklch(0.93 0.02 250);
+  --primary: oklch(0.66 0.14 246);
+  --primary-foreground: oklch(0.14 0.04 253);
+  --secondary: oklch(0.26 0.05 252);
+  --secondary-foreground: oklch(0.93 0.02 250);
+  --muted: oklch(0.24 0.04 252);
+  --muted-foreground: oklch(0.68 0.03 250);
+  --accent: oklch(0.28 0.05 250);
+  --accent-foreground: oklch(0.93 0.02 250);
+  --destructive: oklch(0.65 0.19 25);
+  --border: oklch(0.85 0.03 250 / 16%);
+  --input: oklch(0.85 0.03 250 / 20%);
+  --ring: oklch(0.66 0.14 246 / 60%);
+  --chart-1: oklch(0.66 0.14 246);
+  --chart-2: oklch(0.8 0.13 85);
+  --chart-3: oklch(0.72 0.14 150);
+  --chart-4: oklch(0.72 0.14 310);
+  --chart-5: oklch(0.78 0.12 200);
+  --sidebar: oklch(0.17 0.045 253);
+  --sidebar-foreground: oklch(0.93 0.02 250);
+  --sidebar-primary: oklch(0.66 0.14 246);
+  --sidebar-primary-foreground: oklch(0.14 0.04 253);
+  --sidebar-accent: oklch(0.28 0.05 250);
+  --sidebar-accent-foreground: oklch(0.93 0.02 250);
+  --sidebar-border: oklch(0.85 0.03 250 / 16%);
+  --sidebar-ring: oklch(0.66 0.14 246 / 60%);
+
+  /* Neobrutalismo nocturno: tinta casi negra, sombra más honda */
+  --ink: oklch(0.07 0.028 258);
+  --brutal-shadow: 4px 4px 0 0 oklch(0.03 0.02 258 / 70%);
+  --brutal-shadow-lg: 7px 7px 0 0 oklch(0.03 0.02 258 / 65%);
+
+  --scroll-thumb: oklch(0.4 0.04 258);
+  --vn-bg: oklch(0.12 0.045 253);
+  --vn-lead: oklch(0.66 0.14 246 / 30%);
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-attachment: fixed;
+  }
+  /* Halo azul del focus: una sola respiración de luz arriba, un asiento abajo */
+  .dark body {
+    background-image:
+      radial-gradient(1200px 500px at 70% -10%, oklch(0.66 0.14 246 / 7%), transparent 60%),
+      radial-gradient(900px 420px at 10% 110%, oklch(0.72 0.12 220 / 4%), transparent 55%);
+  }
+  html:not(.dark) body {
+    background-image:
+      radial-gradient(1200px 500px at 70% -10%, oklch(0.85 0.06 240 / 34%), transparent 60%),
+      radial-gradient(900px 420px at 10% 110%, oklch(0.88 0.05 230 / 26%), transparent 55%);
+  }
+}
+
+/* ---------- Scrollbars finas y azules ---------- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 0;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Visores del lector SIN scrollbar reservada: la barra clásica robaba una
+   franja lateral (el «marco» que quedaba incluso con la UI oculta). El
+   desplazamiento vive en la rueda, las flechas y el riel de progreso. */
+[data-viewport="pdf"]::-webkit-scrollbar,
+[data-viewport="companion"]::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+[data-viewport="pdf"],
+[data-viewport="companion"] {
+  scrollbar-width: none;
+}
+
+/* ---------- Riel v3 (pista continua, hitos como muescas, sin animaciones) ---------- */
+.rail-track {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+  background: oklch(0.93 0.02 80 / 7%);
+  box-shadow: inset 0 1px 2px oklch(0 0 0 / 0.32);
+  touch-action: none;
+}
+.rail-fill {
+  position: absolute;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 oklch(0.98 0.01 90 / 26%),
+    inset 0 -1px 0 oklch(0 0 0 / 18%);
+}
+.rail-anim .rail-fill {
+  transition: width 0.2s ease-out, height 0.2s ease-out, background 0.4s ease, opacity 0.25s ease;
+}
+.rail-anim .rail-knob {
+  transition: left 0.2s ease-out, top 0.2s ease-out, background 0.4s ease;
+}
+.rail-tick {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.rail-knob {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  box-shadow: 0 1px 4px oklch(0 0 0 / 0.45);
+}
+
+/* Bloqueo de selección de texto durante gestos (peek del dock, scrub del riel) */
+body.gesture-lock,
+body.gesture-lock * {
+  user-select: none !important;
+}
+
+
+/* ---------- Micro-animaciones ---------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(100deg, transparent 30%, oklch(0.66 0.03 250 / 9%) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Marco de página tipo libro */
+.page-frame {
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.5),
+    0 12px 40px oklch(0 0 0 / 0.45),
+    0 0 0 1px oklch(0.85 0.03 250 / 7%);
+}
+
+/* ---------- Capa de texto seleccionable de pdf.js (adaptada de pdf_viewer.css) ---------- */
+.textLayer {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  z-index: 2;
+  --min-font-size: 1;
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+  --text-scale-factor: calc(var(--total-scale-factor, 1) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+  user-select: text;
+}
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.textLayer .markedContent {
+  display: contents;
+}
+.textLayer ::selection {
+  background: oklch(0.55 0.15 250 / 0.35);
+}
+.textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: 0;
+  cursor: default;
+  user-select: none;
+}
+.textLayer.selecting .endOfContent {
+  top: 0;
+}
+
+/* ---------- Capa OCR (páginas escaneadas) ---------- */
+.ocrLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: clip;
+  line-height: 1;
+  text-align: initial;
+  letter-spacing: normal;
+  word-spacing: normal;
+  user-select: text;
+  pointer-events: none;
+}
+.ocrLayer span {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  cursor: text;
+  user-select: text;
+  pointer-events: auto;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ocrLayer span:hover {
+  background: oklch(0.55 0.15 250 / 0.12);
+}
+.ocrLayer ::selection {
+  background: oklch(0.55 0.15 250 / 0.4);
+}
+
+/* ---------- Candado de spoilers (notas / fichas futuras) ---------- */
+.spoiler-blur {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+}
+@keyframes spoiler-in {
+  from { filter: blur(5px); opacity: 0.3; }
+  to { filter: blur(0); opacity: 1; }
+}
+.spoiler-reveal {
+  animation: spoiler-in 0.4s ease-out both;
+}
+
+/* Pop del popover de diccionario */
+@keyframes dict-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dict-pop {
+  animation: dict-in 0.16s ease-out both;
+}
+
+/* ---------- Neobrutalismo: tinta sólida, sombra dura, cero curvas ---------- */
+.brutal {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--brutal-shadow);
+}
+.brutal-flat {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+}
+.brutal-hover {
+  transition: box-shadow 0.12s ease, transform 0.12s ease;
+}
+.brutal-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 0 var(--ink);
+}
+.brutal-press:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 0 var(--ink);
+}
+
+/* ---------- Capa 2: fondo secundario estático (Atenas brutalista) ---------- */
+/* El fondo base es el color plano de la casa; la capa 2 es la PIEDRA que va
+   encima: un render del Partenón a sangre completa y la estatua de Atenea
+   anclada abajo a la derecha. Estática por designio (nada de animaciones),
+   siempre en contraste con el tema: piedra cálida sobre noche egeo. */
+.atena-capa2 {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  user-select: none;
+  /* El busto ancla a sangre por la derecha: sin clip, la piedra desborda
+     el viewport y mueve el scroll horizontal en móviles. */
+  overflow: hidden;
+}
+.atena-capa2__fachada {
+  position: absolute;
+  inset: 0;
+  background: url("/atena-capa2-fachada.png") center / cover no-repeat;
+  opacity: 0.18;
+  filter: saturate(0.82) contrast(1.06);
+}
+.atena-capa2__busto {
+  position: absolute;
+  right: max(-3vw, -60px);
+  bottom: 0;
+  width: min(34vw, 540px);
+  aspect-ratio: 768 / 1344;
+  background: url("/atena-capa2-busto.png") bottom center / contain no-repeat;
+  opacity: 0.17;
+  filter: saturate(0.78) contrast(1.05);
+}
+.atena-capa2__vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 50% 8%, transparent 42%, oklch(0.145 0.045 253 / 0.55) 100%),
+    linear-gradient(180deg, oklch(0.145 0.045 253 / 0.42) 0%, transparent 28%, transparent 62%, oklch(0.145 0.045 253 / 0.66) 100%);
+}
+/* En la mañana clara la piedra se vuelve recuerdo: casi invisible, azul pálido */
+html:not(.dark) .atena-capa2__fachada {
+  opacity: 0.05;
+  filter: saturate(0.3) contrast(1.02) brightness(1.04);
+}
+html:not(.dark) .atena-capa2__busto {
+  opacity: 0.04;
+  filter: saturate(0.25) brightness(1.05);
+}
+html:not(.dark) .atena-capa2__vignette {
+  background:
+    radial-gradient(120% 90% at 50% 8%, transparent 46%, oklch(0.965 0.018 235 / 0.5) 100%),
+    linear-gradient(180deg, oklch(0.965 0.018 235 / 0.4) 0%, transparent 30%, transparent 64%, oklch(0.965 0.018 235 / 0.55) 100%);
+}
+/* ---------- Hero de Atenea (biblioteca) ---------- */
+.atena-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
+  border: 2px solid var(--ink);
+  background:
+    radial-gradient(900px 380px at 85% -20%, oklch(0.66 0.14 246 / 16%), transparent 60%),
+    radial-gradient(600px 300px at 0% 120%, oklch(0.72 0.12 220 / 9%), transparent 55%),
+    var(--card);
+  box-shadow: var(--brutal-shadow-lg);
+}
+html:not(.dark) .atena-hero {
+  background:
+    radial-gradient(900px 380px at 85% -20%, oklch(0.85 0.06 240 / 45%), transparent 60%),
+    radial-gradient(600px 300px at 0% 120%, oklch(0.88 0.05 230 / 32%), transparent 55%),
+    var(--card);
+}
+.atena-hero .seal-glow {
+  filter: drop-shadow(0 0 22px oklch(0.66 0.14 246 / 45%));
+}
+html:not(.dark) .atena-hero .seal-glow {
+  filter: drop-shadow(0 0 18px oklch(0.55 0.155 250 / 38%));
+}
+
+/* ---------- Modo cinematográfico ---------- */
+/* REGLA DE ORO (lección del typewriter borroso): sobre el TEXTO solo se
+   animan opacity y color. NUNCA transform ni filter. */
+/* Un SOLO fondo: color plano y callado — el escenario no compite con la
+   letra. La tarjeta NO lleva borde ni sombra (el texto flota directo sobre
+   el escenario); su fondo es el MISMO color del escenario para tapar la
+   capa saliente sin verse. */
+.vn-overlay {
+  background: var(--vn-bg);
+}
+.vn-progress-fill {
+  background: var(--primary);
+  transition: width 0.2s ease-out;
+}
+/* La entrada de la tarjeta ES el encendido letra a letra: nada de fade de
+   caja (con fondo opaco haría ghosting contra la capa saliente) */
+.vn-card {
+  animation: none;
+}
+/* Tarjeta saliente congelada: solo se desvanece la opacidad, sin re-layout.
+   Rápida (320ms) para que apenas se perciba el residuo fuera de la caja. */
+.vn-card--out {
+  animation: vn-card-out 320ms cubic-bezier(0.33, 0, 0.2, 1) both;
+  pointer-events: none;
+}
+@keyframes vn-card-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.vn-card-box {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  min-width: 0;
+  /* Plana por designio y SIN presencia: ni borde, ni sombra, ni caja visible.
+     El fondo replica el escenario (invisible a la vista, opaco al resto) para
+     cubrir la capa saliente durante la disolvencia. El texto es lo único que manda. */
+  border: none;
+  border-radius: 0;
+  background: var(--vn-bg);
+  box-shadow: none;
+  padding: clamp(1.9rem, 3.5vw, 2.9rem) clamp(2.1rem, 4vw, 3.3rem);
+  font-family: var(--font-fraunces), serif;
+  /* Tamaño de letra del lector: --vn-font-scale la mueve el control A−/A+ */
+  font-size: calc(clamp(1.35rem, 1.05rem + 0.9vw, 1.78rem) * var(--vn-font-scale, 1));
+  line-height: 1.9;
+  color: var(--foreground);
+}
+.vn-ch {
+  /* sin white-space: pre — hereda pre-wrap de la card para que el texto
+     ENVUELVA en los espacios (lección del bug «línea infinita»: pre mataba
+     los puntos de quiebre y la tarjeta se desbordaba a lo ancho) */
+  opacity: 0.17;
+  transition: opacity 130ms ease-out, color 130ms ease-out;
+}
+.vn-ch.on {
+  opacity: 1;
+  color: var(--foreground);
+}
+/* Resaltado de la primera palabra: la marca de dónde empieza la lectura,
+   del tamaño EXACTO de la palabra (simetría perfecta con la letra). Se
+     enciende junto con los caracteres — subrayador plano, sin degradado. */
+.vn-lead {
+  background: var(--vn-lead);
+  padding: 0.09em 0.045em;
+  margin: 0 -0.045em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+/* Inmersión propia del modo: la UI (barra, progreso, controles) se oculta
+   con la quietud; despierta con mouse/tecla/click. El cursor también se va. */
+.vn-chrome {
+  transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+.vn-immersed .vn-chrome {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.vn-immersed .vn-stage {
+  cursor: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vn-card,
+  .vn-card--out {
+    animation: none;
+    opacity: 1;
+  }
+  .vn-ch {
+    opacity: 1 !important;
+    transition: none;
+  }
+  .vn-chrome {
+    transition: none;
+  }
+  .vn-progress-fill {
+    transition: none;
+  }
+}
+
+/* ---------- Modo inmersión: la interfaz se desvanece ---------- */
+/* La opacidad sola NO basta: las cajas chrome siguen en el flex y el libro
+   quedaría enjaulado por huecos invisibles. Cada caja colapsa su espacio
+   reservado (ancho/alto/padding/borde) para que el visor ocupe TODA la pantalla. */
+[data-chrome] {
+  transition:
+    opacity 0.55s ease,
+    visibility 0.55s ease,
+    width 0.55s ease,
+    height 0.55s ease,
+    max-width 0.55s ease,
+    max-height 0.55s ease,
+    padding 0.55s ease,
+    border-width 0.55s ease;
+}
+.chrome-immersed [data-chrome] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Riel lateral (izquierda/derecha): la columna de 64px se cierra */
+.chrome-immersed [data-chrome-kind="aside"] {
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  border-width: 0;
+  overflow: hidden;
+}
+/* Cabecera del lector: la franja de 56px se cierra */
+.chrome-immersed [data-chrome-kind="header"] {
+  height: 0;
+  min-height: 0;
+  padding: 0;
+  border-width: 0;
+  overflow: hidden;
+}
+/* Riel superior/inferior: la franja se cierra (max-height anima desde 160px) */
+[data-chrome-kind="railbar"] {
+  max-height: 160px;
+}
+.chrome-immersed [data-chrome-kind="railbar"] {
+  max-height: 0;
+  min-height: 0;
+  padding: 0;
+  border-width: 0;
+  overflow: hidden;
+}
+/* Dock de modos (panel derecho de 352px): se cierra sin desmontarse,
+   así conserva el estado de sus paneles mientras está plegado */
+[data-chrome-kind="dock"] {
+  max-width: 352px;
+}
+.chrome-immersed [data-chrome-kind="dock"] {
+  max-width: 0;
+  min-width: 0;
+  padding: 0;
+  border-width: 0;
+  overflow: hidden;
+}
+.chrome-immersed [data-viewport="pdf"] {
+  cursor: none;
+}
+
+/* ---------- Zona caliente del peek (borde inferior) ---------- */
+.peek-hotzone {
+  /* invisible por sí misma; solo recoge el gesto y muestra la pista */
+  touch-action: none;
+}
+.peek-hotzone:hover .peek-hint {
+  opacity: 1;
+}
+
+/* ---------- Insignias de colección (badges) ---------- */
+/* Medallón circular: la portada del libro enmarcada por el metal de su tier */
+.badge-frame {
+  position: relative;
+  border-radius: 9999px;
+  padding: 3px;
+  isolation: isolate;
+}
+.badge-frame > img {
+  border-radius: 9999px;
+  object-fit: cover;
+  display: block;
+}
+/* brillo diagonal sutil sobre el metal (bajo la imagen, encima del fondo) */
+.badge-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgb(255 255 255 / 28%) 0%, transparent 38%, transparent 62%, rgb(0 0 0 / 18%) 100%);
+  pointer-events: none;
+}
+.badge-frame.tier-bronce {
+  background: linear-gradient(135deg, oklch(0.48 0.08 55), oklch(0.72 0.11 68));
+  box-shadow: 0 0 16px oklch(0.6 0.1 60 / 30%), 0 2px 6px oklch(0 0 0 / 40%);
+}
+.badge-frame.tier-plata {
+  background: linear-gradient(135deg, oklch(0.66 0.008 95), oklch(0.92 0.006 95));
+  box-shadow: 0 0 16px oklch(0.85 0.01 95 / 28%), 0 2px 6px oklch(0 0 0 / 40%);
+}
+.badge-frame.tier-oro {
+  background: linear-gradient(135deg, oklch(0.66 0.12 75), oklch(0.88 0.15 90));
+  box-shadow: 0 0 20px oklch(0.8 0.14 85 / 42%), 0 2px 6px oklch(0 0 0 / 40%);
+}
+.badge-frame.tier-diamante {
+  background: linear-gradient(135deg, oklch(0.72 0.09 210), oklch(0.95 0.035 200));
+  box-shadow: 0 0 22px oklch(0.85 0.07 200 / 48%), 0 2px 6px oklch(0 0 0 / 40%);
+}
+/* Chip de tier compacto para las tarjetas de la biblioteca */
+.badge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+.badge-chip.tier-bronce { background: oklch(0.6 0.09 60 / 16%); border-color: oklch(0.6 0.09 60 / 45%); color: oklch(0.78 0.09 65); }
+.badge-chip.tier-plata { background: oklch(0.85 0.008 95 / 14%); border-color: oklch(0.85 0.008 95 / 40%); color: oklch(0.9 0.006 95); }
+.badge-chip.tier-oro { background: oklch(0.8 0.13 85 / 16%); border-color: oklch(0.8 0.13 85 / 45%); color: oklch(0.85 0.13 88); }
+.badge-chip.tier-diamante { background: oklch(0.85 0.06 200 / 14%); border-color: oklch(0.85 0.06 200 / 45%); color: oklch(0.88 0.06 205); }
+
+/* ---------- EPUB: la página virtual ---------- */
+/* Tipografía de lectura con el mismo contrato que la tarjeta cinematográfica:
+   Fraunces, aire, y el multiplicador global --vn-font-scale (A−/A+).
+   Legibilidad primero: base más grande (clamp subido), peso 450 — un cuerpo
+   de libro debe leerse sin esfuerzo — y opsz de texto (trazo más firme que
+   el recorte display). La sangría de primera línea sigue la regla de
+   imprenta: el párrafo que abre página o viene tras título/cita/imagen va
+   al margen; los siguientes, sangrados. */
+.epub-page {
+  font-family: var(--font-fraunces), serif;
+  font-size: calc(clamp(1.16rem, 1rem + 0.7vw, 1.45rem) * var(--vn-font-scale, 1));
+  font-weight: 450;
+  font-variation-settings: "opsz" 15;
+  line-height: 1.85;
+  color: var(--foreground);
+  padding: clamp(2rem, 4vh, 3.2rem) 0 6rem;
+  /* Medida de imprenta: ~70 caracteres por línea a CUALQUIER tamaño de
+     letra (el ancho viaja en em, así A−/A+ no estira la medida) */
+  max-width: 36em;
+  margin-inline: auto;
+}
+/* Marco del visor EPUB: jaula de 860px centrada con aire a los lados…
+   …hasta que la lectura se vuelve inmersiva. Con la UI oculta (H/idle) o
+   en pantalla completa, la jaula se abre: sin capas de ancho y la medida
+   se ensancha a 44em — el libro ES la pantalla, no un recuadro dentro. */
+.epub-frame {
+  max-width: 860px;
+}
+.chrome-immersed .epub-frame,
+:fullscreen .epub-frame,
+:-webkit-full-screen .epub-frame {
+  max-width: none;
+  padding-inline: clamp(1.25rem, 3.5vw, 3rem);
+}
+.chrome-immersed .epub-page,
+:fullscreen .epub-page,
+:-webkit-full-screen .epub-page {
+  max-width: 44em;
+}
+.epubLayer {
+  cursor: text;
+}
+.epub-p {
+  margin: 0 0 0.34em;
+  text-indent: 1.25em;
+  overflow-wrap: break-word;
+}
+.epub-p:first-child,
+.epub-h + .epub-p,
+.epub-quote + .epub-p,
+.epub-li + .epub-p,
+.epub-img + .epub-p,
+blockquote + .epub-p {
+  text-indent: 0;
+}
+.epub-h {
+  font-family: var(--font-fraunces), serif;
+  font-weight: 600;
+  line-height: 1.22;
+  margin: 1.9em 0 0.7em;
+  text-wrap: balance;
+}
+.epub-h:first-child {
+  margin-top: 0.15em;
+}
+.epub-h1 {
+  font-size: 1.62em;
+  letter-spacing: 0.005em;
+  padding-bottom: 0.28em;
+  border-bottom: 2px solid var(--ink);
+}
+.epub-h2 {
+  font-size: 1.3em;
+}
+.epub-h3 {
+  font-size: 1.1em;
+  text-transform: none;
+  letter-spacing: 0.03em;
+}
+.epub-quote {
+  margin: 1.15em 0 1.35em;
+  padding: 0.3em 0 0.3em 1.1em;
+  /* Filete editorial fino en tinta (la casa habla con ink, no con franjas
+     gruesas de color): 2px, la mitad de la voz primaria */
+  border-left: 2px solid color-mix(in oklch, var(--ink) 72%, transparent);
+  font-style: italic;
+  opacity: 0.94;
+}
+.epub-li {
+  margin: 0 0 0.3em;
+  padding-left: 1.25em;
+  position: relative;
+}
+.epub-li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+}
+.epub-img {
+  display: block;
+  margin: 1.5em auto 1.7em;
+  max-width: min(100%, 76%);
+  height: auto;
+  border: 2px solid var(--ink);
+  box-shadow: var(--brutal-shadow);
+}
+/* Extracto de texto del carrusel peek (miniatura textual de página EPUB) */
+.epub-peek-card p {
+  font-family: var(--font-fraunces), serif;
+}

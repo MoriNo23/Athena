@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Book {
+  id          String           @id @default(cuid())
+  title       String
+  author      String?
+  fileName    String
+  filePath    String
+  coverPath   String?
+  totalPages  Int
+  currentPage Int              @default(1)
+  milestones  Int?             // tramos/hitos de ESTE libro; null = usar el global
+  // Lectura dual: PDF compañero (traducción / segunda edición), sincronizado por progreso
+  companionPath  String?
+  companionPages Int?
+  // Datos de los modos de lectura (fichas, notación, resultados, predicción...) como JSON
+  extras      Json?
+  // Colección de insignias: lectura completada y cuántas veces se ha terminado el libro
+  finishedAt  DateTime?
+  readCount   Int       @default(0)
+  badge       Badge?
+  createdAt   DateTime  @default(now())
+  lastReadAt  DateTime?
+  sessions    ReadingSession[]
+}
+
+/**
+ * Insignia coleccionable por libro terminado. El tier sube con cada relectura:
+ * 1 Bronce · 2 Plata · 3 Oro · 4+ Diamante. Solo existe si el libro es válido
+ * (título + autor). Al borrar el libro, su insignia desaparece con él.
+ */
+model Badge {
+  id        String   @id @default(cuid())
+  bookId    String   @unique
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  tier      Int      @default(1)
+  readings  Int      @default(1)
+  earnedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReadingSession {
+  id        String   @id @default(cuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  pagesRead Int      @default(0)
+  minutes   Int      @default(0)
+  date      DateTime @default(now())
+
+  @@index([bookId, date])
+}

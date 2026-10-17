@@ -1,0 +1,29 @@
+{
+  "books": [
+    {
+      "file": "don-quijote-atena.pdf",
+      "title": "Don Quijote de la Mancha (Selección Atena)",
+      "author": "Miguel de Cervantes",
+      "pages": 40,
+      "cover": "don-quijote-atena-cover.png"
+    },
+    {
+      "file": "meditaciones-atena.pdf",
+      "title": "Meditations (Atena Reading Copy)",
+      "author": "Marcus Aurelius — tr. George Long",
+      "pages": 24,
+      "cover": "meditaciones-atena-cover.png"
+    },
+    {
+      "file": "atena-escaneado.pdf",
+      "title": "Cuaderno de Atenas (libro capturado, img)",
+      "author": "Archivo Atenea",
+      "pages": 10,
+      "cover": "atena-escaneado-cover.png"
+    }
+  ],
+  "companion": {
+    "file": "companion-es.pdf",
+    "pages": 12
+  }
+}
