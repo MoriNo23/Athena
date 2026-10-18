@@ -10,7 +10,11 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
-    const body = (await req.json()) as { title?: string; author?: string | null };
+    const body = (await req.json()) as {
+      title?: string;
+      author?: string | null;
+      dailyGoal?: number | null;
+    };
 
     const book = await db.book.findUnique({ where: { id } });
     if (!book) {
@@ -32,9 +36,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       author = a ? a : null;
     }
 
+    // Meta diaria propia: null o vacío → heredar el mínimo global (tope 1-500)
+    let dailyGoal = book.dailyGoal;
+    if (body.dailyGoal !== undefined) {
+      dailyGoal =
+        body.dailyGoal === null
+          ? null
+          : Math.min(500, Math.max(1, Math.round(body.dailyGoal)));
+    }
+
     const updated = await db.book.update({
       where: { id },
-      data: { title, author },
+      data: { title, author, dailyGoal },
     });
     return NextResponse.json({ book: updated });
   } catch (e) {

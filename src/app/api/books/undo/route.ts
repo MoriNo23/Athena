@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       totalPages: number;
       currentPage: number;
       milestones: number | null;
+      dailyGoal: number | null;
       companionPath: string | null;
       companionPages: number | null;
       extras: unknown;
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
         totalPages: b.totalPages,
         currentPage: b.currentPage,
         milestones: b.milestones,
+        dailyGoal: b.dailyGoal ?? null,
         companionPath: b.companionPath,
         companionPages: b.companionPages,
         extras: (b.extras ?? undefined) as never,

@@ -300,7 +300,7 @@ export function ReaderHeader({
           <Flame className={`h-3.5 w-3.5 ${todayStreak > 0 ? "text-primary" : ""}`} />
           {todayStreak}
         </span>
-        <span className="flex items-center gap-1" title={t("reader.goalTitle")}>
+        <span className="flex items-center gap-1" title={t("reader.goalBookTitle")}>
           <Target className="h-3.5 w-3.5" />
           {pagesToday}/{dailyGoal}
         </span>

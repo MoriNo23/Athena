@@ -39,6 +39,7 @@ import {
 import type { BookDTO } from "@/lib/types";
 
 export type { BookWithSessions } from "@/hooks/use-library-books";
+import type { BookWithSessions } from "@/hooks/use-library-books";
 
 /** Sello de Atena: columna dórica geométrica en marco cuadrado.
     Minimalista y brutalista — piedra, no caricatura. */
@@ -62,7 +63,8 @@ function AtenaSeal({ className }: { className?: string }) {
 }
 
 interface LibraryViewProps {
-  onOpen: (book: BookDTO) => void;
+  /** abre el lector: las tarjetas siempre pasan el libro CON sus sesiones */
+  onOpen: (book: BookWithSessions) => void;
 }
 
 export function LibraryView({ onOpen }: LibraryViewProps) {
@@ -295,9 +297,10 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
         </DialogContent>
       </Dialog>
 
-      {/* ---- Edición de ficha (título/autor/portada real) ---- */}
+      {/* ---- Edición de ficha (título/autor/portada real/meta propia) ---- */}
       <EditBookDialog
         book={editTarget}
+        defaultGoal={dailyGoal}
         open={!!editTarget}
         onOpenChange={(o) => !o && setEditTarget(null)}
         onSaved={(saved) =>
@@ -306,6 +309,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
             title: saved.title,
             author: saved.author,
             coverPath: saved.coverPath,
+            ...(saved.dailyGoal !== undefined ? { dailyGoal: saved.dailyGoal } : {}),
           })
         }
       />

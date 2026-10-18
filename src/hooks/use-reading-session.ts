@@ -42,6 +42,8 @@ export function useReadingSession(opts: {
 
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [todayStats, setTodayStats] = useState({ streak: 0, pagesToday: 0, minutesToday: 0 });
+  /** páginas de hoy de ESTE libro: base del servidor + contador vivo de la sesión */
+  const [bookPagesToday, setBookPagesToday] = useState(0);
 
   // ---------- Guardado de progreso ----------
   const pending = useRef<Pending>({ pages: 0, seconds: 0 });
@@ -49,6 +51,11 @@ export function useReadingSession(opts: {
   const lastFlushedPage = useRef<number | null>(null); // última página ENVIADA al servidor
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionSecRef = useRef(0);
+  // «Hoy del libro»: base inmutable leída al montar + contador monótono de la
+  // sesión. El contador propio NO es pending.pages: pending se vacía con cada
+  // volcado al servidor y el par de la cabecera no puede menguar al guardar.
+  const bookBaseRef = useRef(0);
+  const bookLiveRef = useRef(0);
 
   // ---------- Pausas en cortes naturales ----------
   const [pauseArmed, setPauseArmed] = useState(false);
@@ -131,9 +138,17 @@ export function useReadingSession(opts: {
       lastSavedPage.current = page;
       pending.current.pages = 0;
     } else {
-      // registrar delta positivo
+      // registrar delta positivo desde la marca alta: solo cuentan páginas nuevas
       const delta = page - lastSavedPage.current;
-      if (delta > 0) pending.current.pages += delta;
+      if (delta > 0) {
+        pending.current.pages += delta;
+        // La marca alta avanza AQUÍ y no solo en el volcado: dos giros dentro de
+        // la ventana de debounce cuentan 1+1 (no el delta acumulado 1+2).
+        lastSavedPage.current = page;
+        // hoy del libro: mismas reglas de conteo (los saltos silenciosos no suman)
+        bookLiveRef.current += delta;
+        setBookPagesToday(bookBaseRef.current + bookLiveRef.current);
+      }
     }
 
     // pausa en corte natural: al girar la página con la sesión cumplida
@@ -144,12 +159,13 @@ export function useReadingSession(opts: {
     }
   }, []);
 
-  // Stats de hoy (racha, páginas, minutos) al montar
+  // Stats de hoy (racha, páginas, minutos) + base de hoy de ESTE libro, al montar
   useEffect(() => {
     fetch("/api/books", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
-        const all = (data.books ?? []).flatMap(
+        const books = data.books ?? [];
+        const all = books.flatMap(
           (b: { sessions: { pagesRead: number; minutes: number; date: string }[] }) => b.sessions
         );
         const dayMap = groupSessionsByDay(all);
@@ -159,9 +175,14 @@ export function useReadingSession(opts: {
           pagesToday: today.pages,
           minutesToday: today.minutes,
         });
+        // base de hoy del libro abierto: sesiones de hoy de SU historial
+        const mine = books.find((b: { id: string }) => b.id === bookId);
+        const myToday = groupSessionsByDay(mine?.sessions ?? []).get(dayKey(new Date()));
+        bookBaseRef.current = myToday?.pages ?? 0;
+        setBookPagesToday(bookBaseRef.current + bookLiveRef.current);
       })
       .catch(() => undefined);
-  }, []);
+  }, [bookId]);
 
   // Cronómetro de sesión activa + volcado periódico de minutos + armado de pausa
   useEffect(() => {
@@ -208,6 +229,7 @@ export function useReadingSession(opts: {
   return {
     sessionSeconds,
     todayStats,
+    bookPagesToday,
     pauseArmed,
     pauseDialogOpen,
     pauseDraft,

@@ -2,12 +2,13 @@
 
 import { useMemo } from "react";
 import { Medal, Trophy } from "lucide-react";
-import { BookDTO, BADGE_TIERS } from "@/lib/types";
+import { BADGE_TIERS } from "@/lib/types";
 import { useI18n } from "@/lib/i18n";
+import type { BookWithSessions } from "@/hooks/use-library-books";
 
 interface BadgeShelfProps {
-  books: BookDTO[];
-  onOpen: (book: BookDTO) => void;
+  books: BookWithSessions[];
+  onOpen: (book: BookWithSessions) => void;
 }
 
 

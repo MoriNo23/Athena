@@ -19,6 +19,8 @@ export interface BookDTO {
   currentPage: number;
   /** tramos/hitos de este libro; null = usar el global de ajustes */
   milestones: number | null;
+  /** meta diaria de este libro (1-500); null = heredar el mínimo global de ajustes */
+  dailyGoal: number | null;
   /** PDF compañero para lectura dual (traducción u otra edición) */
   companionPath: string | null;
   companionPages: number | null;

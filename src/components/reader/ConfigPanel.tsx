@@ -18,6 +18,7 @@ import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import { BookDTO, FilterPreset, RailPosition, RailTheme, RAIL_THEMES } from "@/lib/types";
 import { RESERVED_HOTKEYS } from "@/hooks/use-reader-hotkeys";
+import type { BookPatch } from "@/hooks/use-book-milestones";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageMenu } from "@/components/library/LanguageMenu";
 import { BookMarked, Check, Eye, EyeOff, Keyboard, LayoutPanelLeft, Moon, MoveVertical, Mouse, Palette, RotateCcw, Sparkles, Target } from "lucide-react";
@@ -25,10 +26,10 @@ import { BookMarked, Check, Eye, EyeOff, Keyboard, LayoutPanelLeft, Moon, MoveVe
 interface ConfigPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** libro abierto en el lector; habilita la sección de hitos individuales */
+  /** libro abierto en el lector; habilita las secciones de hitos y meta individuales */
   book?: BookDTO | null;
-  /** aplica cambios persistidos del libro (hitos individuales) */
-  onPatchBook?: (patch: { milestones?: number | null }) => void;
+  /** aplica cambios persistidos del libro (hitos y meta diaria individuales) */
+  onPatchBook?: (patch: BookPatch) => void;
 }
 
 const POSITIONS: { value: RailPosition; label: string }[] = [
@@ -498,6 +499,10 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
               <Target className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-semibold uppercase tracking-wide">{t("config.habit")}</h3>
             </div>
+
+            {/* --- Meta propia de este libro (espejo del control de hitos) --- */}
+            <BookGoalCard book={book} globalGoal={dailyGoal} onPatchBook={onPatchBook} />
+
             <div className="grid gap-2">
               <Label htmlFor="goal-input">{t("config.dailyGoal")}</Label>
               <Input
@@ -552,6 +557,79 @@ function FilterSlider({
         onValueChange={([v]) => onChange(v)}
         aria-label={label}
       />
+    </div>
+  );
+}
+
+/**
+ * Meta diaria propia de ESTE libro (sección Hábito), espejo del control de
+ * hitos: switch para fijar/retirar y su input propio. null = hereda el mínimo
+ * global; al activar el switch parte del valor global.
+ */
+function BookGoalCard({
+  book,
+  globalGoal,
+  onPatchBook,
+}: {
+  book?: BookDTO | null;
+  globalGoal: number;
+  onPatchBook?: ((patch: BookPatch) => void) | null;
+}) {
+  const { t } = useI18n();
+  // Borrador null = no editando: el valor mostrado se deriva del libro en render
+  // (sin setState en efectos). Mientras se teclea, el borrador manda; al salir
+  // del input vuelve a reflejar el valor confirmado (optimista + BD).
+  const [goalDraft, setGoalDraft] = useState<string | null>(null);
+  if (!book || !onPatchBook) return null; // la tarjeta solo vive con libro abierto
+  const perBookActive = book.dailyGoal != null;
+  const goalShown = goalDraft ?? (book.dailyGoal != null ? String(book.dailyGoal) : "");
+
+  return (
+    <div className="mb-5 grid gap-3 rounded-lg border border-primary/25 bg-primary/5 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <Label className="gap-1.5 text-sm">
+            <BookMarked className="h-3.5 w-3.5 text-primary" /> {t("config.bookGoal")}
+          </Label>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t("config.bookGoalHint")}
+          </p>
+        </div>
+        <Switch
+          checked={perBookActive}
+          onCheckedChange={(v) => onPatchBook({ dailyGoal: v ? globalGoal : null })}
+          aria-label={t("config.bookGoalSwitch")}
+          data-testid="book-goal-switch"
+        />
+      </div>
+      {perBookActive ? (
+        <div className="grid gap-2">
+          <Label htmlFor="book-goal-input" className="text-xs text-muted-foreground">
+            {t("config.bookGoalFor", { title: book.title })}
+          </Label>
+          <Input
+            id="book-goal-input"
+            type="number"
+            min={1}
+            max={500}
+            value={goalShown}
+            onChange={(e) => {
+              setGoalDraft(e.target.value);
+              const v = parseInt(e.target.value, 10);
+              if (Number.isFinite(v) && v >= 1) {
+                onPatchBook({ dailyGoal: Math.min(500, Math.max(1, v)) });
+              }
+            }}
+            onBlur={() => setGoalDraft(null)}
+            className="w-28"
+            data-testid="book-goal-input"
+          />
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {t("config.goalInheritHint", { n: globalGoal, title: book.title })}
+        </p>
+      )}
     </div>
   );
 }

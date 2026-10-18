@@ -165,6 +165,7 @@ export function TeleprompterOverlay({
     stream,
     firstLen,
     totalChars,
+    cancelViewAnim,
   } = tpWin;
 
   const player = useTeleprompterPlayer({
@@ -243,6 +244,7 @@ export function TeleprompterOverlay({
         e.preventDefault();
         e.stopPropagation();
         setPlaying(false);
+        cancelViewAnim(); // el desplazamiento manual manda: el seguimiento se re-ancla al reanudar
         const root = scrollRef.current;
         if (root) root.scrollTop -= Math.max(80, root.clientHeight * 0.15);
       } else if (e.key === " ") {
@@ -266,7 +268,7 @@ export function TeleprompterOverlay({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [forward, rewindOne, onClose, pageDone, bookDone, changeFont, toggleFullscreen, setPlaying, scrollRef]);
+  }, [forward, rewindOne, onClose, pageDone, bookDone, changeFont, toggleFullscreen, setPlaying, scrollRef, cancelViewAnim]);
 
   const stale = isStaleWindow(win, pageNum);
   const atEnd = isAtEnd(bookDone, win, lit, totalChars);
@@ -483,7 +485,10 @@ export function TeleprompterOverlay({
             className="tp-scroll h-full overflow-y-auto px-6 pb-28 pt-24"
             data-testid="tp-scroll"
             onWheel={(e) => {
-              // releer hacia arriba pausa el avance; no apaga el texto
+              // releer hacia arriba pausa el avance; no apaga el texto.
+              // Cualquier giro manual cancela la transición de vista: el objetivo
+              // se recalcula contra el DOM real al reanudar el seguimiento.
+              cancelViewAnim();
               if (e.deltaY < 0) setPlaying(false);
             }}
           >
