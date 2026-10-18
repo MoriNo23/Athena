@@ -3,8 +3,9 @@
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { RailBar } from "@/components/rail/RailBar";
-import { estimateFinishDate, groupSessionsByDay, pickDailyRate, progressPct } from "@/lib/reading";
+import { dayKey, estimateFinishDate, groupSessionsByDay, pickDailyRate, progressPct } from "@/lib/reading";
 import { useI18n, formatDate } from "@/lib/i18n";
+import { useSettings } from "@/lib/settings";
 import { BADGE_TIERS, RailTheme } from "@/lib/types";
 import type { BookWithSessions } from "@/hooks/use-library-books";
 import { BookOpen, Medal, Pencil, RotateCcw, Trash2 } from "lucide-react";
@@ -23,6 +24,7 @@ interface BookCardProps {
 /** Tarjeta de libro de la biblioteca: portada, mini-riel, ritmo y acciones */
 export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onReset, style }: BookCardProps) {
   const { t, lang } = useI18n();
+  const globalGoal = useSettings((s) => s.reading.dailyGoal);
   const pct = progressPct(book);
   const done = book.currentPage >= book.totalPages;
 
@@ -30,6 +32,15 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
   const eta = useMemo(() => (rate ? estimateFinishDate(book, rate.pages) : null), [book, rate]);
   const tierKey = BADGE_TIERS[book.badge?.tier ?? 1]?.key ?? "bronce";
   const tierLabel = t(`badge.${tierKey}`);
+
+  // Resumen de hoy desde las sesiones que ya viajan en el payload (sin petición extra):
+  // sin actividad hoy no se pinta progreso falso.
+  const today = useMemo(
+    () => groupSessionsByDay(book.sessions).get(dayKey(new Date())) ?? { pages: 0, minutes: 0 },
+    [book.sessions]
+  );
+  const effectiveGoal = book.dailyGoal ?? globalGoal;
+  const hasToday = today.pages > 0 || today.minutes > 0;
 
   return (
     <article
@@ -121,6 +132,12 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
             <span className="italic">{t("card.eta", { date: formatDate(eta, lang) })}</span>
           )}
         </div>
+
+        {hasToday && (
+          <p className="mt-1 text-xs tabular-nums text-muted-foreground" data-testid="card-today-summary">
+            {t("card.todaySummary", { p: today.pages, m: today.minutes, gp: today.pages, g: effectiveGoal })}
+          </p>
+        )}
 
         <div className="mt-auto pt-3">
           <Button onClick={onOpen} className="w-full gap-2" variant={done ? "secondary" : "default"}>

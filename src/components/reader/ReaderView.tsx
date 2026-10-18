@@ -36,11 +36,13 @@ import { epubPageText, type EpubPage } from "@/lib/epub";
 import type { TeleprompterBlock } from "@/lib/teleprompter";
 import { clampTeleprompterFontScale, TELEPROMPTER_FONT_STEP } from "@/lib/types";
 import type { BookDTO } from "@/lib/types";
+import type { BookWithSessions } from "@/hooks/use-library-books";
 import { cn } from "@/lib/utils";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 
 interface ReaderViewProps {
-  book: BookDTO;
+  /** el lector recibe el libro CON sus sesiones (runtime de /api/books) */
+  book: BookWithSessions;
   onBack: () => void;
   /** sincroniza el libro activo (p. ej. hitos individuales) con el estado raíz */
   onBookChange?: (book: BookDTO) => void;
@@ -163,6 +165,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   const {
     sessionSeconds,
     todayStats,
+    bookPagesToday,
     pauseArmed,
     pauseDialogOpen,
     pauseDraft,
@@ -388,7 +391,10 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
 
   const pct = Math.round((pageNum / numPages) * 100);
   const sessionMin = Math.floor(sessionSeconds / 60);
-  const todayPagesShown = todayStats.pagesToday; // se actualiza al entrar; el guardado frecuente lo refleja al volver
+  // «Hoy» de ESTE libro (base de montaje + contador vivo) contra su meta efectiva:
+  // la meta propia del libro manda; sin ella, el mínimo global de ajustes.
+  const effectiveGoal = book.dailyGoal ?? dailyGoal;
+  const todayPagesShown = bookPagesToday; // vivo durante la sesión: sube con cada giro contable
 
   // Lectura dual activa: toggle + PDF compañero cargado
   const dualActive = modes.toggles.dualRead && !!book.companionPath && !!book.companionPages;
@@ -506,7 +512,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
             onOpenVocabulary={() => setVocabOpen(true)}
             todayStreak={todayStats.streak}
             pagesToday={todayPagesShown}
-            dailyGoal={dailyGoal}
+            dailyGoal={effectiveGoal}
             sessionMinutes={sessionMin}
             etaLabel={etaLabel}
             onOpenSettings={() => setPanelOpen(true)}

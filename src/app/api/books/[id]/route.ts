@@ -13,6 +13,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       pagesRead?: number;
       minutes?: number;
       milestones?: number | null;
+      dailyGoal?: number | null;
       extras?: Record<string, unknown> | null;
     };
 
@@ -38,6 +39,15 @@ export async function PATCH(req: NextRequest, { params }: Params) {
           : Math.min(40, Math.max(2, Math.round(body.milestones)));
     }
 
+    // Meta diaria propia del libro: null → heredar el mínimo global (1-500)
+    let dailyGoal = book.dailyGoal;
+    if (body.dailyGoal !== undefined) {
+      dailyGoal =
+        body.dailyGoal === null
+          ? null
+          : Math.min(500, Math.max(1, Math.round(body.dailyGoal)));
+    }
+
     // Extras de modos de lectura (fichas, notación, resultados...): se reemplaza el objeto completo
     let extras: unknown = book.extras;
     if (body.extras !== undefined) {
@@ -54,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const updated = await db.book.update({
       where: { id },
-      data: { currentPage, lastReadAt: new Date(), milestones, extras: extras as never },
+      data: { currentPage, lastReadAt: new Date(), milestones, dailyGoal, extras: extras as never },
     });
 
     if (pagesRead > 0 || minutes > 0) {

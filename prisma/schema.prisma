@@ -17,6 +17,7 @@ model Book {
   totalPages  Int
   currentPage Int              @default(1)
   milestones  Int?             // tramos/hitos de ESTE libro; null = usar el global
+  dailyGoal   Int?             // meta diaria de ESTE libro (1-500); null = usar el mínimo global
   // Lectura dual: PDF compañero (traducción / segunda edición), sincronizado por progreso
   companionPath  String?
   companionPages Int?

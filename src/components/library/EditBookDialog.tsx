@@ -23,11 +23,21 @@ interface EditBookDialogProps {
     title: string;
     author: string | null;
     coverPath: string | null;
+    /** meta diaria propia del libro; null = hereda el mínimo global */
+    dailyGoal: number | null;
   } | null;
+  /** mínimo diario global (placeholder y herencia del campo de meta) */
+  defaultGoal: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** devuelve el libro actualizado (ficha y/o portada) para refrescar la biblioteca */
-  onSaved: (book: { id: string; title: string; author: string | null; coverPath: string | null }) => void;
+  onSaved: (book: {
+    id: string;
+    title: string;
+    author: string | null;
+    coverPath: string | null;
+    dailyGoal?: number | null;
+  }) => void;
 }
 
 /** Portada actual del libro (o marcador si no tiene) */
@@ -40,6 +50,53 @@ function CoverPreview({ cover }: { cover: string | null }) {
       ) : (
         <BookOpen className="h-7 w-7 text-muted-foreground" />
       )}
+    </div>
+  );
+}
+
+/** meta escrita a mano: vacío = heredar (null); si no, tope al rango 1-500 */
+function parseGoalDraft(raw: string): number | null {
+  const s = raw.trim();
+  if (!s) return null;
+  const v = parseInt(s, 10);
+  if (!Number.isFinite(v)) return null;
+  return Math.min(500, Math.max(1, v));
+}
+
+/**
+ * Campo de meta diaria propia del diálogo de ficha: vacío = heredar el mínimo
+ * global. El borrador vive aquí; el padre recibe el valor ya parseado.
+ */
+function GoalField({
+  book,
+  defaultGoal,
+  onChange,
+}: {
+  book: { dailyGoal: number | null } | null;
+  defaultGoal: number;
+  onChange: (v: number | null) => void;
+}) {
+  const { t } = useI18n();
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? (book?.dailyGoal != null ? String(book.dailyGoal) : "");
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor="edit-daily-goal">{t("edit.goal")}</Label>
+      <Input
+        id="edit-daily-goal"
+        type="number"
+        min={1}
+        max={500}
+        value={shown}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          onChange(parseGoalDraft(e.target.value));
+        }}
+        placeholder={t("edit.goalPlaceholder", { n: defaultGoal })}
+        className="w-36"
+        data-testid="edit-daily-goal"
+      />
+      <p className="text-xs text-muted-foreground">{t("edit.goalHint", { n: defaultGoal })}</p>
     </div>
   );
 }
@@ -75,11 +132,12 @@ function EligibilityBadge({ metaValid }: { metaValid: boolean }) {
  * Personalización del libro: título y autor a mano (validez de la insignia)
  * y portada real buscada en APIs gratuitas — solo cuando hay título + autor.
  */
-export function EditBookDialog({ book, open, onOpenChange, onSaved }: EditBookDialogProps) {
+export function EditBookDialog({ book, defaultGoal, open, onOpenChange, onSaved }: EditBookDialogProps) {
   const { toast } = useToast();
   const { t } = useI18n();
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
+  const [goalValue, setGoalValue] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   // evita re-buscar la portada en cada guardado si la ficha no cambió
   const metaSnapshot = useRef<{ title: string; author: string }>({ title: "", author: "" });
@@ -88,6 +146,7 @@ export function EditBookDialog({ book, open, onOpenChange, onSaved }: EditBookDi
     if (!open || !book) return;
     setTitle(book.title);
     setAuthor(book.author ?? "");
+    setGoalValue(book.dailyGoal);
     metaSnapshot.current = { title: book.title, author: book.author ?? "" };
     setSaving(false);
   }, [open, book]);
@@ -117,7 +176,7 @@ export function EditBookDialog({ book, open, onOpenChange, onSaved }: EditBookDi
       const res = await fetch(`/api/books/${book.id}/meta`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: trimmed, author: author.trim() || null }),
+        body: JSON.stringify({ title: trimmed, author: author.trim() || null, dailyGoal: goalValue }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? t("edit.errorSaving"));
@@ -126,9 +185,9 @@ export function EditBookDialog({ book, open, onOpenChange, onSaved }: EditBookDi
         title: data.book.title as string,
         author: (data.book.author ?? null) as string | null,
         coverPath: cover,
+        dailyGoal: (data.book.dailyGoal ?? null) as number | null,
       });
       toast({ title: t("edit.savedToast"), description: metaValid ? t("edit.savedOk") : t("edit.savedNo") });
-
       // Portada automática: solo si el usuario especificó título + autor y la ficha cambió
       if (changedMeta && metaValid) {
         await runCoverSearch(false);
@@ -183,6 +242,8 @@ export function EditBookDialog({ book, open, onOpenChange, onSaved }: EditBookDi
           </div>
 
           <EligibilityBadge metaValid={metaValid} />
+
+          <GoalField book={book} defaultGoal={defaultGoal} onChange={setGoalValue} />
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
