@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Auditoría de contraste de los tokens de lectura (change «Teleprompter y
-lector», task 3.1).
+lector», task 3.1; extendido con la pareja «azul sobre tinte» por el change
+«contraste-azul-sobre-tinte», tasks 1.1/1.3).
 
-Lee `--reader-bg`, `--reader-ink`, `--reader-title` y `--reader-rule` desde
-`src/app/globals.css` (:root claro y .dark), convierte oklch → sRGB →
-luminancia relativa WCAG y calcula el contraste:
+Lee `--reader-bg`, `--reader-ink`, `--reader-title`, `--reader-rule` y
+`--primary-on-tint` desde `src/app/globals.css` (:root claro y .dark),
+convierte oklch → sRGB → luminancia relativa WCAG y calcula el contraste:
 
   · cuerpo (ink vs bg)     ≥ 4.5:1  (AA texto normal)
   · títulos (title vs bg)  ≥ 3:1    (AA texto grande)
   · regla (rule vs bg)     ≥ 3:1    (WCAG 1.4.11, componentes no textuales)
+  · azul sobre tinte: --primary-on-tint contra el fondo REAL del botón
+    «Pantalla completa» (tinte primary/10 sobre bg-card/40 sobre
+    --background), y también contra tintes 15 % y 20 % (hover) ≥ 4.5:1.
 
 Sale con código 1 si algún umbral falla.
 
@@ -83,6 +87,28 @@ CHECKS = [("cuerpo", "ink", 4.5), ("títulos", "title", 3.0), ("regla", "rule", 
 fail = 0
 
 print(f"Fuente: {CSS.relative_to(CSS.parent.parent)}")
+
+
+def _srgb_channel(v: float) -> float:
+    """lineal → sRGB gamma"""
+    v = min(1.0, max(0.0, v))
+    return 12.92 * v if v <= 0.0031308 else 1.055 * v ** (1 / 2.4) - 0.055
+
+
+def _linear_channel(v: float) -> float:
+    """sRGB gamma → lineal"""
+    return v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+
+
+def blend_srgb(fg, bg, alpha):
+    """Composición alfa en espacio sRGB gamma (como el navegador).
+    Entrada y salida en RGB lineal; la mezcla ocurre en gamma."""
+    return tuple(
+        _linear_channel(_srgb_channel(f) * alpha + _srgb_channel(b) * (1 - alpha))
+        for f, b in zip(fg, bg)
+    )
+
+
 for theme, css in THEMES:
     bg = oklch_to_linear_rgb(*token(css, "reader-bg"))
     print(f"\n=== tema {theme} — fondo {hexof(bg)} ===")
@@ -92,6 +118,24 @@ for theme, css in THEMES:
         ok = r >= minimum
         fail += 0 if ok else 1
         print(f"  [{'PASS' if ok else 'FAIL'}] {label:<8} {hexof(fg)} vs fondo: {r:5.2f}:1 (mín {minimum})")
+
+    # ---- pareja «azul sobre tinte» (change contraste-azul-sobre-tinte) ----
+    # El botón compone tinte primary/N% sobre bg-card/40 sobre --background.
+    on_tint = oklch_to_linear_rgb(*token(css, "primary-on-tint"))
+    primary = oklch_to_linear_rgb(*token(css, "primary"))
+    card = oklch_to_linear_rgb(*token(css, "card"))
+    app_bg = oklch_to_linear_rgb(*token(css, "background"))
+    header = blend_srgb(card, app_bg, 0.40)  # bg-card/40 de la cabecera
+    print(f"  pareja «azul sobre tinte»: texto {hexof(on_tint)}")
+    for tint in (0.10, 0.15, 0.20):
+        btn_bg = blend_srgb(primary, header, tint)
+        r = ratio(on_tint, btn_bg)
+        ok = r >= 4.5
+        fail += 0 if ok else 1
+        etiqueta = f"tinte {int(tint * 100)}%{' (hover)' if tint == 0.20 else ''}"
+        print(
+            f"  [{'PASS' if ok else 'FAIL'}] {etiqueta:<14} vs fondo compuesto {hexof(btn_bg)}: {r:5.2f}:1 (mín 4.5)"
+        )
 
 print("\nCONTRASTE SANO — todos los umbrales AA+" if not fail else f"\n{fail} umbral(es) sin cumplir")
 sys.exit(1 if fail else 0)

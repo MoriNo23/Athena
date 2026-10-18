@@ -24,18 +24,25 @@ TU máquina, TU biblioteca es TUYA.
   navegador), el buscador de portadas y el diccionario. **Leer funciona
   sin internet.**
 
-## Arranque en 3 comandos
+## Arranque en 4 comandos (clon limpio)
 
 ```bash
-bun install      # instala todo y auto-genera el cliente de base de datos
-bun run dev      # arranca la app en http://localhost:3000
+cp .env.example .env    # una línea: DATABASE_URL=file:../db/custom.db
+bun install             # instala todo y auto-genera el cliente de base de datos
+bunx prisma db push     # crea la BD vacía en db/custom.db (solo la primera vez)
+bun run dev             # arranca la app en http://localhost:3000
 ```
 
-Y abre **http://localhost:3000** en el navegador. Ya está. A leer.
+Y abre **http://localhost:3000** en el navegador. Sube un PDF o EPUB con
+arrastrarlo a la biblioteca. Ya está. A leer.
 
 > El `bun install` ejecuta automáticamente `prisma generate` (hay un gancho
 > `postinstall` que lo hace solo). Si algún día la biblioteca de libros
 > fallara con un error raro, el remedio manual es: `bunx prisma generate`.
+>
+> La ruta `file:../db/custom.db` es relativa a la carpeta `prisma/` (Prisma
+> la resuelve desde ahí): apunta a `db/custom.db` de la raíz del proyecto y
+> funciona en cualquier carpeta o máquina sin editar nada.
 
 ## ¿Tengo que hacer `bun run build`?
 
@@ -65,11 +72,11 @@ libros, progreso, insignias y ajustes aparecen solos:
 
 Situaciones especiales:
 
-- **Tu copia no trae `db/custom.db`** (empiezas de cero): crea la BD vacía con
-  `bunx prisma db push` y listo.
-- **Tu copia no trae `.env`, o trae uno con una ruta tipo `/home/z/...` que no
-  existe en tu máquina**: crea (o edita) el `.env` en la raíz para que tenga
-  esta única línea:
+- **Tu copia no trae `db/custom.db`** (empiezas de cero): con el `.env` del
+  paso anterior, `bunx prisma db push` crea la BD vacía y listo.
+- **Tu copia trae un `.env` con una ruta tipo `/home/z/...` que no existe en
+  tu máquina**: sustitúyelo por el `.env.example` (`cp .env.example .env`) o
+  deja el archivo con esta única línea:
   ```
   DATABASE_URL=file:../db/custom.db
   ```
@@ -121,9 +128,16 @@ tools/crapper/        → herramienta de métricas (opcional, necesita Python)
 ## Resumen ultrarrápido
 
 ```bash
+cp .env.example .env
 bun install
+bunx prisma db push
 bun run dev
 # → http://localhost:3000
 ```
 
 ¿Build? Solo si quieres modo producción. Sin prisa, sin paloma.
+
+## Licencia
+
+MIT — mira [`LICENSE`](LICENSE). Clona, modifica y auto-hospeda: tu
+biblioteca es tuya.

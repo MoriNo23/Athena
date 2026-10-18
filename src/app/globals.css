@@ -34,6 +34,7 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-on-tint: var(--primary-on-tint);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -70,6 +71,11 @@
   --popover-foreground: oklch(0.24 0.05 258);
   --primary: oklch(0.55 0.155 250);
   --primary-foreground: oklch(0.985 0.008 240);
+  /* Pareja «azul sobre tinte»: texto azul de enfoque sobre tinte del mismo
+     azul (p. ej. botón «Pantalla completa»). Azul más oscuro bajando L y
+     conservando hue/croma: ≥ 4.5:1 contra el tinte real (10–20 %) en claro.
+     Medido en scripts/audit-reader-contrast.py; --primary global no se mueve. */
+  --primary-on-tint: oklch(0.45 0.155 250);
   --secondary: oklch(0.915 0.035 240);
   --secondary-foreground: oklch(0.3 0.055 258);
   --muted: oklch(0.93 0.02 235);
@@ -121,6 +127,10 @@
   --popover-foreground: oklch(0.93 0.02 250);
   --primary: oklch(0.66 0.14 246);
   --primary-foreground: oklch(0.14 0.04 253);
+  /* Pareja «azul sobre tinte» nocturna: el peor caso medido era el oscuro
+     móvil (3.4–3.5:1 por píxel). Se sube la luminancia del texto y se
+     suaviza el croma: ≥ 4.5:1 con margen incluso en tinte 20 % (hover). */
+  --primary-on-tint: oklch(0.78 0.12 246);
   --secondary: oklch(0.26 0.05 252);
   --secondary-foreground: oklch(0.93 0.02 250);
   --muted: oklch(0.24 0.04 252);

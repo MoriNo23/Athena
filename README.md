@@ -87,6 +87,10 @@ bun run dev              # → http://localhost:3000
 
 Drop a PDF or EPUB on the library. That's the whole onboarding.
 
+> Why `file:../db/custom.db`? Prisma resolves the SQLite path relative to
+> `prisma/`, so this single line lands the library at `<repo>/db/custom.db`
+> on any machine — no edits, no absolute paths, no `prisma/db/` strays.
+
 **Everyday scripts:**
 
 | Command | What it does |
@@ -101,6 +105,29 @@ Your books, covers and progress live in `db/custom.db` + `public/uploads/` — c
 two to back everything up. They are gitignored on purpose: **your library never leaves
 your machine.** The Spanish quick-start guide with troubleshooting lives in
 [`LEEME.md`](LEEME.md).
+
+## RELEASE CHECKLIST
+
+Everything a clone must pass before a release or a pull request — run them from
+the repo root, in this order:
+
+```bash
+bunx tsc --noEmit        # 0 type errors
+bun run lint             # 0 errors, 0 warnings (complexity budgets included)
+bun run crap             # CRAP audit over src/ — bands per CRAPPER.md:
+                         #   view components CC ≤ 30 (hard cap 50), helpers ≤ 8/15,
+                         #   UI primitives exempt; output must stay in band
+bun run build            # production build compiles
+scripts/clean-install-test.sh   # full clean-clone rehearsal (dev + prod boot)
+```
+
+`scripts/clean-install-test.sh` simulates a fresh download (no `node_modules`,
+no `.next`), installs, boots dev **and** the standalone production server, and
+checks `/api/books` answers on both — the exact path a newcomer walks.
+
+## LICENSE
+
+[MIT](LICENSE) — clone it, modify it, self-host it. Your library stays yours.
 
 ## ROADMAP
 

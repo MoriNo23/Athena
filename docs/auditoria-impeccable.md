@@ -177,10 +177,12 @@ continuo (Sofia p.5, ~3,5 s de encendido, Auto apagado).
 | `body-text-viewport-edge` (warning) | 6/6 en 390×844 | 0 | **Resuelta** — el reflow del modo texto y el padding del flujo contienen el cuerpo |
 | `overused-font` (warning) | 2 (teleprompter en tarjetas) | 0 | **Resuelta** — el teleprompter hereda la fuente de lectura de la casa (`--reader-font`) |
 | `buried-raster` (warning) | 6 en claro | 16 en claro (8 superficies) | **Permanece, justificada** — es la misma decoración de la sala (`atena-capa2__fachada`, `__busto`) bajo un velo casi opaco; en claro nunca llega a la pantalla, igual que en el baseline. Aparece en las 4 superficies porque el snapshot incluye la biblioteca de fondo |
-| `low-contrast` (warning) | 5 | 9 | **Permanece, justificada** — un único patrón preexistente: botones «Pantalla completa» (header del lector y chrome del teleprompter) con `text-primary` sobre tinte `primary/10`: 4,0:1 en claro y 3,4–3,5:1 en oscuro móvil. Mismo elemento y mismos valores que ya marcaba el baseline; el arreglo toca el token global `--primary` (usado por botones, riel y progreso) y queda como seguimiento: variante de texto más oscura para usos «azul sobre tinte» |
+| `low-contrast` (warning) | 5 | 9 → **0** | **Resuelta (2026-10-18, change `contraste-azul-sobre-tinte`)** — el patrón era el texto azul de enfoque sobre tinte del mismo azul (`text-primary` sobre `primary/10`: 4,0:1 en claro y 3,4–3,5:1 en oscuro móvil, por debajo de AA 4,5:1). Se añadió la pareja «azul sobre tinte» `--primary-on-tint` por tema (claro `oklch(0.45 0.155 250)`, oscuro `oklch(0.78 0.12 246)`) sin mover `--primary` global; los botones «Pantalla completa» de la cabecera y del chrome del teleprompter — y el resto de texto azul sobre tinte (badges y chips activos) — la consumen. Re-escaneo del detector sobre capturas nuevas: **0 hallazgos `low-contrast`** en las 8 superficies con el patrón (lector EPUB y teleprompter × 2 temas × 2 viewports; PDF página y modo texto comparten la misma cabecera) — ver sección siguiente. |
 
-Balance: **39 hallazgos del baseline → 25**, todos los restantes son los dos
-patrones preexistentes ya documentados arriba; ninguna regla nueva sin resolver.
+Balance: **39 hallazgos del baseline → 25 → 16** tras resolver el
+`low-contrast` (2026-10-18); el único patrón restante es el `buried-raster`
+preexistente y justificado de la decoración de la sala. Ninguna regla nueva
+sin resolver.
 
 ### Hallazgo nuevo del cambio: el apagado del teleprompter (resuelto en el mismo pase)
 
@@ -207,3 +209,48 @@ legible y no una mancha.
 `scripts/audit-reader-contrast.py` AA+ · `scripts/audit_teleprompter_timing.py`
 fórmula sana · i18n es/en/pt con paridad perfecta de 501 claves y pase en vivo
 sin claves crudas.
+
+---
+
+## Resolución del último hallazgo: «azul sobre tinte» (change `contraste-azul-sobre-tinte`) — 2026-10-18
+
+El seguimiento abierto de la auditoría cierra aquí: los botones «Pantalla
+completa» (cabecera del lector y chrome del teleprompter) pintaban
+`text-primary` sobre tinte `primary/10` y no llegaban a AA para texto
+pequeño — **4,0:1** en claro (`#0274C7` sobre `#D7ECF9`) y **3,4–3,5:1** en
+oscuro móvil. El arreglo no toca `--primary` global (riel, progreso y focos
+quedan intactos): entra la pareja «azul sobre tinte» por tema,
+`--primary-on-tint`, elegida midiendo contra el fondo compuesto real
+(tinte 10–20 % sobre `bg-card/40` sobre `--background`):
+
+| Tema | Texto (token) | Tinte 10 % | Tinte 15 % | Tinte 20 % (hover) |
+|------|----------------|------------|------------|--------------------|
+| Claro | `oklch(0.45 0.155 250)` → `#0055A6` | **6,02:1** | 5,62:1 | 5,25:1 |
+| Oscuro | `oklch(0.78 0.12 246)` → `#73BFFF` | **8,68:1** | 8,05:1 | 7,40:1 |
+
+(antes: 3,99:1 en claro y 5,59:1 plano en oscuro — insuficiente por píxel en
+móvil por el antialiasing de texto 12px; el nuevo margen cubre ambos métodos).
+
+**Aplicación:** botón «Pantalla completa» de `ReaderHeader` (mismo look, texto
+cambiado al token) y del chrome de `TeleprompterOverlay` (pasa de ghost a la
+pareja azul-sobre-tinte con borde `primary/40`, igual que su gemelo de la
+cabecera), más el resto de texto azul sobre tinte del lector: badges de
+idioma (vocabulario, diccionario, OCR), chips activos (OCR, diccionario,
+posición del riel, presets de filtro) y preset activo del menú de velocidad
+del teleprompter.
+
+**Verificación (método de la auditoría):**
+- `python3 scripts/audit-reader-contrast.py` — extendido con la pareja: las
+  6 mediciones por tema (tintes 10/15/20 %, hover incluido) en **PASS** y el
+  compuesto claro `#D7ECF9` reproduce exactamente el que midió el detector.
+- Detector impeccable **v4.6.0** `detect --json` sobre capturas nuevas del
+  lector (mismo método: app en dev + snapshot del DOM + CSS del server):
+  **0 hallazgos `low-contrast`** en las 8 superficies con el patrón
+  (`after-tinte-{epub,tp}-{dark,light}-{1280x800,390x844}`) — JSON en
+  `docs/auditoria/after-tinte/`, capturas en `docs/screenshots/after-tinte-*.png`.
+  Los hallazgos restantes son el `buried-raster` documentado arriba y
+  advisories `design-system-*` propios del render estático file:// (fuentes y
+  tokens computados sobre fallbacks); control positivo: el mismo motor sobre
+  el par antiguo reproduce el hallazgo original («4.0:1 — text #0274c7 on
+  #d7ecf9»), así que el 0 es real y no un escaneo vacío.
+- `bunx tsc --noEmit` limpio · `bun run lint` sin hallazgos nuevos.

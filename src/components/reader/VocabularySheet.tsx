@@ -49,7 +49,7 @@ export function VocabularySheet({ open, onOpenChange }: { open: boolean; onOpenC
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <span className="font-medium">{v.word}</span>
-                      <span className="ml-1.5 rounded-full border border-primary/40 bg-primary/10 px-1.5 py-px text-[10px] font-semibold uppercase text-primary">
+                      <span className="ml-1.5 rounded-full border border-primary/40 bg-primary/10 px-1.5 py-px text-[10px] font-semibold uppercase text-primary-on-tint">
                         {v.lang}
                       </span>
                     </div>

@@ -53,9 +53,10 @@ diario con ritmo propio.
   ni sincronización.
 - Stack existente (no negociable en la práctica): Bun, Next.js 16 + React 19 +
   TypeScript + Tailwind 4, Prisma + SQLite, PDF.js.
-- Decisión abierta apuntada: apertura futura = **repo público** (otros lo
-  clonan y montan lo suyo). No se compromete demo alojada ni cuentas; cualquier
-  feature que exija servidor contradice la restricción local-first.
+- Apertura decidida y hecha: **repo público bajo licencia MIT** (`LICENSE`) —
+  otros lo clonan, lo modifican y montan **su propia** biblioteca local. No se
+  compromete demo alojada ni cuentas; cualquier feature que exija servidor
+  contradice la restricción local-first.
 
 ## Brand Commitments
 
@@ -75,7 +76,7 @@ diario con ritmo propio.
 - Auditorías medibles: `docs/auditoria-impeccable.md` (baselines antes/después
   con capturas y JSON del detector), contrastes AA+ verificados por script.
 - Ausencias que el trabajo futuro no debe inventar: no hay usuarias externas,
-  testimonios, prensa ni métricas de adopción; no hay archivo LICENSE.
+  testimonios, prensa ni métricas de adopción.
 
 ## Product Principles
 

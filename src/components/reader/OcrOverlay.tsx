@@ -130,7 +130,7 @@ export function OcrOverlay({
           data-testid="ocr-toolbar"
         >
           <span
-            className="mr-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary tabular-nums"
+            className="mr-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-on-tint tabular-nums"
             title={t("ocr.confidenceTip")}
           >
             OCR {ocrResult.avgConf}%
@@ -141,7 +141,7 @@ export function OcrOverlay({
               onClick={() => onSwitchLang(l)}
               className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase transition-colors ${
                 ocrLang === l
-                  ? "border-primary bg-primary/15 text-primary"
+                  ? "border-primary bg-primary/15 text-primary-on-tint"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
               aria-pressed={ocrLang === l}

@@ -12,6 +12,8 @@ colors:
   focus-blue-day: "oklch(0.55 0.155 250)"
   focus-blue-contrast: "oklch(0.14 0.04 253)"
   focus-blue-contrast-day: "oklch(0.985 0.008 240)"
+  focus-blue-on-tint: "oklch(0.78 0.12 246)"
+  focus-blue-on-tint-day: "oklch(0.45 0.155 250)"
   panel-night: "oklch(0.26 0.05 252)"
   panel-day: "oklch(0.915 0.035 240)"
   text-hi: "oklch(0.93 0.02 250)"
@@ -130,6 +132,13 @@ oklch — el formato canónico del proyecto — y cada rol tiene su cara nocturn
 - **Focus Blue** (`oklch(0.66 0.14 246)`; día `oklch(0.55 0.155 250)`): el azul
   de la interacción — botones primarios, riel, progreso, ring de foco. Escaso
   a propósito: donde aparece, es una invitación a actuar.
+- **Focus Blue on Tint** (`oklch(0.78 0.12 246)`; día `oklch(0.45 0.155 250)`):
+  la pareja «azul sobre tinte» — el texto azul de enfoque que vive ENCIMA de
+  un tinte del mismo azul (botón «Pantalla completa», badges y chips activos
+  sobre `primary/10–20%`). El azul global no llega a AA contra su propio
+  tinte (4.0:1 claro, 3.4–3.5:1 oscuro móvil); esta cara medida sube cada
+  combinación sobre 4.5:1 sin mover `--primary` (riel, progreso y focos
+  quedan intactos). Verificado en `scripts/audit-reader-contrast.py`.
 
 ### Secondary
 - **Panel** (`oklch(0.26 0.05 252)`; día `oklch(0.915 0.035 240)`): superficie
