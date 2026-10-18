@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SyncProgressPopover } from "@/components/reader/SyncProgressPopover";
 import { EpubFontControls } from "@/components/reader/EpubFontControls";
+import { ReaderFontPicker } from "@/components/reader/ReaderFontPicker";
 import { Tip, ZoomControls } from "@/components/reader/ZoomControls";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import type { BookDTO, ZoomPresetId } from "@/lib/types";
+import type { BookDTO, ReadingFont, ZoomPresetId } from "@/lib/types";
 import {
   ArrowLeft,
   BookOpenText,
@@ -46,11 +47,17 @@ interface ReaderHeaderProps {
   isEpub?: boolean;
   epubFontScale?: number;
   onEpubFontDelta?: (dir: 1 | -1) => void;
+  /** PDF con capa de texto: modo de lectura actual (null = sin toggle) */
+  pdfMode?: "page" | "text" | null;
+  onPdfModeChange?: (mode: "page" | "text") => void;
+  /** EPUB: fuente de lectura elegida (store `reading.font`) */
+  readerFont?: ReadingFont;
+  onReaderFontChange?: (font: ReadingFont) => void;
   dockVisible: boolean;
   onToggleDock: () => void;
   /** modo cinematográfico abierto (para marcar el botón activo) */
-  vnOpen: boolean;
-  onToggleVn: () => void;
+  tpOpen: boolean;
+  onToggleTeleprompter: () => void;
   vocabularyCount: number;
   onOpenVocabulary: () => void;
   todayStreak: number;
@@ -85,10 +92,14 @@ export function ReaderHeader({
   isEpub = false,
   epubFontScale,
   onEpubFontDelta,
+  pdfMode = null,
+  onPdfModeChange,
+  readerFont,
+  onReaderFontChange,
   dockVisible,
   onToggleDock,
-  vnOpen,
-  onToggleVn,
+  tpOpen,
+  onToggleTeleprompter,
   vocabularyCount,
   onOpenVocabulary,
   todayStreak,
@@ -194,9 +205,40 @@ export function ReaderHeader({
       </Tip>
       <VRule />
 
-      {/* Tipografía (EPUB) o zoom fino (PDF): predefinidos + manual */}
-      {isEpub ? (
-        <EpubFontControls fontScale={epubFontScale ?? 1} onDelta={onEpubFontDelta ?? (() => {})} />
+      {/* Modo de lectura del PDF: página tal cual o texto reflowable */}
+      {pdfMode && (
+        <div
+          className="flex shrink-0 items-center rounded-md border border-border/60 bg-background/60 p-0.5"
+          role="group"
+          aria-label={t("reader.modeAria")}
+        >
+          <Button
+            variant={pdfMode === "page" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => onPdfModeChange?.("page")}
+            data-testid="reader-mode-page"
+          >
+            {t("reader.modePage")}
+          </Button>
+          <Button
+            variant={pdfMode === "text" ? "secondary" : "ghost"}
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={() => onPdfModeChange?.("text")}
+            data-testid="reader-mode-text"
+          >
+            {t("reader.modeText")}
+          </Button>
+        </div>
+      )}
+
+      {/* Tipografía (EPUB o texto del PDF) o zoom fino (PDF en modo página) */}
+      {isEpub || pdfMode === "text" ? (
+        <div className="flex items-center gap-0.5">
+          <ReaderFontPicker font={readerFont ?? "literata"} onChange={onReaderFontChange ?? (() => {})} />
+          <EpubFontControls fontScale={epubFontScale ?? 1} onDelta={onEpubFontDelta ?? (() => {})} />
+        </div>
       ) : (
         <ZoomControls effectiveScale={effectiveScale} activeZoom={activeZoom} onZoomBy={onZoomBy} onPreset={onPreset} />
       )}
@@ -216,15 +258,15 @@ export function ReaderHeader({
           {t("reader.settings")}
         </Button>
         <Button
-          variant={vnOpen ? "secondary" : "ghost"}
+          variant={tpOpen ? "secondary" : "ghost"}
           size="sm"
           className="h-8 shrink-0 gap-1.5 text-xs"
-          onClick={onToggleVn}
-          aria-label={t("reader.cinematicAria")}
-          data-testid="vn-toggle"
+          onClick={onToggleTeleprompter}
+          aria-label={t("reader.teleprompterAria")}
+          data-testid="tp-toggle"
         >
           <BookOpenText className="h-4 w-4" />
-          {t("reader.cinematic")}
+          {t("reader.teleprompter")}
         </Button>
         <Tip label={t("reader.vocabTip")}>
           <Button

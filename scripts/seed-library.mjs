@@ -14,7 +14,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { PrismaClient } = require("@prisma/client");
 
-const BASE = "/home/z/my-project";
+const BASE = path.resolve(__dirname, "..");
 const UPLOADS = path.join(BASE, "public", "uploads");
 const manifest = JSON.parse(fs.readFileSync(path.join(BASE, "scripts", "seed-manifest.json"), "utf8"));
 

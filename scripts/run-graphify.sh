@@ -2,18 +2,18 @@
 # Pipeline graphify para el corpus de código de Riel (src/) — sigue SKILL.md v0.9.88
 # Corpus 100% código → extracción AST determinista, sin LLM ni API keys.
 set -e
-cd /home/z/my-project
-PY=/home/z/my-project/.venv-graphify/bin/python
+cd "$(dirname "$0")/.."
+PY="$PWD/.venv-graphify/bin/python"
 mkdir -p graphify-out
 echo "$PY" > graphify-out/.graphify_python
-INPUT=/home/z/my-project/src
+INPUT="$PWD/src"
 
 echo "=== Paso 2: detect ==="
 "$PY" - <<'EOF'
 import json
 from graphify.detect import detect
 from pathlib import Path
-result = detect(Path('/home/z/my-project/src'))
+result = detect(Path('src'))
 Path('graphify-out/.graphify_detect.json').write_text(json.dumps(result, ensure_ascii=False), encoding='utf-8')
 cats = {k: len(v) for k, v in result.get('files', {}).items()}
 print('Corpus:', result['total_files'], 'archivos ·', result.get('total_words'), 'palabras ·', cats)
@@ -30,7 +30,7 @@ for f in detect.get('files', {}).get('code', []):
     p = Path(f)
     code_files.extend(collect_files(p) if p.is_dir() else [p])
 if code_files:
-    result = extract(code_files, cache_root=Path('/home/z/my-project/src'), root=Path('/home/z/my-project/src'))
+    result = extract(code_files, cache_root=Path('src'), root=Path('src'))
     Path('graphify-out/.graphify_ast.json').write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding='utf-8')
     print('AST:', len(result['nodes']), 'nodos,', len(result['edges']), 'aristas')
 else:
@@ -84,7 +84,7 @@ from pathlib import Path
 
 extraction = json.loads(Path('graphify-out/.graphify_extract.json').read_text(encoding='utf-8'))
 detection = json.loads(Path('graphify-out/.graphify_detect.json').read_text(encoding='utf-8'))
-G = build_from_json(extraction, root='/home/z/my-project/src', directed=False)
+G = build_from_json(extraction, root='src', directed=False)
 if G.number_of_nodes() == 0:
     raise SystemExit('ERROR: grafo vacío')
 communities = cluster(G)
@@ -97,7 +97,7 @@ questions = suggest_questions(G, communities, labels)
 wrote = to_json(G, communities, 'graphify-out/graph.json')
 if not wrote:
     raise SystemExit('ERROR: se negó a encoger graph.json')
-report = generate(G, communities, cohesion, labels, gods, surprises, detection, tokens, '/home/z/my-project/src', suggested_questions=questions)
+report = generate(G, communities, cohesion, labels, gods, surprises, detection, tokens, 'src', suggested_questions=questions)
 Path('graphify-out/GRAPH_REPORT.md').write_text(report, encoding='utf-8')
 analysis = {
     'communities': {str(k): v for k, v in communities.items()},
@@ -116,7 +116,7 @@ import json
 from graphify.diagnostics import diagnose_extraction, format_diagnostic_report
 from pathlib import Path
 extraction = json.loads(Path('graphify-out/.graphify_extract.json').read_text(encoding='utf-8'))
-summary = diagnose_extraction(extraction, directed=False, root='/home/z/my-project/src')
+summary = diagnose_extraction(extraction, directed=False, root='src')
 print(format_diagnostic_report(summary))
 EOF
 

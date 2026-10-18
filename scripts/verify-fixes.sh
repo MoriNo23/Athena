@@ -2,14 +2,16 @@
 # Verificación post-fixes de la auditoría impeccable (Task 41).
 # El dev server muere entre tool calls → todo el flujo vive DENTRO de este script.
 set -u
-cd /home/z/my-project
-CHROME=/home/z/.cache/ms-playwright/chromium-1200/chrome-linux64/chrome
-IMB=$(ls -d ~/.impeccable/bin/*/impeccable | sort -V | tail -1)
-OUT=/home/z/my-project/scripts
+cd "$(dirname "$0")/.."
+CHROME="${CHROME:-$(command -v chromium || command -v google-chrome)}"
+IMB=$(ls -d ~/.impeccable/bin/*/impeccable 2>/dev/null | sort -V | tail -1)
+[ -n "${IMB:-}" ] && [ -x "$IMB" ] || IMB="$HOME/.agents/skills/impeccable/scripts/impeccable"
+OUT="$PWD/scripts"
+SRV_LOG="$PWD/dev.log"
 
 echo "=== 1) arrancar dev server ==="
 pkill -f "next dev" 2>/dev/null; pkill -f "next-server" 2>/dev/null; sleep 1
-setsid bunx next dev -p 3000 > /home/z/my-project/dev.log 2>&1 < /dev/null &
+setsid bunx next dev -p 3000 > "$SRV_LOG" 2>&1 < /dev/null &
 SRV=$!
 for i in $(seq 1 25); do code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/ --max-time 3); [ "$code" = "200" ] && break; sleep 2; done
 echo "server HTTP: $code (pid $SRV)"

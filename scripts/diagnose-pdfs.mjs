@@ -2,8 +2,9 @@
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "node:url";
 
-const uploadDir = "/home/z/my-project/public/uploads";
+const uploadDir = fileURLToPath(new URL("../public/uploads", import.meta.url));
 const files = fs.readdirSync(uploadDir).filter((f) => f.endsWith(".pdf"));
 
 for (const f of files) {

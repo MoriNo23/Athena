@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.goto("http://localhost:3000", { waitUntil: "networkidle" });
   await page.waitForTimeout(1200);
-  await page.screenshot({ path: "/home/z/my-project/scripts/capa2-biblioteca.png" });
+  await page.screenshot({ path: `${__dirname}/capa2-biblioteca.png` });
   // capa 2 presente y estática (sin animación)
   const capa = await page.evaluate(() => {
     const el = document.querySelector(".atena-capa2");

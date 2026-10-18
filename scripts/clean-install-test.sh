@@ -2,8 +2,8 @@
 # Simulación de "descarga + bun install + uso" en cuarto limpio.
 # Valida las instrucciones del LEEME.md ANTES de dárselas al usuario.
 set -u
-SIM=/home/z/my-project/scripts/clean-test-copy
-SRC=/home/z/my-project
+SRC="$(cd "$(dirname "$0")/.." && pwd)"
+SIM="$SRC/scripts/clean-test-copy"
 LOG=$SIM/test.log
 mkdir -p "$SIM"
 

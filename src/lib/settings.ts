@@ -6,6 +6,7 @@ import {
   AppSettings,
   FilterPreset,
   FilterSettings,
+  FILTER_PRESETS,
   ImmersionSettings,
   Lang,
   ModeToggleKey,
@@ -14,9 +15,9 @@ import {
   RailSettings,
   RailTheme,
   ReadingSettings,
-  VnSettings,
+  TeleprompterSettings,
   VocabEntry,
-  VN_DEFAULT_PRESET,
+  TELEPROMPTER_DEFAULT_PRESET,
 } from "@/lib/types";
 
 /** Ajustes de lectura: sin presets — la casa es literatura y cada lector
@@ -40,7 +41,7 @@ interface SettingsStore extends AppSettings {
   setImmersion: (patch: Partial<ImmersionSettings>) => void;
   toggleMode: (key: ModeToggleKey) => void;
   setPauseMinutes: (minutes: number) => void;
-  setVn: (patch: Partial<VnSettings>) => void;
+  setTeleprompter: (patch: Partial<TeleprompterSettings>) => void;
   addVocab: (entry: VocabEntry) => void;
   removeVocab: (id: string) => void;
   reset: () => void;
@@ -56,26 +57,27 @@ const defaultSettings: AppSettings = {
     celebrate: true,
   },
   filters: {
-    preset: "papel",
-    brightness: 103,
-    contrast: 96,
-    sepia: 18,
-    saturate: 95,
-    warmth: 22,
+    preset: "auto",
+    brightness: 100,
+    contrast: 100,
+    sepia: 0,
+    saturate: 100,
+    warmth: 0,
     invert: 0,
   },
   reading: {
     dailyGoal: 20,
     scrollStepPct: 40, // ~2-3 pulsaciones de ↑/↓ por pantalla
     wheelBoost: 1, // rueda nativa del navegador
+    font: "literata",
   },
   immersion: {
     enabled: true,
     idleSeconds: 4,
     toggleKey: "h",
   },
-  vn: {
-    speedPreset: VN_DEFAULT_PRESET,
+  teleprompter: {
+    speedPreset: TELEPROMPTER_DEFAULT_PRESET,
     sound: true,
     auto: false,
     fontScale: 1,
@@ -123,8 +125,8 @@ export const useSettings = create<SettingsStore>()(
         })),
       setPauseMinutes: (minutes) =>
         set((s) => ({ modes: { ...s.modes, pauseMinutes: Math.min(120, Math.max(5, Math.round(minutes))) } })),
-      setVn: (patch) =>
-        set((s) => ({ vn: { ...s.vn, ...patch } })),
+      setTeleprompter: (patch) =>
+        set((s) => ({ teleprompter: { ...s.teleprompter, ...patch } })),
       addVocab: (entry) =>
         set((s) => ({
           // sin duplicados por palabra+idioma
@@ -137,73 +139,90 @@ export const useSettings = create<SettingsStore>()(
     }),
     {
       name: "riel-settings-v1",
-      version: 10,
-      migrate: (persisted, version) => {
-        const state = persisted as Partial<AppSettings> & {
-          filters?: Partial<FilterSettings>;
-          modes?: Partial<ModesSettings> & {
-            toggles?: Partial<ModeToggles> & Record<string, boolean | undefined>;
-          };
-          vn?: Partial<VnSettings>;
-          lang?: Lang;
-        };
-        // Al venir de versiones sin el campo invert, preserva la intención del preset noche
-        const storedInvert = state.filters?.invert;
-        const legacyInvert =
-          storedInvert != null && storedInvert > 0
-            ? storedInvert
-            : state.filters?.preset === "noche"
-              ? 92
-              : 0;
-        const base = {
-          ...defaultSettings,
-          ...state,
-          // v10: idioma de la interfaz (los estados viejos no lo traen → es)
-          lang: state.lang ?? "es",
-          filters: { ...defaultSettings.filters, ...state.filters, invert: legacyInvert },
-          // v7: navegación configurable — los objetos viejos no traen los campos nuevos
-          reading: { ...defaultSettings.reading, ...state.reading },
-          immersion: { ...defaultSettings.immersion, ...state.immersion },
-          // v8: modo novela visual · v9: + tamaño de letra de las tarjetas
-          vn: { ...defaultSettings.vn, ...state.vn, fontScale: state.vn?.fontScale ?? 1 },
-        } as AppSettings & { modes: ModesSettings };
-        // v9: la casa se enfoca en literatura — fuera presets y toggles técnicos;
-        // lo que el lector ya había encendido (literatura/comunes) se conserva
-        const legacyToggles = (state.modes?.toggles ?? {}) as Partial<ModeToggles> &
-          Record<string, boolean | undefined>;
-        base.modes = {
-          toggles: {
-            xray: legacyToggles.xray ?? defaultModes.toggles.xray,
-            naturalPauses: legacyToggles.naturalPauses ?? defaultModes.toggles.naturalPauses,
-            argumentSkeleton: legacyToggles.argumentSkeleton ?? defaultModes.toggles.argumentSkeleton,
-            lockedNotes: legacyToggles.lockedNotes ?? defaultModes.toggles.lockedNotes,
-            dualRead: legacyToggles.dualRead ?? defaultModes.toggles.dualRead,
-            outline: legacyToggles.outline ?? defaultModes.toggles.outline,
-            dictionary: legacyToggles.dictionary ?? defaultModes.toggles.dictionary,
-          },
-          pauseMinutes: state.modes?.pauseMinutes ?? defaultModes.pauseMinutes,
-        };
-        // v4: introduce la barra dinámica estilo Duolingo como modo de color
-        if (version < 4) {
-          base.rail = { ...base.rail, theme: "dynamic" };
-        }
-        // v8: la casa viste de azul Atenas — el riel migrá al tema Egeo
-        if (version < 8) {
-          base.rail = { ...base.rail, theme: "egeo" };
-        }
-        // v5: modos de lectura + vocabulario (v9 los redefine sin presets)
-        if (version < 5) {
-          base.modes = { ...defaultModes };
-        }
-        return base;
-      },
+      version: 11,
+      migrate: migrateSettings,
     }
   )
 );
 
+/** Migración de `riel-settings-v1` (exportada para los tests del motor). */
+export function migrateSettings(persisted: unknown, version: number) {
+  const state = persisted as Partial<AppSettings> & {
+    filters?: Partial<FilterSettings>;
+    modes?: Partial<ModesSettings> & {
+      toggles?: Partial<ModeToggles> & Record<string, boolean | undefined>;
+    };
+    /** estado ≤ v10: los ajustes del modo viajaban en `vn` */
+    vn?: Partial<TeleprompterSettings>;
+    lang?: Lang;
+  };
+  // Al venir de versiones sin el campo invert, preserva la intención del preset noche
+  const storedInvert = state.filters?.invert;
+  const legacyInvert =
+    storedInvert != null && storedInvert > 0
+      ? storedInvert
+      : state.filters?.preset === "noche"
+        ? 92
+        : 0;
+  const base = {
+    ...defaultSettings,
+    ...state,
+    // v10: idioma de la interfaz (los estados viejos no lo traen → es)
+    lang: state.lang ?? "es",
+    filters: { ...defaultSettings.filters, ...state.filters, invert: legacyInvert },
+    // v7: navegación configurable — los objetos viejos no traen los campos nuevos
+    reading: { ...defaultSettings.reading, ...state.reading },
+    immersion: { ...defaultSettings.immersion, ...state.immersion },
+    // v8: modo teleprompter · v9: + tamaño de letra · v11: el ajuste se llama
+    // `teleprompter` (se conservan velocidad, sonido, auto y tamaño)
+    teleprompter: { ...defaultSettings.teleprompter, ...(state.vn ?? state.teleprompter) },
+  } as AppSettings & { modes: ModesSettings };
+  // el estado viejo queda en `vn`: no debe volver a persistirse
+  delete (base as { vn?: unknown }).vn;
+  // v11: el libro sigue al tema por defecto; un preset guardado solo sobrevive
+  // si era `custom` (los presets siguen eligiéndose a mano)
+  if (version < 11) {
+    base.filters = {
+      ...base.filters,
+      preset: state.filters?.preset === "custom" ? "custom" : "auto",
+    };
+  }
+  // v9: la casa se enfoca en literatura — fuera presets y toggles técnicos;
+  // lo que el lector ya había encendido (literatura/comunes) se conserva
+  const legacyToggles = (state.modes?.toggles ?? {}) as Partial<ModeToggles> &
+    Record<string, boolean | undefined>;
+  base.modes = {
+    toggles: {
+      xray: legacyToggles.xray ?? defaultModes.toggles.xray,
+      naturalPauses: legacyToggles.naturalPauses ?? defaultModes.toggles.naturalPauses,
+      argumentSkeleton: legacyToggles.argumentSkeleton ?? defaultModes.toggles.argumentSkeleton,
+      lockedNotes: legacyToggles.lockedNotes ?? defaultModes.toggles.lockedNotes,
+      dualRead: legacyToggles.dualRead ?? defaultModes.toggles.dualRead,
+      outline: legacyToggles.outline ?? defaultModes.toggles.outline,
+      dictionary: legacyToggles.dictionary ?? defaultModes.toggles.dictionary,
+    },
+    pauseMinutes: state.modes?.pauseMinutes ?? defaultModes.pauseMinutes,
+  };
+  // v4: introduce la barra dinámica estilo Duolingo como modo de color
+  if (version < 4) {
+    base.rail = { ...base.rail, theme: "dynamic" };
+  }
+  // v8: la casa viste de azul Atenas — el riel migrá al tema Egeo
+  if (version < 8) {
+    base.rail = { ...base.rail, theme: "egeo" };
+  }
+  // v5: modos de lectura + vocabulario (v9 los redefine sin presets)
+  if (version < 5) {
+    base.modes = { ...defaultModes };
+  }
+  return base;
+}
+
 /** Filtra el objeto de filtros al activar un preset (mantiene compatibilidad) */
 function patchOf(current: FilterSettings, preset: FilterPreset): FilterSettings {
   const table: Record<FilterPreset, FilterSettings> = {
+    // automático: el libro lo pinta el tema; los valores guardados no aplican
+    auto: { preset: "auto", brightness: 100, contrast: 100, sepia: 0, saturate: 100, warmth: 0, invert: 0 },
     normal: { preset: "normal", brightness: 100, contrast: 100, sepia: 0, saturate: 100, warmth: 0, invert: 0 },
     papel: { preset: "papel", brightness: 103, contrast: 96, sepia: 18, saturate: 95, warmth: 22, invert: 0 },
     sepia: { preset: "sepia", brightness: 100, contrast: 97, sepia: 50, saturate: 90, warmth: 30, invert: 0 },
@@ -214,12 +233,30 @@ function patchOf(current: FilterSettings, preset: FilterPreset): FilterSettings 
   return table[preset];
 }
 
-/** Utilidad: estilo CSS filter a partir de FilterSettings */
-export function filterCss(f: FilterSettings): string {
+/** Utilidad: estilo CSS filter para la página imagen (PDF). `auto` sigue al
+    tema: render nocturno afinado en oscuro, página limpia en claro. */
+export function filterCss(f: FilterSettings, isDark = false): string {
+  // `auto` en oscuro reutiliza el render nocturno del preset manual: una sola
+  // inversión, sin apilarse con la elección explícita de «Noche».
+  if (f.preset === "auto") return isDark ? FILTER_PRESETS.noche.css : "none";
+  // `normal` no filtra: la superficie la pinta el tema
   if (f.preset === "normal") return "none";
   const inv = f.invert ?? 0;
   const parts = [
     inv > 0 ? `invert(${inv / 100}) hue-rotate(180deg)` : "",
+    `brightness(${f.brightness}%)`,
+    `contrast(${f.contrast}%)`,
+    f.sepia > 0 ? `sepia(${f.sepia / 100})` : "",
+    `saturate(${f.saturate}%)`,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" ") : "none";
+}
+
+/** Utilidad: tinte del texto reflowable (EPUB y modo texto). Nunca invierte:
+    su noche la dan los tokens del tema; los presets manuales son tintes suaves. */
+export function reflowFilterCss(f: FilterSettings): string {
+  if (f.preset === "auto" || f.preset === "normal") return "none";
+  const parts = [
     `brightness(${f.brightness}%)`,
     `contrast(${f.contrast}%)`,
     f.sepia > 0 ? `sepia(${f.sepia / 100})` : "",

@@ -2,13 +2,14 @@
  * Backup/restore del estado REAL del usuario para pruebas E2E de insignias.
  *   node scripts/backup-state.mjs backup   → guarda books/sessions/badges en JSON
  *   node scripts/backup-state.mjs restore  → restaura exactamente lo guardado
- * Se ejecuta desde /home/z/my-project (para resolver @prisma/client).
+ * Se ejecuta desde la raíz del repo (para resolver @prisma/client).
  */
 import { PrismaClient } from "@prisma/client";
 import { writeFileSync, readFileSync, existsSync } from "fs";
+import { fileURLToPath } from "node:url";
 
 const p = new PrismaClient();
-const FILE = "/home/z/my-project/scripts/state-backup.json";
+const FILE = fileURLToPath(new URL("state-backup.json", import.meta.url));
 const mode = process.argv[2] ?? "backup";
 
 if (mode === "backup") {

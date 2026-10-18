@@ -2,7 +2,9 @@
 import fs from "fs";
 import zlib from "zlib";
 
-const raw = fs.readFileSync("/home/z/my-project/public/uploads/b4f502e072dc54fea.pdf");
+import { fileURLToPath } from "node:url";
+
+const raw = fs.readFileSync(fileURLToPath(new URL("../public/uploads/b4f502e072dc54fea.pdf", import.meta.url)));
 const str = raw.toString("latin1");
 
 // Buscar el primer objeto con /Contents

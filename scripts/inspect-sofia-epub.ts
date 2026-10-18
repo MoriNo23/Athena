@@ -8,7 +8,7 @@ const win = new Window();
 (globalThis as Record<string, unknown>).XMLSerializer = win.XMLSerializer;
 const { parseEpub } = await import("../src/lib/epub");
 
-const FILE = process.argv[2] ?? "/home/z/my-project/public/uploads/b22e6746c71a942b1.epub";
+const FILE = process.argv[2] ?? new URL("../public/uploads/b22e6746c71a942b1.epub", import.meta.url).pathname;
 
 async function main() {
   const t0 = Date.now();

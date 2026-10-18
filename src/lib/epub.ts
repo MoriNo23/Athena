@@ -6,7 +6,7 @@ import JSZip from "jszip";
  * Motor EPUB de Atena.
  *
  * Un EPUB es reflowable: no tiene páginas. Atena es una casa de páginas (riel,
- * hitos, ETA, racha, modo novela…). La traducción entre ambos mundos es la
+ * hitos, ETA, racha, modo teleprompter…). La traducción entre ambos mundos es la
  * PÁGINA VIRTUAL: el texto del libro se trocea en bloques (párrafos, títulos,
  * citas, imágenes) y se agrupa en páginas de ~320 palabras — el tamaño de una
  * página de tapa blanda. Con eso, TODO el aparato de la casa funciona sobre un
@@ -25,7 +25,7 @@ export interface EpubTextBlock {
   kind: EpubTextKind;
   /** html inline saneado (em/strong/sup/sub/br), sin atributos */
   html: string;
-  /** texto plano (para el modo novela y el peek) */
+  /** texto plano (para el modo teleprompter y el peek) */
   text: string;
   words: number;
 }

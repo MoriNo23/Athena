@@ -1,14 +1,15 @@
 #!/bin/bash
 # Audita vistas del lector que el detector por URL no alcanza (SPA de ruta única).
-# Uso: audit-reader.sh <fase>   fases: epub | pdf | vn-epub | vn-pdf | library-light
+# Uso: audit-reader.sh <fase>   fases: epub | pdf | tp-epub | tp-pdf | library-light
 # Flujo: lanza chromium CDP → agent-browser navega → impeccable detect --cdp → capturas → mata chrome.
 set -u
 PHASE="${1:-epub}"
-CHROME=/home/z/.cache/ms-playwright/chromium-1200/chrome-linux64/chrome
-IMB=$(ls -d ~/.impeccable/bin/*/impeccable | sort -V | tail -1)
+CHROME="${CHROME:-$(command -v chromium || command -v google-chrome)}"
+IMB=$(ls -d ~/.impeccable/bin/*/impeccable 2>/dev/null | sort -V | tail -1)
+[ -n "${IMB:-}" ] && [ -x "$IMB" ] || IMB="$HOME/.agents/skills/impeccable/scripts/impeccable"
 PORT=9223
 BASE=http://localhost:3000
-OUT=/home/z/my-project/scripts
+OUT="$(cd "$(dirname "$0")" && pwd)"
 AB="agent-browser --cdp $PORT"
 
 echo "== fase: $PHASE · engine: $IMB"
@@ -38,17 +39,17 @@ case "$PHASE" in
     $AB find role button click --name "Abrir Marco" >/dev/null 2>&1
     sleep 4
     ;;
-  vn-epub)
+  tp-epub)
     $AB find role button click --name "Abrir El mundo de Sofia" >/dev/null 2>&1
     $AB wait --text "670" >/dev/null 2>&1
     sleep 2
-    $AB find role button click --name "Novela" >/dev/null 2>&1 || true
+    $AB find role button click --name "Teleprompter" >/dev/null 2>&1 || true
     sleep 3
     ;;
-  vn-pdf)
+  tp-pdf)
     $AB find role button click --name "Abrir Marco" >/dev/null 2>&1
     sleep 4
-    $AB find role button click --name "Novela" >/dev/null 2>&1 || true
+    $AB find role button click --name "Teleprompter" >/dev/null 2>&1 || true
     sleep 3
     ;;
   library-light)

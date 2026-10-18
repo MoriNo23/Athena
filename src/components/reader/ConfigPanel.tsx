@@ -39,6 +39,7 @@ const POSITIONS: { value: RailPosition; label: string }[] = [
 ];
 
 const PRESETS: { value: FilterPreset; label: string }[] = [
+  { value: "auto", label: "auto" },
   { value: "normal", label: "normal" },
   { value: "papel", label: "papel" },
   { value: "sepia", label: "sepia" },

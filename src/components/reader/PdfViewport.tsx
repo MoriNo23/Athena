@@ -7,6 +7,7 @@ import { loadPdfLib, PDFJS_ASSETS } from "@/lib/pdf-client";
 import { cn } from "@/lib/utils";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Loader2 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { usePdfPageRender } from "@/hooks/use-pdf-render";
 import { useOcrPage } from "@/hooks/use-ocr-page";
 import { OcrOverlay } from "@/components/reader/OcrOverlay";
@@ -27,6 +28,8 @@ interface PdfViewportProps {
   onError: (message: string) => void;
   /** expone el documento para el esquema/outline y otros paneles */
   onDoc?: (doc: PDFDocumentProxy | null) => void;
+  /** modo texto: el visor queda tapado por el reflujo (deja de renderizar y cede sus selectores) */
+  suspended?: boolean;
 }
 
 export function PdfViewport({
@@ -42,11 +45,14 @@ export function PdfViewport({
   onBusyChange,
   onError,
   onDoc,
+  suspended = false,
 }: PdfViewportProps) {
   const { t } = useI18n();
+  const { resolvedTheme } = useTheme();
   const filters = useSettings((s) => s.filters);
   const wheelBoost = useSettings((s) => s.reading.wheelBoost);
-  const cssFilter = filterCss(filters);
+  // `auto` sigue al tema: sin resolvedTheme (aún sin montar) la casa asume oscuro
+  const cssFilter = filterCss(filters, resolvedTheme !== "light");
   const warmth = filters.warmth;
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +68,7 @@ export function PdfViewport({
     canvasRef,
     textLayerRef,
     onBusyChange,
+    suspended,
   });
   const ocr = useOcrPage({ doc, filePath, pageNum, pageHasTextRef });
 
@@ -107,10 +114,10 @@ export function PdfViewport({
   // atajos funcionan sin click previo en la página (y en contextos embebidos
   // tipo iframe, en cuanto el marco recibe el foco con el primer click).
   useEffect(() => {
-    if (loading) return;
+    if (loading || suspended) return;
     if (document.activeElement && document.activeElement !== document.body) return;
     containerRef.current?.focus({ preventScroll: true });
-  }, [loading]);
+  }, [loading, suspended]);
 
   // ---- Medición del contenedor ----
   // El primer reporte es inmediato (evita un salto de escala al abrir); los
@@ -194,10 +201,11 @@ export function PdfViewport({
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full overflow-auto"
+      className={cn("relative h-full w-full overflow-auto", suspended && "invisible")}
       onScroll={(e) => e.stopPropagation()}
-      data-viewport="pdf"
+      data-viewport={suspended ? undefined : "pdf"}
       tabIndex={0}
+      aria-hidden={suspended || undefined}
       aria-label={t("epub.viewport")}
     >
       {loading ? (

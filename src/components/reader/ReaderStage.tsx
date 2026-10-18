@@ -16,6 +16,8 @@ interface ReaderStageProps {
   numPages: number;
   /** visor del libro (PdfViewport ya configurado por ReaderView) */
   viewport: ReactNode;
+  /** capa por encima del visor (modo texto del PDF: reflujo sobre la página) */
+  overlay?: ReactNode;
   pauseArmed: boolean;
   pauseDialogOpen: boolean;
   onOpenPause: () => void;
@@ -30,13 +32,14 @@ export function ReaderStage({
   pageNum,
   numPages,
   viewport,
+  overlay,
   pauseArmed,
   pauseDialogOpen,
   onOpenPause,
 }: ReaderStageProps) {
   const { t } = useI18n();
   return (
-    <main className="relative min-h-0 min-w-0 flex-1 bg-[var(--stage)]">
+    <main className="relative min-h-0 min-w-0 flex-1 bg-[var(--reader-bg)]">
       {error ? (
         <div className="flex h-full flex-col items-center justify-center gap-3">
           <BookOpen className="h-8 w-8 text-muted-foreground" />
@@ -60,6 +63,10 @@ export function ReaderStage({
       ) : (
         viewport
       )}
+
+      {/* Modo texto: el reflujo tapa al visor de páginas (que sigue montado
+          debajo para no perder el documento). La vista dual manda sobre él. */}
+      {overlay && !error && !dualActive && <div className="absolute inset-0 z-20">{overlay}</div>}
 
       {/* Aviso sutil de pausa sugerida (espera el corte natural) */}
       {pauseArmed && !pauseDialogOpen && (

@@ -1,4 +1,4 @@
-/* E2E del Modo Novela Visual reconstruido (letras + pausas + disolvencia).
+/* E2E del modo teleprompter reconstruido (letras + pausas + disolvencia).
  * Suite: apertura, encendido progresivo, pausa/reanudar, presets, disolvencia
  * cruzada (capa saliente única), retroceso, giro de página real, Escape,
  * reduced-motion y hero Atenea. 0 page errors exigido.
@@ -44,29 +44,29 @@ function check(name, ok, detail = "") {
   await page.waitForSelector('[data-viewport="pdf"]', { timeout: 30000 });
   await page.waitForTimeout(1800);
 
-  console.log("=== C. MODO NOVELA: APERTURA ===");
-  check("botón vn-toggle presente", (await page.getByTestId("vn-toggle").count()) === 1);
-  await page.getByTestId("vn-toggle").click();
-  await page.waitForSelector('[data-testid="vn-overlay"]', { timeout: 10000 });
+  console.log("=== C. MODO TELEPROMPTER: APERTURA ===");
+  check("botón tp-toggle presente", (await page.getByTestId("tp-toggle").count()) === 1);
+  await page.getByTestId("tp-toggle").click();
+  await page.waitForSelector('[data-testid="tp-overlay"]', { timeout: 10000 });
   await page.waitForTimeout(900); // carga de texto de la página
-  check("overlay abierto", (await page.getByTestId("vn-overlay").count()) === 1);
+  check("overlay abierto", (await page.getByTestId("tp-overlay").count()) === 1);
   let cardCount = 0;
   for (let i = 0; i < 20; i++) {
-    cardCount = await page.getByTestId("vn-card-box").count();
+    cardCount = await page.getByTestId("tp-card-box").count();
     if (cardCount >= 1) break;
     await page.waitForTimeout(250);
   }
   check("hay tarjeta viva", cardCount >= 1, `vistas: ${cardCount}`);
-  const emptyState = await page.getByTestId("vn-empty").count();
+  const emptyState = await page.getByTestId("tp-empty").count();
   check("página actual con texto seleccionable", emptyState === 0, emptyState ? "APARECIÓ ESTADO VACÍO" : "");
 
   // silenciar el tipeo para el resto de la suite
-  const soundBtn = await page.getByTestId("vn-sound").count();
-  if (soundBtn === 1) await page.getByTestId("vn-sound").click();
+  const soundBtn = await page.getByTestId("tp-sound").count();
+  if (soundBtn === 1) await page.getByTestId("tp-sound").click();
 
   console.log("=== D. ENCENDIDO PROGRESIVO (letra a letra) ===");
-  const litAt = () => page.evaluate(() => document.querySelectorAll('[data-testid="vn-card-box"] .vn-ch.on').length);
-  const totalCh = await page.evaluate(() => document.querySelectorAll('[data-testid="vn-card-box"] .vn-ch').length);
+  const litAt = () => page.evaluate(() => document.querySelectorAll('[data-testid="tp-card-box"] .tp-ch.on').length);
+  const totalCh = await page.evaluate(() => document.querySelectorAll('[data-testid="tp-card-box"] .tp-ch').length);
   check("tarjeta con caracteres", totalCh > 20, `${totalCh} chars`);
   const lit0 = await litAt();
   await page.waitForTimeout(1600);
@@ -80,10 +80,10 @@ function check(name, ok, detail = "") {
   // REGLA DEL OVERLAY: Space sobre una tarjeta TERMINADA avanza, no pausa.
   // Nos colocamos en una tarjeta EN MARCHA antes de probar la pausa.
   {
-    const tot = await page.evaluate(() => document.querySelectorAll('[data-testid="vn-card-box"] .vn-ch').length);
+    const tot = await page.evaluate(() => document.querySelectorAll('[data-testid="tp-card-box"] .tp-ch').length);
     const now = await litAt();
     if (tot > 0 && now >= tot) {
-      await page.getByTestId("vn-next").click();
+      await page.getByTestId("tp-next").click();
       await page.waitForTimeout(400);
     }
   }
@@ -102,33 +102,33 @@ function check(name, ok, detail = "") {
   // pausa: con el encendido corriendo el menú se desmonta a mitad del click
   await page.keyboard.press(" ");
   await page.waitForTimeout(250);
-  await page.getByTestId("vn-speed").click();
-  await page.waitForSelector('[data-testid="vn-speed-menu"]', { timeout: 5000 });
-  const presetBtns = await page.locator('[data-testid^="vn-speed-preset-"]').count();
+  await page.getByTestId("tp-speed").click();
+  await page.waitForSelector('[data-testid="tp-speed-menu"]', { timeout: 5000 });
+  const presetBtns = await page.locator('[data-testid^="tp-speed-preset-"]').count();
   check("5 presets en el menú", presetBtns === 5, String(presetBtns));
-  await page.getByTestId("vn-speed-preset-0-8").click();
+  await page.getByTestId("tp-speed-preset-0-8").click();
   await page.waitForTimeout(300);
-  const labelSlow = await page.getByTestId("vn-overlay").textContent();
+  const labelSlow = await page.getByTestId("tp-overlay").textContent();
   check("preset Contemplativa activa", labelSlow.includes("Contemplativa"));
   // el menú sigue ABIERTO tras elegir Contemplativa (el popover no se cierra
   // al pulsar un ítem): el segundo click sobre el gatillo LO CERRABA y el
   // preset quedaba desmontado. Elegimos directo, con force por el re-render.
-  await page.getByTestId("vn-speed-preset-1-5").click({ force: true });
+  await page.getByTestId("tp-speed-preset-1-5").click({ force: true });
   await page.waitForTimeout(300);
   await page.keyboard.press(" "); // reanudar para las secciones siguientes
 
   console.log("=== G. DISOLVENCIA CRUZADA (capa saliente) ===");
   let burstPeak = 0;
-  await page.getByTestId("vn-next").click();          // completa la tarjeta
+  await page.getByTestId("tp-next").click();          // completa la tarjeta
   await page.waitForTimeout(150);
-  await page.getByTestId("vn-next").click();          // avanza → capa saliente
+  await page.getByTestId("tp-next").click();          // avanza → capa saliente
   await page.waitForTimeout(120);
-  const leaving1 = await page.getByTestId("vn-card-leaving").count();
+  const leaving1 = await page.getByTestId("tp-card-leaving").count();
   check("capa saliente congelada aparece", leaving1 === 1, String(leaving1));
   for (let i = 0; i < 3; i++) {
-    await page.getByTestId("vn-next").click();
+    await page.getByTestId("tp-next").click();
     await page.waitForTimeout(90);
-    const c = await page.getByTestId("vn-card-leaving").count();
+    const c = await page.getByTestId("tp-card-leaving").count();
     burstPeak = Math.max(burstPeak, c);
   }
   // La capa saliente se disuelve a los 320 ms por diseño («que apenas se
@@ -141,16 +141,16 @@ function check(name, ok, detail = "") {
 
   console.log("=== H. RETROCESO ===");
   const tagline = () => page.evaluate(() => {
-    // el status vive en la barra superior (.vn-chrome, antes .vn-top en el
+    // el status vive en la barra superior (.tp-chrome, antes .tp-top en el
     // overlay viejo): segundo <p> del overlay = título + status
-    const el = document.querySelectorAll('[data-testid="vn-overlay"] p')[1];
+    const el = document.querySelectorAll('[data-testid="tp-overlay"] p')[1];
     return el ? el.textContent : "";
   });
   const tBefore = await tagline();
-  await page.getByTestId("vn-prev").click();
+  await page.getByTestId("tp-prev").click();
   await page.waitForTimeout(250);
   const tAfter = await tagline();
-  check("vn-prev vuelve a la tarjeta anterior", tBefore !== tAfter, `${tBefore} → ${tAfter}`);
+  check("tp-prev vuelve a la tarjeta anterior", tBefore !== tAfter, `${tBefore} → ${tAfter}`);
 
   console.log("=== I. GIRO DE PÁGINA REAL ===");
   const pageNumBefore = await page.evaluate(() => {
@@ -158,17 +158,17 @@ function check(name, ok, detail = "") {
     return inp ? inp.value : "?";
   });
   for (let i = 0; i < 40; i++) {
-    const label = await page.getByTestId("vn-next").textContent();
+    const label = await page.getByTestId("tp-next").textContent();
     if (label && label.includes("Página siguiente")) break;
-    await page.getByTestId("vn-next").click();
+    await page.getByTestId("tp-next").click();
     await page.waitForTimeout(110);
   }
-  const atEnd = await page.getByTestId("vn-next").textContent();
+  const atEnd = await page.getByTestId("tp-next").textContent();
   check("última tarjeta muestra «Página siguiente»", atEnd.includes("Página siguiente"), atEnd.trim());
   // dos golpes: el 1º TERMINA la tarjeta recién llegada, el 2º GIRA la página
-  await page.getByTestId("vn-next").click();
+  await page.getByTestId("tp-next").click();
   await page.waitForTimeout(200);
-  await page.getByTestId("vn-next").click();
+  await page.getByTestId("tp-next").click();
   let pageNumAfter = "?";
   for (let i = 0; i < 20; i++) {
     await page.waitForTimeout(300);
@@ -183,7 +183,7 @@ function check(name, ok, detail = "") {
   console.log("=== J. ESCAPE CIERRA ===");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
-  check("overlay cerrado", (await page.getByTestId("vn-overlay").count()) === 0);
+  check("overlay cerrado", (await page.getByTestId("tp-overlay").count()) === 0);
 
   console.log("=== K. REDUCED MOTION (contexto aparte) ===");
   const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
@@ -198,11 +198,11 @@ function check(name, ok, detail = "") {
   }
   await page2.waitForSelector('[data-viewport="pdf"]', { timeout: 30000 });
   await page2.waitForTimeout(1200);
-  await page2.getByTestId("vn-toggle").click();
-  await page2.waitForSelector('[data-testid="vn-card-box"]', { timeout: 10000 });
+  await page2.getByTestId("tp-toggle").click();
+  await page2.waitForSelector('[data-testid="tp-card-box"]', { timeout: 10000 });
   await page2.waitForTimeout(400);
   const rm = await page2.evaluate(() => {
-    const spans = Array.from(document.querySelectorAll('[data-testid="vn-card-box"] .vn-ch'));
+    const spans = Array.from(document.querySelectorAll('[data-testid="tp-card-box"] .tp-ch'));
     const on = spans.filter((s) => getComputedStyle(s).opacity === "1").length;
     return { total: spans.length, on };
   });

@@ -1,8 +1,8 @@
 #!/bin/bash
 # Paso 5+6+9 de graphify: etiquetar comunidades, regenerar reporte, exportar HTML, manifest+limpieza
 set -e
-cd /home/z/my-project
-PY=/home/z/my-project/.venv-graphify/bin/python
+cd "$(dirname "$0")/.."
+PY="$PWD/.venv-graphify/bin/python"
 
 echo "=== Paso 5: etiquetas de comunidades ==="
 "$PY" - <<'EOF'
@@ -17,7 +17,7 @@ extraction = json.loads(Path('graphify-out/.graphify_extract.json').read_text(en
 detection = json.loads(Path('graphify-out/.graphify_detect.json').read_text(encoding='utf-8'))
 analysis = json.loads(Path('graphify-out/.graphify_analysis.json').read_text(encoding='utf-8'))
 
-G = build_from_json(extraction, root='/home/z/my-project/src', directed=False)
+G = build_from_json(extraction, root='src', directed=False)
 communities = {int(k): v for k, v in analysis['communities'].items()}
 cohesion = {int(k): v for k, v in analysis['cohesion'].items()}
 tokens = {'input': extraction.get('input_tokens', 0), 'output': extraction.get('output_tokens', 0)}
@@ -55,7 +55,7 @@ labels = {
 }
 
 questions = suggest_questions(G, communities, labels)
-report = generate(G, communities, cohesion, labels, analysis['gods'], analysis['surprises'], detection, tokens, '/home/z/my-project/src', suggested_questions=questions)
+report = generate(G, communities, cohesion, labels, analysis['gods'], analysis['surprises'], detection, tokens, 'src', suggested_questions=questions)
 Path('graphify-out/GRAPH_REPORT.md').write_text(report, encoding='utf-8')
 Path('graphify-out/.graphify_labels.json').write_text(json.dumps({str(k): v for k, v in labels.items()}, ensure_ascii=False), encoding='utf-8')
 wrote = to_json(G, communities, 'graphify-out/graph.json', community_labels=labels)
@@ -65,7 +65,7 @@ print('Reporte actualizado con etiquetas reales')
 EOF
 
 echo "=== Paso 6: exportar HTML interactivo ==="
-/home/z/my-project/.venv-graphify/bin/graphify export html
+"$PWD/.venv-graphify/bin/graphify" export html
 
 echo "=== Paso 9: manifest + limpieza ==="
 "$PY" - <<'EOF'
@@ -77,10 +77,10 @@ from graphify.detect import save_manifest
 detect = json.loads(Path('graphify-out/.graphify_detect.json').read_text(encoding='utf-8'))
 extract = json.loads(Path('graphify-out/.graphify_extract.json').read_text(encoding='utf-8'))
 all_files = [f for cat in ('code', 'document', 'paper', 'image', 'video') for f in detect['files'].get(cat, [])]
-save_manifest(detect['files'], root='/home/z/my-project/src')
+save_manifest(detect['files'], root='src')
 manifest = {
     'built_at': datetime.now(timezone.utc).isoformat(),
-    'scan_root': '/home/z/my-project/src',
+    'scan_root': 'src',
     'files': len(all_files),
     'nodes': len(extract['nodes']),
     'edges': len(extract['edges']),

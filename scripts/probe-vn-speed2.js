@@ -1,4 +1,4 @@
-/* Sonda 2: réplica EXACTA de test-vn-rebuild A→F con dumps de estado. */
+/* Sonda 2: réplica EXACTA de test-tp-rebuild A→F con dumps de estado. */
 const { chromium } = require("playwright");
 const BASE = "http://localhost:3000";
 
@@ -11,11 +11,11 @@ const BASE = "http://localhost:3000";
 
   const dump = async (label) => {
     const st = await page.evaluate(() => {
-      const ov = document.querySelector('[data-testid="vn-overlay"]');
-      const sp = document.querySelector('[data-testid="vn-speed"]');
+      const ov = document.querySelector('[data-testid="tp-overlay"]');
+      const sp = document.querySelector('[data-testid="tp-speed"]');
       const csr = sp ? getComputedStyle(sp) : null;
       return {
-        ov: ov ? (ov.className.includes("vn-immersed") ? "INMERSO" : "visible") : "sin overlay",
+        ov: ov ? (ov.className.includes("tp-immersed") ? "INMERSO" : "visible") : "sin overlay",
         sp: sp ? { vis: csr.visibility, op: csr.opacity } : "NO EXISTE",
         focus: document.activeElement ? String(document.activeElement.tagName) + ":" + String(document.activeElement.getAttribute("data-testid") || document.activeElement.className).slice(0, 24) : "none",
       };
@@ -37,12 +37,12 @@ const BASE = "http://localhost:3000";
   const bookTitle = await page.locator("h1, [data-testid]").first().textContent().catch(() => "?");
   console.log("libro abierto (primer h1):", bookTitle);
 
-  // C: modo novela
-  await page.getByTestId("vn-toggle").click();
-  await page.waitForSelector('[data-testid="vn-overlay"]', { timeout: 10000 });
+  // C: modo teleprompter
+  await page.getByTestId("tp-toggle").click();
+  await page.waitForSelector('[data-testid="tp-overlay"]', { timeout: 10000 });
   await page.waitForTimeout(900);
   for (let i = 0; i < 20; i++) {
-    if ((await page.getByTestId("vn-card-box").count()) >= 1) break;
+    if ((await page.getByTestId("tp-card-box").count()) >= 1) break;
     await page.waitForTimeout(250);
   }
   await dump("C: overlay + tarjetas      ");
@@ -61,14 +61,14 @@ const BASE = "http://localhost:3000";
   await page.waitForTimeout(1400);
   await dump("E2: Space +1400ms (reanudar)");
 
-  // F: pausa + click en vn-speed
+  // F: pausa + click en tp-speed
   await page.keyboard.press(" ");
   await page.waitForTimeout(250);
   await dump("F: Space +250ms            ");
   try {
-    await page.getByTestId("vn-speed").click({ timeout: 4000 });
-    console.log("F: click vn-speed OK");
-    await page.waitForSelector('[data-testid="vn-speed-menu"]', { timeout: 5000 });
+    await page.getByTestId("tp-speed").click({ timeout: 4000 });
+    console.log("F: click tp-speed OK");
+    await page.waitForSelector('[data-testid="tp-speed-menu"]', { timeout: 5000 });
     console.log("F: menú abierto OK");
   } catch (e) {
     console.log("F: click FALLÓ:", String(e).split("\n")[0]);

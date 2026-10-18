@@ -99,6 +99,8 @@ export interface BookExtras {
   prediction?: { text: string; savedAt: string };
   conclusion?: { text: string; savedAt: string };
   lockedNotes?: LockedNote[];
+  /** modo de lectura recordado del PDF (página tal cual o texto reflowable) */
+  readerMode?: "page" | "text";
 }
 
 // ---------- Vocabulario global ----------
@@ -163,6 +165,7 @@ export type RailPosition = "bottom" | "top" | "left" | "right";
 export type RailTheme = "egeo" | "dynamic" | "amber" | "emerald" | "rose" | "violet" | "cyan";
 
 export type FilterPreset =
+  | "auto"
   | "normal"
   | "papel"
   | "sepia"
@@ -188,12 +191,24 @@ export interface RailSettings {
   celebrate: boolean;
 }
 
+/** Fuentes curadas de la casa para el texto reflowable (EPUB y PDF texto) */
+export type ReadingFont = "literata" | "garamond" | "atkinson";
+
+/** Opciones del selector de fuente: id, nombre visible y variable next/font */
+export const READING_FONTS: { id: ReadingFont; label: string; cssVar: string }[] = [
+  { id: "literata", label: "Literata", cssVar: "--font-literata" },
+  { id: "garamond", label: "EB Garamond", cssVar: "--font-eb-garamond" },
+  { id: "atkinson", label: "Atkinson Hyperlegible", cssVar: "--font-atkinson" },
+];
+
 export interface ReadingSettings {
   dailyGoal: number; // páginas/día
   /** salto de scroll con ↑/↓ como % del alto visible del visor (10-100) */
   scrollStepPct: number;
   /** multiplicador de la rueda del mouse (1 = rueda nativa del navegador) */
   wheelBoost: number;
+  /** fuente del texto reflowable (EPUB y modo texto) */
+  font: ReadingFont;
 }
 
 /** Modo inmersión: la interfaz se desvanece si el mouse queda quieto */
@@ -204,25 +219,25 @@ export interface ImmersionSettings {
   toggleKey: string;
 }
 
-/** Modo novela visual: tarjetas a pantalla completa que se encienden letra a letra */
-export interface VnSettings {
-  /** id del preset de velocidad (VN_SPEED_PRESETS en src/lib/vn.ts) */
+/** Modo teleprompter: la página se enciende letra a letra a pantalla completa */
+export interface TeleprompterSettings {
+  /** id del preset de velocidad (TELEPROMPTER_SPEED_PRESETS en src/lib/teleprompter.ts) */
   speedPreset: string;
   /** tic de tipeo por letra */
   sound: boolean;
   /** modo auto: al terminar una tarjeta avanza solo (y gira la página al acabar) */
   auto: boolean;
-  /** multiplicador del tamaño de letra de las tarjetas (VN_FONT_MIN..VN_FONT_MAX) */
+  /** multiplicador del tamaño de letra de las tarjetas (TELEPROMPTER_FONT_MIN..TELEPROMPTER_FONT_MAX) */
   fontScale: number;
 }
 
-export const VN_FONT_MIN = 0.8;
-export const VN_FONT_MAX = 1.6;
-export const VN_FONT_STEP = 0.1;
+export const TELEPROMPTER_FONT_MIN = 0.8;
+export const TELEPROMPTER_FONT_MAX = 1.6;
+export const TELEPROMPTER_FONT_STEP = 0.1;
 
-export function clampVnFontScale(v: number): number {
+export function clampTeleprompterFontScale(v: number): number {
   const r = Math.round(v * 10) / 10;
-  return Math.min(VN_FONT_MAX, Math.max(VN_FONT_MIN, r));
+  return Math.min(TELEPROMPTER_FONT_MAX, Math.max(TELEPROMPTER_FONT_MIN, r));
 }
 
 export interface AppSettings {
@@ -232,19 +247,19 @@ export interface AppSettings {
   filters: FilterSettings;
   reading: ReadingSettings;
   immersion: ImmersionSettings;
-  vn: VnSettings;
+  teleprompter: TeleprompterSettings;
 }
 
-// ---------- Modo novela visual: velocidades ----------
+// ---------- Teleprompter: velocidades ----------
 
-export interface VnSpeedPreset {
+export interface TeleprompterSpeedPreset {
   id: string;
   label: string;
   /** palabras por segundo; null = Instantánea (todo de golpe) */
   wps: number | null;
 }
 
-export const VN_SPEED_PRESETS: VnSpeedPreset[] = [
+export const TELEPROMPTER_SPEED_PRESETS: TeleprompterSpeedPreset[] = [
   { id: "0-8", label: "Contemplativa · 0,8 pal/s", wps: 0.8 },
   { id: "1-5", label: "Lenta · 1,5 pal/s", wps: 1.5 },
   { id: "2-5", label: "Natural · 2,5 pal/s", wps: 2.5 },
@@ -252,10 +267,10 @@ export const VN_SPEED_PRESETS: VnSpeedPreset[] = [
   { id: "instant", label: "Instantánea", wps: null },
 ];
 
-export const VN_DEFAULT_PRESET = "1-5";
+export const TELEPROMPTER_DEFAULT_PRESET = "1-5";
 
-export function vnPresetById(id: string): VnSpeedPreset {
-  return VN_SPEED_PRESETS.find((p) => p.id === id) ?? VN_SPEED_PRESETS[1];
+export function teleprompterPresetById(id: string): TeleprompterSpeedPreset {
+  return TELEPROMPTER_SPEED_PRESETS.find((p) => p.id === id) ?? TELEPROMPTER_SPEED_PRESETS[1];
 }
 
 export const RAIL_THEMES: Record<
@@ -347,6 +362,11 @@ export const FILTER_PRESETS: Record<
   FilterPreset,
   { label: string; filters: FilterSettings; css: string }
 > = {
+  auto: {
+    label: "Auto",
+    css: "none",
+    filters: { preset: "auto", brightness: 100, contrast: 100, sepia: 0, saturate: 100, warmth: 0, invert: 0 },
+  },
   normal: {
     label: "Normal",
     css: "none",
