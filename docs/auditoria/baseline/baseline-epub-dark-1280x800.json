@@ -1,0 +1,14 @@
+[
+  {
+    "antipattern": "flat-type-hierarchy",
+    "name": "Flat type hierarchy",
+    "description": "Dominant heading and body roles are separated by less than 1.25× at every step, leaving the size hierarchy flat. Add at least one stronger size step.",
+    "severity": "advisory",
+    "category": "slop",
+    "file": "file:///home/extra/repositorios/atena/scripts/audit-snapshots/baseline-epub-dark-1280x800.html",
+    "line": 0,
+    "snippet": "Role sizes: body 12px, h2 14px, h3 14px (largest adjacent step 1.17:1; target 1.25:1; weight separates headings from body text)",
+    "advisory": true,
+    "selector": "body"
+  }
+]

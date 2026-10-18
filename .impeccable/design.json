@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T00:00:00Z",
+  "title": "Design System: Atena",
+  "extensions": {
+    "colorMeta": {
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "oklch(0.07 0.028 258)", "tonalRamp": ["oklch(0.07 0.028 258)", "oklch(0.16 0.035 258)", "oklch(0.26 0.045 258)", "oklch(0.38 0.05 258)", "oklch(0.52 0.05 258)", "oklch(0.68 0.04 258)", "oklch(0.84 0.03 258)", "oklch(0.96 0.012 258)"] },
+      "night-navy": { "role": "neutral", "displayName": "Night Navy", "canonical": "oklch(0.145 0.045 253)", "tonalRamp": ["oklch(0.09 0.045 253)", "oklch(0.145 0.045 253)", "oklch(0.2 0.05 253)", "oklch(0.28 0.05 252)", "oklch(0.4 0.05 251)", "oklch(0.56 0.045 250)", "oklch(0.74 0.035 248)", "oklch(0.94 0.015 245)"] },
+      "morning-marble": { "role": "neutral", "displayName": "Morning Marble", "canonical": "oklch(0.965 0.018 235)", "tonalRamp": ["oklch(0.2 0.03 238)", "oklch(0.34 0.03 236)", "oklch(0.5 0.028 236)", "oklch(0.66 0.024 236)", "oklch(0.8 0.02 235)", "oklch(0.9 0.018 235)", "oklch(0.965 0.018 235)", "oklch(0.995 0.008 240)"] },
+      "focus-blue": { "role": "primary", "displayName": "Focus Blue", "canonical": "oklch(0.66 0.14 246)", "tonalRamp": ["oklch(0.15 0.14 246)", "oklch(0.25 0.14 246)", "oklch(0.35 0.14 246)", "oklch(0.45 0.14 246)", "oklch(0.55 0.155 250)", "oklch(0.66 0.14 246)", "oklch(0.8 0.09 246)", "oklch(0.95 0.04 246)"] },
+      "reader-page": { "role": "surface", "displayName": "Reader Page", "canonical": "oklch(0.185 0.05 253)", "tonalRamp": ["oklch(0.09 0.045 253)", "oklch(0.145 0.05 253)", "oklch(0.185 0.05 253)", "oklch(0.28 0.05 253)", "oklch(0.45 0.045 250)", "oklch(0.66 0.035 246)", "oklch(0.85 0.022 240)", "oklch(0.985 0.012 235)"] },
+      "alert-red": { "role": "tertiary", "displayName": "Alert Red", "canonical": "oklch(0.65 0.19 25)", "tonalRamp": ["oklch(0.2 0.1 25)", "oklch(0.32 0.15 25)", "oklch(0.44 0.18 25)", "oklch(0.55 0.19 25)", "oklch(0.65 0.19 25)", "oklch(0.75 0.16 30)", "oklch(0.86 0.1 35)", "oklch(0.95 0.05 40)"] },
+      "text-hi": { "role": "neutral", "displayName": "Text Hi", "canonical": "oklch(0.93 0.02 250)" },
+      "text-soft": { "role": "neutral", "displayName": "Text Soft", "canonical": "oklch(0.68 0.03 250)" },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "oklch(0.85 0.03 250 / 16%)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "La voz de la casa: título Atena y momentos solemnes. Fraunces con ejes opsz/SOFT/WONK." },
+      "headline": { "displayName": "Headline", "purpose": "Títulos de sección y paneles." },
+      "body": { "displayName": "Body", "purpose": "Interfaz. El libro no usa esta escala." },
+      "label": { "displayName": "Label", "purpose": "Controles compactos, chips, meta de tarjetas." },
+      "teleprompter": { "displayName": "Teleprompter", "purpose": "El flujo encendido letra a letra; fuente de lectura elegida por la lectora." }
+    },
+    "shadows": [
+      { "name": "brutal", "value": "4px 4px 0 0 oklch(0.07 0.028 258 / 85%)", "purpose": "Reposo de tarjetas y paneles con presencia (var(--brutal-shadow))." },
+      { "name": "brutal-lg", "value": "7px 7px 0 0 oklch(0.03 0.02 258 / 70%)", "purpose": "Piezas solemnes: hero, diálogos (var(--brutal-shadow-lg))." },
+      { "name": "press", "value": "3px 3px 0 0 var(--ink)", "purpose": "Botón en reposo; en active baja a 1px 1px con translate(1px,1px)." },
+      { "name": "inset-rail", "value": "inset 0 1px 2px oklch(0 0 0 / 0.32)", "purpose": "Canal del riel: se lee como ranura física." },
+      { "name": "seal-glow", "value": "drop-shadow(0 0 22px oklch(0.66 0.14 246 / 45%))", "purpose": "Único difuminado de la casa: luz del sello, no sombra." }
+    ],
+    "motion": [
+      { "name": "brutal-press", "value": "transform 0.12s ease, box-shadow 0.12s ease", "purpose": "Hover y pisada del brutalismo." },
+      { "name": "dict-in", "value": "0.16s ease-out both", "purpose": "Entrada del popover de diccionario." },
+      { "name": "chrome-fade", "value": "opacity 0.45s ease, visibility 0.45s ease", "purpose": "Auto-ocultado del chrome del lector y del teleprompter." },
+      { "name": "fade-up", "value": "0.35s ease-out both", "purpose": "Entrada de contenido de la biblioteca." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: todo estático, encendido completo, cero transiciones por carácter", "purpose": "Ruta accesible obligatoria." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Botón de acción: azul de enfoque con tinta y pisada brutalista.",
+      "html": "<button class=\"ds-btn-primary\">Empezar a leer</button>",
+      "css": ".ds-btn-primary { font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 0.875rem; font-weight: 600; background: var(--primary); color: var(--primary-foreground); border: 2px solid var(--ink); border-radius: 0; padding: 8px 16px; height: 36px; box-shadow: 3px 3px 0 0 var(--ink); cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease; } .ds-btn-primary:hover { background: color-mix(in oklab, var(--primary) 90%, black); } .ds-btn-primary:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 var(--ink); } .ds-btn-primary:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Acción secundaria con borde de tinta; revela Panel al hover.",
+      "html": "<button class=\"ds-btn-outline\">Continuar</button>",
+      "css": ".ds-btn-outline { font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; background: var(--background); color: var(--foreground); border: 2px solid var(--ink); border-radius: 0; padding: 8px 16px; height: 36px; cursor: pointer; transition: background 0.12s ease, color 0.12s ease; } .ds-btn-outline:hover { background: var(--accent); color: var(--accent-foreground); } .ds-btn-outline:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Control de barra sin peso: sin borde ni sombra hasta el hover.",
+      "html": "<button class=\"ds-btn-ghost\">Teleprompter</button>",
+      "css": ".ds-btn-ghost { font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; background: transparent; color: var(--foreground); border: none; border-radius: 0; padding: 8px 16px; height: 36px; cursor: pointer; transition: background 0.12s ease, color 0.12s ease; } .ds-btn-ghost:hover { background: var(--accent); color: var(--accent-foreground); } .ds-btn-ghost:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": null,
+      "description": "Campo rectangular con halo azul de foco; cero curvas.",
+      "html": "<input class=\"ds-input\" value=\"5\" aria-label=\"Número de página\" />",
+      "css": ".ds-input { font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 0.875rem; background: transparent; color: var(--foreground); border: 2px solid var(--input); border-radius: 0; height: 36px; padding: 0 12px; width: 96px; } .ds-input:focus { outline: none; box-shadow: 0 0 0 3px var(--ring); }"
+    },
+    {
+      "name": "Book Card",
+      "kind": "card",
+      "refersTo": "book-card",
+      "description": "Tarjeta brutalista de la biblioteca: tinta, sombra dura y levantamiento al hover.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">El mundo de Sofía</h3><p class=\"ds-card-meta\">Jostein Gaarder · 670 páginas</p><div class=\"ds-card-rail\"><span style=\"width:4%\"></span></div></div>",
+      "css": ".ds-card { font-family: var(--font-geist-sans), system-ui, sans-serif; background: var(--card); color: var(--card-foreground); border: 2px solid var(--ink); border-radius: 0; box-shadow: var(--brutal-shadow); padding: 16px; transition: transform 0.12s ease, box-shadow 0.12s ease; } .ds-card:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 0 var(--ink); } .ds-card-title { font-family: var(--font-fraunces), Georgia, serif; font-size: 1.25rem; font-weight: 600; margin: 0 0 4px; } .ds-card-meta { font-size: 0.75rem; color: var(--muted-foreground); margin: 0 0 12px; } .ds-card-rail { position: relative; height: 8px; background: oklch(0 0 0 / 0.35); box-shadow: inset 0 1px 2px oklch(0 0 0 / 0.32); } .ds-card-rail span { position: absolute; inset: 0 auto 0 0; background: var(--primary); }"
+    },
+    {
+      "name": "Rail",
+      "kind": "custom",
+      "refersTo": "rail-fill",
+      "description": "El riel: canal hundido, relleno azul, knob de tinta. El instrumento de la casa.",
+      "html": "<div class=\"ds-rail\"><span class=\"ds-rail-fill\" style=\"width: 62%\"></span><span class=\"ds-rail-knob\" style=\"left: 62%\"></span></div>",
+      "css": ".ds-rail { position: relative; height: 8px; background: oklch(0 0 0 / 0.35); box-shadow: inset 0 1px 2px oklch(0 0 0 / 0.32); border-radius: 0; } .ds-rail-fill { position: absolute; top: 0; bottom: 0; left: 0; background: var(--primary); box-shadow: 0 0 6px oklch(0.66 0.14 246 / 0.5); } .ds-rail-knob { position: absolute; top: 50%; width: 14px; height: 14px; transform: translate(-50%, -50%); background: var(--primary-foreground); border: 2px solid var(--ink); border-radius: 0; box-shadow: 0 1px 4px oklch(0 0 0 / 0.45); }"
+    },
+    {
+      "name": "Teleprompter Stream",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "El flujo continuo: papel propio, encendido pleno y apagado legible a 0.55.",
+      "html": "<div class=\"ds-tp-stream\"><p><span class=\"ds-tp-on\">El que no sabe llevar su contabilidad </span>Por espacio de tres mil años se queda como un ignorante en la oscuridad y sólo vive al día.</p></div>",
+      "css": ".ds-tp-stream { font-family: var(--reader-font), Georgia, serif; font-size: 1.35rem; line-height: 1.9; color: var(--reader-ink); background: var(--reader-bg); padding: 24px; } .ds-tp-stream p { margin: 0; opacity: 0.55; } .ds-tp-on { opacity: 1; } @media (max-width: 640px) { .ds-tp-stream p { opacity: 0.68; } }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "Pastilla oval de estado vivo: la única curva permitida, y marca información, no acciones.",
+      "html": "<span class=\"ds-chip\">Página 5 de 670 · Lenta · 1,5 pal/s</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-geist-sans), system-ui, sans-serif; font-size: 0.6875rem; color: var(--muted-foreground); background: var(--card); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La Casa de Tinta y Azul",
+    "overview": "Atena es una casa de lectura brutalista: tinta sólida, azul de enfoque y cero curvas. La letra manda — Fraunces para los títulos, Literata para el libro — y todo lo demás se aparta: sin degradados decorativos, sin sombras de humo, sin esquinas que invitan a descansar. La calma no viene de la blandura sino del azul profundo: una madrugada de estudio que sostiene el foco. El mundo es editorial, no de aplicación: los botones y las tarjetas se comportan como piezas de un cartel bien impreso y el libro vive encima de una superficie propia (--reader-*), separada del ruido de la interfaz.",
+    "keyCharacteristics": [
+      "Cero radio en todo (--radius: 0); las esquinas son siempre rectas.",
+      "Tinta única para bordes y sombras (--ink), nunca grises genéricos.",
+      "Azul de enfoque escaso y estructural: interacción, progreso, riel.",
+      "Dos caras del mismo azul: noche egea (default) y mañana de mármol.",
+      "Superficie de lectura con tokens propios (--reader-*), impermeable al tema."
+    ],
+    "rules": [
+      { "name": "The Focus-Blue Rule", "body": "El azul es foco, no decoración: aparece solo donde hay una acción o progreso real y su rareza es el punto.", "section": "colors" },
+      { "name": "The Ink Rule", "body": "Bordes y sombras se dibujan siempre con --ink; jamás con grises de la paleta.", "section": "colors" },
+      { "name": "The Serif-Divide Rule", "body": "Fraunces es la voz de la casa; la serif de lectura es la voz del libro. Nunca se intercambian.", "section": "typography" },
+      { "name": "The Hard Shadow Rule", "body": "Toda sombra es un bloque de tinta desplazado, con offset entero y cero blur. El único difuminado permitido es el halo del sello.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do dibujar bordes y sombras con --ink (2px, offset entero, cero blur).",
+      "Do mantener --radius: 0 en todo componente nuevo.",
+      "Do usar los tokens --reader-* en toda superficie de lectura.",
+      "Do mantener el azul escaso: si el diseño necesita más azul, revisa la jerarquía.",
+      "Do respetar prefers-reduced-motion: todo encendido estático, cero transiciones por carácter.",
+      "Do verificar contraste AA+ con scripts/audit-reader-contrast.py al tocar tokens de lectura."
+    ],
+    "donts": [
+      "Don't introducir esquinas redondeadas, glassmorphism ni sombras difusas.",
+      "Don't usar grises corporativos de dashboard SaaS: el gris de la casa es azul.",
+      "Don't volver al papel cálido sepia en el lector — se jubiló a propósito.",
+      "Don't hardcodear hex: todo color pasa por token, y oklch es el formato canónico.",
+      "Don't poner texto de interfaz sin clave i18n ni duplicar Fraunces dentro del flujo del libro."
+    ]
+  }
+}

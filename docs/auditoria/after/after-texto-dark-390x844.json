@@ -1,0 +1,13 @@
+[
+  {
+    "antipattern": "low-contrast",
+    "name": "Low contrast text",
+    "description": "Text does not meet WCAG AA contrast requirements (4.5:1 for body, 3:1 for large text). Increase the contrast between text and background.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "file:///home/extra/repositorios/atena/scripts/audit-snapshots/after-texto-dark-390x844.html",
+    "line": 0,
+    "snippet": "pixel contrast 3.5:1 median 3.5:1 (need 4.5:1) on unread layer \"Pantalla completa\"",
+    "selector": "header.flex.min-h-14 > button.inline-flex.items-center:nth-of-type(2)"
+  }
+]
