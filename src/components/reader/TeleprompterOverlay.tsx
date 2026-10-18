@@ -19,6 +19,11 @@ import {
 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
+import { useFullscreen } from "@/hooks/use-fullscreen";
+import {
+  useTeleprompterWindow,
+} from "@/hooks/use-teleprompter-window";
+import { useTeleprompterPlayer } from "@/hooks/use-teleprompter-player";
 import {
   TELEPROMPTER_SPEED_PRESETS,
   teleprompterPresetById,
@@ -27,23 +32,16 @@ import {
   TELEPROMPTER_FONT_MIN,
   TELEPROMPTER_FONT_STEP,
 } from "@/lib/types";
-import {
-  TELEPROMPTER_LETTERS_PER_WORD,
-  buildTeleprompterStream,
-  extractPdfPageBlocksForTeleprompter,
-  teleprompterCharCount,
-  teleprompterRewind,
-  type TeleprompterBlock,
-} from "@/lib/teleprompter";
 import type { BookDTO } from "@/lib/types";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { cn } from "@/lib/utils";
+import type { StreamWindow } from "@/hooks/use-teleprompter-window";
 
 interface TeleprompterOverlayProps {
   book: BookDTO;
   doc: PDFDocumentProxy | null;
   /** EPUB: bloques reales de la página (h1-h4 en el flujo) */
-  getPageBlocks?: (page: number) => Promise<TeleprompterBlock[]>;
+  getPageBlocks?: (page: number) => Promise<import("@/lib/teleprompter").TeleprompterBlock[]>;
   pageNum: number;
   numPages: number;
   /**
@@ -58,22 +56,39 @@ interface TeleprompterOverlayProps {
   onClose: () => void;
 }
 
-/** Ventana de lectura: la página actual y la siguiente (DOM acotado a dos) */
-interface StreamWindow {
-  /** primera página de la ventana (1-based) */
-  start: number;
-  /** [página start, página start+1]; el segundo hueco puede no existir */
-  pages: (TeleprompterBlock[] | null)[];
-}
-
 /** ms de quietud antes de que el teleprompter oculte su propia UI */
 const TP_IDLE_MS = 3500;
+
+/** la página pedida aún no está en la ventana: abriendo (derivado, sin efectos) */
+function isStaleWindow(win: StreamWindow | null, pageNum: number): boolean {
+  return !win || pageNum < win.start || pageNum > win.start + 1;
+}
+
+/** avance de la página actual en % (0 sin primera página medible) */
+function pagePct(lit: number, firstLen: number): number {
+  return firstLen > 0 ? Math.min(100, (lit / firstLen) * 100) : 0;
+}
+
+/** el flujo llegó al final del libro (última página sin siguiente encadenada) */
+function isAtEnd(bookDone: boolean, win: StreamWindow | null, lit: number, totalChars: number): boolean {
+  return bookDone || (!win?.pages[1] && lit >= totalChars && totalChars > 0);
+}
+
+/** etiqueta del botón de avance según el estado de la reproducción */
+function nextLabelFor(atEnd: boolean, pageDone: boolean, t: (k: string) => string): string {
+  if (atEnd) return t("tp.end");
+  return pageDone ? t("tp.nextPage") : t("tp.next");
+}
 
 /**
  * Modo teleprompter continuo: la página se lee como una columna única que sube
  * sola mientras las letras se encienden, con el carácter activo a ~40 % del
  * alto. La ventana mantiene dos páginas en el DOM: la actual y la siguiente,
  * así el encadenado con Auto no corta y el rebobinado puede volver atrás.
+ *
+ * Composición visual: la capa de datos/DOM vive en `use-teleprompter-window`
+ * y el control de reproducción (motor, pausa, rebobinado, encadenado) en
+ * `use-teleprompter-player`.
  */
 export function TeleprompterOverlay({
   book,
@@ -102,119 +117,16 @@ export function TeleprompterOverlay({
     [fontScale, setTeleprompter]
   );
 
-  const [win, setWin] = useState<StreamWindow | null>(null);
-  const [lit, setLit] = useState(0);
-  const [playing, setPlaying] = useState(true);
-  /** la página actual se agotó: sin Auto espera la orden */
-  const [pageDone, setPageDone] = useState(false);
-  const [bookDone, setBookDone] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
   const [uiHidden, setUiHidden] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(false);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  const winRef = useRef<StreamWindow | null>(null);
-  const winSourceRef = useRef<string | null>(null);
-  const litRef = useRef(0);
-  const spansRef = useRef<HTMLSpanElement[]>([]);
-  const cacheRef = useRef<Map<number, TeleprompterBlock[]>>(new Map());
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const allowCrossRef = useRef(false);
   const speedOpenRef = useRef(false);
 
-  // ---------- carga de bloques (PDF: heurística compartida con el modo texto) ----
-  const loadBlocks = useCallback(
-    async (page: number): Promise<TeleprompterBlock[]> => {
-      if (page < 1 || page > numPages) return [];
-      const cached = cacheRef.current.get(page);
-      if (cached) return cached;
-      const blocks = getPageBlocks
-        ? await getPageBlocks(page)
-        : doc
-          ? await extractPdfPageBlocksForTeleprompter(doc, page)
-          : [];
-      cacheRef.current.set(page, blocks);
-      return blocks;
-    },
-    [getPageBlocks, doc, numPages]
-  );
-
-  // ---------- ventana: página actual + siguiente ----------
-  useEffect(() => {
-    const cur = winRef.current;
-    // el cruce interno ya movió la ventana: el lector solo va un paso por detrás
-    if (
-      cur &&
-      winSourceRef.current === sourceKey &&
-      pageNum >= cur.start &&
-      pageNum <= cur.start + 1
-    ) {
-      return;
-    }
-
-    let alive = true;
-    void (async () => {
-      let start = pageNum;
-      let first = await loadBlocks(start);
-      // portada o página muda: el flujo arranca en la siguiente con texto
-      if (teleprompterCharCount(first) === 0) {
-        for (let p = pageNum + 1; p <= Math.min(numPages, pageNum + 3); p++) {
-          const blocks = await loadBlocks(p);
-          if (teleprompterCharCount(blocks) > 0) {
-            start = p;
-            first = blocks;
-            break;
-          }
-        }
-      }
-      const next = start < numPages ? await loadBlocks(start + 1) : null;
-      if (!alive) return;
-      const opened: StreamWindow = { start, pages: [first, next] };
-      winRef.current = opened;
-      winSourceRef.current = sourceKey;
-      litRef.current = 0;
-      setWin(opened);
-      setLit(0);
-      setPlaying(true);
-      setPageDone(false);
-      setBookDone(false);
-      if (start !== pageNum) onGoToPage(start);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [pageNum, numPages, loadBlocks, onGoToPage, sourceKey]);
-
-  const windowBlocks = useMemo(
-    () => (win ? [...(win.pages[0] ?? []), ...(win.pages[1] ?? [])] : []),
-    [win]
-  );
-  const stream = useMemo(() => buildTeleprompterStream(windowBlocks, preset.wps), [windowBlocks, preset.wps]);
-  const firstLen = useMemo(() => teleprompterCharCount(win?.pages[0] ?? []), [win]);
-  const totalChars = stream.steps.length;
-  /** la página pedida aún no está en la ventana: abriendo (derivado, sin efectos) */
-  const stale = !win || pageNum < win.start || pageNum > win.start + 1;
-
-  // ---------- spans del DOM (para encendido, scroll y rebobinado) ----------
-  useEffect(() => {
-    spansRef.current = Array.from(
-      scrollRef.current?.querySelectorAll<HTMLSpanElement>(".tp-ch") ?? []
-    );
-  }, [win]);
-
-  /** deja el carácter `idx` a ~40 % del alto visible */
-  const scrollToChar = useCallback((idx: number) => {
-    const root = scrollRef.current;
-    const el = spansRef.current[idx];
-    if (!root || !el) return;
-    const r = el.getBoundingClientRect();
-    const rr = root.getBoundingClientRect();
-    root.scrollTop += r.top - rr.top - root.clientHeight * 0.4;
-  }, []);
-
   // ---------- tic de tipeo (WebAudio, muy bajo) ----------
-  const tick = useCallback(() => {
+  const tpTick = useCallback(() => {
     if (!tpSet.sound) return;
     try {
       const AC =
@@ -227,230 +139,56 @@ export function TeleprompterOverlay({
         void ctx.resume();
         return; // no sonar hasta que el contexto despierte
       }
-      const t = ctx.currentTime;
+      const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "square";
       osc.frequency.value = 1500 + Math.random() * 400;
-      gain.gain.setValueAtTime(0.014, t);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.024);
+      gain.gain.setValueAtTime(0.014, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.024);
       osc.connect(gain).connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.026);
+      osc.start(now);
+      osc.stop(now + 0.026);
     } catch {
       /* el sonido nunca debe romper la lectura */
     }
   }, [tpSet.sound]);
 
-  // ---------- deslizar la ventana al cruzar de página ----------
-  const slide = useCallback(
-    (rebase: number) => {
-      const cur = winRef.current;
-      if (!cur || !cur.pages[1]) return;
-      const nextStart = cur.start + 1;
-      const first = cur.pages[1];
-      allowCrossRef.current = false;
-      litRef.current = rebase;
-      setLit(rebase);
-      setPageDone(false);
-      setBookDone(false);
-      onGoToPage(nextStart);
-      void (async () => {
-        const nextBlocks = nextStart + 1 <= numPages ? await loadBlocks(nextStart + 1) : null;
-        const next: StreamWindow = { start: nextStart, pages: [first, nextBlocks] };
-        winRef.current = next;
-        setWin(next);
-        // precarga silenciosa: el próximo cruce no espera extracción
-        if (nextStart + 2 <= numPages) void loadBlocks(nextStart + 2);
-      })();
-    },
-    [loadBlocks, numPages, onGoToPage]
-  );
+  const tpWin = useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps: preset.wps });
+  const {
+    win,
+    setWin,
+    winRef,
+    winSourceRef,
+    loadBlocks,
+    scrollRef,
+    stream,
+    firstLen,
+    totalChars,
+  } = tpWin;
 
-  // ---------- motor de encendido ----------
-  useEffect(() => {
-    const root = scrollRef.current;
-    if (!root || !win || totalChars === 0) return;
-    const spans = Array.from(root.querySelectorAll<HTMLSpanElement>(".tp-ch"));
-    if (spans.length === 0) return;
-    spansRef.current = spans;
+  const player = useTeleprompterPlayer({
+    pageNum,
+    win,
+    setWin,
+    winRef,
+    winSourceRef,
+    loadBlocks,
+    numPages,
+    sourceKey,
+    onGoToPage,
+    stream,
+    firstLen,
+    totalChars,
+    spansRef: tpWin.spansRef,
+    scrollRef,
+    scrollToChar: tpWin.scrollToChar,
+    auto,
+    presetWps: preset.wps,
+    tick: tpTick,
+  });
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const instant = preset.wps == null || reduced;
-    const paint = (n: number) => spans.forEach((s, k) => s.classList.toggle("on", k < n));
-    const syncHeadings = (n: number) => {
-      for (const b of stream.blocks) {
-        if (!b.heading) continue;
-        spans[b.start]?.closest<HTMLElement>(".tp-block")?.classList.toggle("on", n > b.start);
-      }
-    };
-
-    // Instantánea o movimiento reducido: la página actual entera, sin animación.
-    if (instant) {
-      const reveal = () => {
-        if (cancelled) return;
-        const end = win.pages[1] ? firstLen : totalChars;
-        paint(end);
-        syncHeadings(end);
-        litRef.current = end;
-        setLit(end);
-        if (win.pages[1]) setPageDone(true);
-        else setBookDone(true);
-      };
-      let cancelled = false;
-      const timer = window.setTimeout(reveal, 0);
-      return () => {
-        cancelled = true;
-        window.clearTimeout(timer);
-      };
-    }
-
-    if (pageDone || bookDone || !playing) {
-      paint(litRef.current);
-      syncHeadings(litRef.current);
-      return;
-    }
-
-    let cancelled = false;
-    let timer = 0;
-    let i = Math.min(litRef.current, spans.length);
-    paint(i);
-    syncHeadings(i);
-
-    const headingAt = (idx: number) =>
-      stream.blocks.find((b) => b.heading && idx >= b.start && idx < b.start + b.length);
-
-    const step = () => {
-      if (cancelled) return;
-      if (i >= spans.length) {
-        setBookDone(true);
-        return;
-      }
-      // el título se enciende completo (fundido del bloque, no letra a letra)
-      const heading = headingAt(i);
-      const end = heading ? heading.start + heading.length : i + 1;
-      for (let k = i; k < end; k++) spans[k]?.classList.add("on");
-      if (heading) spans[i]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
-      if (stream.steps[i]?.char.trim()) tick();
-
-      i = end;
-      litRef.current = i;
-      setLit(i);
-      scrollToChar(i - 1);
-
-      if (i >= spans.length) {
-        setBookDone(true);
-        return;
-      }
-      // fin de la página de la ventana: encadenar o esperar la orden
-      if (win.pages[1] && i >= firstLen) {
-        if (!auto && !allowCrossRef.current) {
-          setPageDone(true);
-          return;
-        }
-        slide(i - firstLen);
-        return;
-      }
-      timer = window.setTimeout(step, Math.max(8, stream.steps[i]?.delay ?? 40));
-    };
-
-    timer = window.setTimeout(step, Math.max(8, stream.steps[i]?.delay ?? 40));
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [win, stream, totalChars, firstLen, playing, pageDone, bookDone, auto, preset.wps, tick, scrollToChar, slide]);
-
-  // ---------- Auto: al agotar la página sigue sola ----------
-  useEffect(() => {
-    if (!auto || !playing || bookDone) return;
-    if (!pageDone) return;
-    const wps = preset.wps;
-    const base = wps ? 1000 / (wps * TELEPROMPTER_LETTERS_PER_WORD) : 0;
-    const delay = wps ? Math.min(1800, Math.max(650, base * 10)) : 380;
-    const timer = window.setTimeout(() => {
-      allowCrossRef.current = true;
-      setPageDone(false);
-    }, delay);
-    return () => window.clearTimeout(timer);
-  }, [auto, playing, pageDone, bookDone, preset.wps]);
-
-  // ---------- rebobinado ----------
-  const loadPreviousPage = useCallback(() => {
-    const cur = winRef.current;
-    if (!cur || cur.start <= 1) return;
-    const prev = cur.start - 1;
-    setPlaying(false);
-    void (async () => {
-      const blocks = await loadBlocks(prev);
-      const all = teleprompterCharCount(blocks);
-      const next: StreamWindow = { start: prev, pages: [blocks, cur.pages[0]] };
-      winRef.current = next;
-      litRef.current = all;
-      setWin(next);
-      setLit(all);
-      setPageDone(false);
-      setBookDone(false);
-      onGoToPage(prev);
-    })();
-  }, [loadBlocks, onGoToPage, setPlaying]);
-
-  const rewindOne = useCallback(() => {
-    const cur = winRef.current;
-    if (!cur) return;
-    const next = teleprompterRewind({ page: cur.start, lit: litRef.current });
-    if (!next) return;
-    if (next.lit === -1) {
-      loadPreviousPage();
-      return;
-    }
-    setPlaying(false);
-    setPageDone(false);
-    setBookDone(false);
-    const spans = spansRef.current;
-    let to = next.lit;
-    // a un título se entra de golpe: al rebobinar dentro, se apaga entero
-    const heading = stream.blocks.find((b) => b.heading && to > b.start && to < b.start + b.length);
-    if (heading) to = heading.start;
-    for (let k = to; k < litRef.current; k++) spans[k]?.classList.remove("on");
-    for (const b of stream.blocks) {
-      if (b.heading && to <= b.start) {
-        spans[b.start]?.closest<HTMLElement>(".tp-block")?.classList.remove("on");
-      }
-    }
-    litRef.current = to;
-    setLit(to);
-    scrollToChar(Math.max(0, to - 1));
-  }, [stream, loadPreviousPage, scrollToChar, setPlaying]);
-
-  // ---------- avance ----------
-  const forward = useCallback(() => {
-    if (bookDone) return;
-    if (pageDone) {
-      allowCrossRef.current = true;
-      setPageDone(false);
-      setPlaying(true);
-      return;
-    }
-    if (!playing) {
-      setPlaying(true);
-      return;
-    }
-    // en marcha: completar la página actual de golpe
-    const spans = spansRef.current;
-    const end = win?.pages[1] ? firstLen : totalChars;
-    for (let k = litRef.current; k < end; k++) spans[k]?.classList.add("on");
-    for (const b of stream.blocks) {
-      if (b.heading && end > b.start) {
-        spans[b.start]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
-      }
-    }
-    litRef.current = end;
-    setLit(end);
-    scrollToChar(Math.max(0, end - 1));
-    if (win?.pages[1]) setPageDone(true);
-    else setBookDone(true);
-  }, [bookDone, pageDone, playing, win, firstLen, totalChars, stream, scrollToChar, setPlaying]);
+  const { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne } = player;
 
   // ---------- el overlay toma el foco (bloquea los atajos del lector) ----------
   useEffect(() => {
@@ -484,21 +222,6 @@ export function TeleprompterOverlay({
       if (hideTimer) window.clearTimeout(hideTimer);
       events.forEach((ev) => window.removeEventListener(ev, wake, { capture: true }));
     };
-  }, []);
-
-  // ---------- pantalla completa ----------
-  useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener("fullscreenchange", handler);
-    return () => document.removeEventListener("fullscreenchange", handler);
-  }, []);
-
-  const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) {
-      void document.exitFullscreen().catch(() => undefined);
-    } else {
-      void document.documentElement.requestFullscreen().catch(() => undefined);
-    }
   }, []);
 
   // ---------- teclado ----------
@@ -543,11 +266,12 @@ export function TeleprompterOverlay({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [forward, rewindOne, onClose, pageDone, bookDone, changeFont, toggleFullscreen]);
+  }, [forward, rewindOne, onClose, pageDone, bookDone, changeFont, toggleFullscreen, setPlaying, scrollRef]);
 
-  const pct = firstLen > 0 ? Math.min(100, (lit / firstLen) * 100) : 0;
-  const atEnd = bookDone || (!win?.pages[1] && lit >= totalChars && totalChars > 0);
-  const nextLabel = atEnd ? t("tp.end") : pageDone ? t("tp.nextPage") : t("tp.next");
+  const stale = isStaleWindow(win, pageNum);
+  const atEnd = isAtEnd(bookDone, win, lit, totalChars);
+  const nextLabel = nextLabelFor(atEnd, pageDone, t);
+  const pct = pagePct(lit, firstLen);
 
   const blocksJsx = useMemo(
     () =>
@@ -638,9 +362,9 @@ export function TeleprompterOverlay({
         </Tip>
         <Tip label={isFullscreen ? t("tp.exitFullscreen") : t("tp.fullscreen")}>
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-8 border-primary/40 bg-primary/10 text-primary-on-tint shadow-none hover:border-primary/60 hover:bg-primary/20 dark:border-primary/40 dark:bg-primary/10 dark:hover:border-primary/60 dark:hover:bg-primary/20"
             onClick={toggleFullscreen}
             aria-label={isFullscreen ? t("tp.exitFullscreen") : t("tp.fullscreen")}
             data-testid="tp-fullscreen"
@@ -685,7 +409,7 @@ export function TeleprompterOverlay({
                 className={cn(
                   "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition-colors",
                   p.id === tpSet.speedPreset
-                    ? "bg-primary/15 font-medium text-primary"
+                    ? "bg-primary/15 font-medium text-primary-on-tint"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >

@@ -192,8 +192,10 @@ export function ReaderHeader({
             "h-8 shrink-0 gap-1.5 text-xs font-medium",
             !isFullscreen &&
               // dark:* duplicados: sin ellos, dark:bg-input/30 y dark:hover:bg-input/50
-              // del variante outline ganan en el orden de cascada de Tailwind v4
-              "border-primary/40 bg-primary/10 text-primary shadow-none hover:border-primary/60 hover:bg-primary/20 dark:border-primary/40 dark:bg-primary/10 dark:hover:border-primary/60 dark:hover:bg-primary/20"
+              // del variante outline ganan en el orden de cascada de Tailwind v4.
+              // El texto usa la pareja «azul sobre tinte» (--primary-on-tint):
+              // el azul global no llega a AA sobre el tinte (hallazgo low-contrast).
+              "border-primary/40 bg-primary/10 text-primary-on-tint shadow-none hover:border-primary/60 hover:bg-primary/20 dark:border-primary/40 dark:bg-primary/10 dark:hover:border-primary/60 dark:hover:bg-primary/20"
           )}
           onClick={onToggleFullscreen}
           aria-label={isFullscreen ? t("reader.exitFullscreen") : t("reader.fullscreen")}

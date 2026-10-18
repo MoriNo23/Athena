@@ -193,7 +193,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                       onClick={() => setRail({ position: p.value })}
                       className={`rounded-md border px-2 py-1.5 text-xs transition-colors ${
                         rail.position === p.value
-                          ? "border-primary bg-primary/15 text-primary font-medium"
+                          ? "border-primary bg-primary/15 text-primary-on-tint font-medium"
                           : "border-border/70 text-muted-foreground hover:border-primary/40 hover:text-foreground"
                       }`}
                     >
@@ -297,7 +297,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                       onClick={() => setPreset(p.value)}
                       className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
                         filters.preset === p.value
-                          ? "border-primary bg-primary/15 text-primary font-medium"
+                          ? "border-primary bg-primary/15 text-primary-on-tint font-medium"
                           : "border-border/70 text-muted-foreground hover:border-primary/40 hover:text-foreground"
                       }`}
                     >

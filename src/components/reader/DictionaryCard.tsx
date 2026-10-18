@@ -59,7 +59,7 @@ export function DictionaryCard({
           <div className="flex items-center gap-2">
             <h4 className="truncate font-display text-lg font-semibold leading-tight">{word}</h4>
             {data && (
-              <span className="rounded-full border border-primary/40 bg-primary/10 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-primary">
+              <span className="rounded-full border border-primary/40 bg-primary/10 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-primary-on-tint">
                 {data.lang}
               </span>
             )}
@@ -112,7 +112,7 @@ export function DictionaryCard({
               onClick={() => onSwitchLang(l)}
               className={`rounded-full border px-2 py-0.5 text-[11px] font-medium uppercase transition-colors ${
                 lang === l
-                  ? "border-primary bg-primary/15 text-primary"
+                  ? "border-primary bg-primary/15 text-primary-on-tint"
                   : "border-border/60 text-muted-foreground hover:text-foreground"
               }`}
               aria-pressed={lang === l}
