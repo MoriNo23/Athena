@@ -17,6 +17,9 @@ interface UseTeleprompterPlayerOpts {
   numPages: number;
   /** dominio del flujo ("pdf" | "text" | "epub"): si cambia, la ventana se reconstruye */
   sourceKey: string;
+  /** hay fuente de bloques (doc cargado o extractor por página): sin ella no
+      se construye ventana — evita clavar una ventana vacía sin recuperación */
+  hasSource: boolean;
   /** gira la página real del lector (cuenta como lectura y hitos) */
   onGoToPage: (page: number) => void;
   stream: ReturnType<typeof import("@/lib/teleprompter").buildTeleprompterStream>;
@@ -25,6 +28,8 @@ interface UseTeleprompterPlayerOpts {
   spansRef: React.RefObject<HTMLSpanElement[]>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   scrollToChar: (idx: number) => void;
+  /** publica el ancla de vista para el próximo cambio de ventana (sin reacomodo) */
+  stageViewAnchor: (oldIndex: number, newIndex: number) => void;
   /** Auto: al agotar la página sigue sola */
   auto: boolean;
   /** wps del preset activo (null = instantáneo) */
@@ -52,6 +57,7 @@ export function useTeleprompterPlayer({
   loadBlocks,
   numPages,
   sourceKey,
+  hasSource,
   onGoToPage,
   stream,
   firstLen,
@@ -59,6 +65,7 @@ export function useTeleprompterPlayer({
   spansRef,
   scrollRef,
   scrollToChar,
+  stageViewAnchor,
   auto,
   presetWps,
   tick,
@@ -83,6 +90,9 @@ export function useTeleprompterPlayer({
     ) {
       return;
     }
+    // sin fuente de bloques (el PDF aún carga) no se construye ventana vacía:
+    // loadBlocks cambia de identidad al llegar el doc y este efecto re-corre
+    if (!hasSource) return;
 
     let alive = true;
     void (async () => {
@@ -115,9 +125,15 @@ export function useTeleprompterPlayer({
     return () => {
       alive = false;
     };
-  }, [pageNum, numPages, loadBlocks, onGoToPage, sourceKey, setWin, winRef, winSourceRef]);
+  }, [pageNum, numPages, loadBlocks, onGoToPage, sourceKey, hasSource, setWin, winRef, winSourceRef]);
 
   // ---------- deslizar la ventana al cruzar de página ----------
+  // CRUCE ATÓMICO: la ventana nueva entra en el MISMO render que el rebase del
+  // encendido (fin de las órdenes de cámara contra el DOM viejo: nada de
+  // vaivén). La página siguiente se rellena después con un segundo setWin que
+  // conserva `start`; mientras tanto el motor lee solo la primera página y
+  // espera el relleno sin declarar el fin del libro. El ancla deja la vista
+  // en su sitio durante el intercambio (sin reacomodo visible).
   const slide = useCallback(
     (rebase: number) => {
       const cur = winRef.current;
@@ -125,21 +141,27 @@ export function useTeleprompterPlayer({
       const nextStart = cur.start + 1;
       const first = cur.pages[1];
       allowCrossRef.current = false;
+      // ancla: el primer carácter sin encender de la página nueva (índice
+      // `rebase` en la ventana nueva) queda donde está ahora en la columna
+      stageViewAnchor(firstLen + rebase, rebase);
       litRef.current = rebase;
       setLit(rebase);
       setPageDone(false);
       setBookDone(false);
       onGoToPage(nextStart);
+      const opened: StreamWindow = { start: nextStart, pages: [first, null] };
+      winRef.current = opened;
+      setWin(opened);
       void (async () => {
         const nextBlocks = nextStart + 1 <= numPages ? await loadBlocks(nextStart + 1) : null;
-        const next: StreamWindow = { start: nextStart, pages: [first, nextBlocks] };
-        winRef.current = next;
-        setWin(next);
+        const filled: StreamWindow = { start: nextStart, pages: [first, nextBlocks] };
+        winRef.current = filled;
+        setWin(filled);
         // precarga silenciosa: el próximo cruce no espera extracción
         if (nextStart + 2 <= numPages) void loadBlocks(nextStart + 2);
       })();
     },
-    [loadBlocks, numPages, onGoToPage, setWin, winRef]
+    [firstLen, loadBlocks, numPages, onGoToPage, setWin, stageViewAnchor, winRef]
   );
 
   // ---------- motor de encendido ----------
@@ -195,9 +217,26 @@ export function useTeleprompterPlayer({
     const headingAt = (idx: number) =>
       stream.blocks.find((b) => b.heading && idx >= b.start && idx < b.start + b.length);
 
+    // hueco del cruce atómico: la página siguiente aún no entró en la ventana
+    // pero el libro sigue — no declarar fin; el segundo setWin (relleno)
+    // relanza el motor desde donde quedó
+    const atWindowGap = () => !win.pages[1] && win.start < numPages;
+
     const step = () => {
       if (cancelled) return;
+      // cruce ANTES de encender: si el flujo ya llegó al fin de la página, la
+      // ventana se desliza sin encender caracteres de la página nueva contra
+      // el DOM viejo (la orden de cámara del cruce la pone el ancla, no el motor)
+      if (win.pages[1] && i >= firstLen) {
+        if (!auto && !allowCrossRef.current) {
+          setPageDone(true);
+          return;
+        }
+        slide(i - firstLen);
+        return;
+      }
       if (i >= spans.length) {
+        if (atWindowGap()) return;
         setBookDone(true);
         return;
       }
@@ -208,22 +247,16 @@ export function useTeleprompterPlayer({
       if (heading) spans[i]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
       if (stream.steps[i]?.char.trim()) tick();
 
+      // la orden de vista de un título ancla el INICIO del bloque en la zona
+      // cómoda: la cámara no se sumerge el alto del bloque entero
+      scrollToChar(heading ? heading.start : end - 1);
       i = end;
       litRef.current = i;
       setLit(i);
-      scrollToChar(i - 1);
 
       if (i >= spans.length) {
+        if (atWindowGap()) return;
         setBookDone(true);
-        return;
-      }
-      // fin de la página de la ventana: encadenar o esperar la orden
-      if (win.pages[1] && i >= firstLen) {
-        if (!auto && !allowCrossRef.current) {
-          setPageDone(true);
-          return;
-        }
-        slide(i - firstLen);
         return;
       }
       timer = window.setTimeout(step, Math.max(8, stream.steps[i]?.delay ?? 40));
@@ -234,7 +267,7 @@ export function useTeleprompterPlayer({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [win, stream, totalChars, firstLen, playing, pageDone, bookDone, auto, presetWps, tick, scrollToChar, slide]);
+  }, [win, stream, totalChars, firstLen, numPages, playing, pageDone, bookDone, auto, presetWps, tick, scrollToChar, slide]);
 
   // ---------- Auto: al agotar la página sigue sola ----------
   useEffect(() => {
@@ -258,6 +291,9 @@ export function useTeleprompterPlayer({
     void (async () => {
       const blocks = await loadBlocks(prev);
       const all = teleprompterCharCount(blocks);
+      // ancla del prepend: el carácter activo (índice + prevLen en la ventana
+      // nueva) queda donde está — la columna no se reacomoda al retroceder
+      stageViewAnchor(litRef.current, litRef.current + all);
       const next: StreamWindow = { start: prev, pages: [blocks, cur.pages[0]] };
       winRef.current = next;
       litRef.current = all;
@@ -267,7 +303,7 @@ export function useTeleprompterPlayer({
       setBookDone(false);
       onGoToPage(prev);
     })();
-  }, [loadBlocks, onGoToPage, setWin, winRef]);
+  }, [loadBlocks, onGoToPage, setWin, stageViewAnchor, winRef]);
 
   const rewindOne = useCallback(() => {
     const cur = winRef.current;
@@ -321,10 +357,12 @@ export function useTeleprompterPlayer({
     }
     litRef.current = end;
     setLit(end);
-    scrollToChar(Math.max(0, end - 1));
+    // Revelado completo SIN orden de vista: el resto del texto se enciende
+    // donde está y la columna queda donde el lector lee — sin barrido al fondo
+    // de la página. El cruce posterior re-ancla la vista con el ancla atómica.
     if (win?.pages[1]) setPageDone(true);
     else setBookDone(true);
-  }, [bookDone, pageDone, playing, win, firstLen, totalChars, stream, scrollToChar, spansRef]);
+  }, [bookDone, pageDone, playing, win, firstLen, totalChars, stream, spansRef]);
 
   return { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne };
 }

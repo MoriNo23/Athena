@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import {
   buildTeleprompterStream,
@@ -15,6 +15,19 @@ export interface StreamWindow {
   start: number;
   /** [página start, página start+1]; el segundo hueco puede no existir */
   pages: (TeleprompterBlock[] | null)[];
+}
+
+/** Ancla de vista para un cambio de ventana: el carácter newIndex de la
+    ventana NUEVA debe quedar, tras el intercambio, en la misma posición
+    visual que tenía el ancla en la ventana vieja. Lo publica el jugador
+    justo antes de setWin y lo consume el layout effect sobre [win]. */
+export interface StreamViewAnchor {
+  /** índice del ancla en la ventana VIEJA (trazabilidad del caso) */
+  oldIndex: number;
+  /** índice del mismo carácter en la ventana NUEVA */
+  newIndex: number;
+  /** posición visual del ancla antes del cambio: top relativo al contenedor */
+  viewportY: number;
 }
 
 interface UseTeleprompterWindowOpts {
@@ -52,6 +65,7 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps 
   const cacheRef = useRef<Map<number, TeleprompterBlock[]>>(new Map());
   const spansRef = useRef<HTMLSpanElement[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const viewAnchorRef = useRef<StreamViewAnchor | null>(null);
 
   // ---------- animador de vista: transición breve por orden de cámara ----------
   // Un SOLO rAF activo a la vez: cada orden de cámara (scrollToChar) fija un
@@ -97,6 +111,21 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps 
     [cancelViewAnim]
   );
 
+  /** Publica el ancla de vista para el PRÓXIMO cambio de ventana: el carácter
+      newIndex de la ventana nueva debe quedar tras el swap donde está ahora
+      el carácter oldIndex (posición visual medida sobre los spans reales, no
+      scrollTop). El layout effect sobre [win] lo consume y compensa sin
+      animación antes del pintado. Sin span medible, no publica (el motor
+      re-ancla con su primera orden). */
+  const stageViewAnchor = useCallback((oldIndex: number, newIndex: number) => {
+    const root = scrollRef.current;
+    const el = spansRef.current[oldIndex];
+    if (!root || !el) return;
+    const r = el.getBoundingClientRect();
+    const rr = root.getBoundingClientRect();
+    viewAnchorRef.current = { oldIndex, newIndex, viewportY: r.top - rr.top };
+  }, []);
+
   // ---------- carga de bloques (PDF: heurística compartida con el modo texto) ----
   const loadBlocks = useCallback(
     async (page: number): Promise<TeleprompterBlock[]> => {
@@ -115,17 +144,33 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps 
   );
 
   // ---------- spans del DOM (para encendido, scroll y rebobinado) ----------
-  useEffect(() => {
+  // useLayoutEffect: la compensación de ancla corre antes del pintado y
+  // necesita los spans de la ventana NUEVA ya coleccionados y medibles.
+  useLayoutEffect(() => {
     spansRef.current = Array.from(
       scrollRef.current?.querySelectorAll<HTMLSpanElement>(".tp-ch") ?? []
     );
   }, [win]);
 
-  // Ventana nueva (cruce, rebobinado, reconstrucción): cualquier transición
-  // vieja apunta a contenido que ya no existe — se cancela y el motor re-ancla
-  // con su primer scrollToChar contra el DOM fresco.
-  useEffect(() => {
+  // Ventana nueva (cruce, rebobinado, reconstrucción): si el jugador publicó
+  // un ancla, la vista se compensa ATÓMICAMENTE —sin animación y antes del
+  // pintado— para que el carácter ancla quede donde estaba y la columna no
+  // se reacomode (el navegador clampea al rango válido: con la página nueva
+  // al inicio de la columna el asentamiento cae al tope). Sin ancla, cualquier
+  // transición vieja apunta a contenido que ya no existe — se cancela y el
+  // motor re-ancla con su primer scrollToChar contra el DOM fresco.
+  useLayoutEffect(() => {
+    const anchor = viewAnchorRef.current;
+    viewAnchorRef.current = null;
     cancelViewAnim();
+    const root = scrollRef.current;
+    if (!root || !anchor) return;
+    const el = spansRef.current[anchor.newIndex];
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const rr = root.getBoundingClientRect();
+    const docOffset = r.top - rr.top + root.scrollTop;
+    root.scrollTop = docOffset - anchor.viewportY;
   }, [win, cancelViewAnim]);
 
   /** deja el carácter `idx` a ~40 % del alto visible, con transición breve.
@@ -168,6 +213,7 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps 
     scrollRef,
     scrollToChar,
     cancelViewAnim,
+    stageViewAnchor,
     windowBlocks,
     stream,
     firstLen,

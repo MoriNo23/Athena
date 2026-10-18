@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tip } from "@/components/reader/ZoomControls";
+import { ShortcutGhost, type ShortcutGhostEntry } from "@/components/reader/ShortcutGhost";
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,6 +14,7 @@ import {
   Pause,
   Play,
   Repeat,
+  Target,
   Volume2,
   VolumeX,
   X,
@@ -20,6 +22,7 @@ import {
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import { useFullscreen } from "@/hooks/use-fullscreen";
+import { useWakeLock } from "@/hooks/use-wake-lock";
 import {
   useTeleprompterWindow,
 } from "@/hooks/use-teleprompter-window";
@@ -53,6 +56,10 @@ interface TeleprompterOverlayProps {
   sourceKey: string;
   /** gira la página real del lector (cuenta como lectura y hitos) */
   onGoToPage: (page: number) => void;
+  /** páginas de hoy de ESTE libro (mismo conteo que la cabecera del lector) */
+  todayPages: number;
+  /** meta efectiva del libro (propia o global) para el par de hoy */
+  todayGoal: number;
   onClose: () => void;
 }
 
@@ -70,8 +77,18 @@ function pagePct(lit: number, firstLen: number): number {
 }
 
 /** el flujo llegó al final del libro (última página sin siguiente encadenada) */
-function isAtEnd(bookDone: boolean, win: StreamWindow | null, lit: number, totalChars: number): boolean {
-  return bookDone || (!win?.pages[1] && lit >= totalChars && totalChars > 0);
+function isAtEnd(
+  bookDone: boolean,
+  win: StreamWindow | null,
+  lit: number,
+  totalChars: number,
+  numPages: number
+): boolean {
+  if (bookDone) return true;
+  if (!win) return false;
+  // hueco del cruce atómico: la siguiente aún no entró en la ventana pero existe
+  if (!win.pages[1] && win.start < numPages) return false;
+  return !win.pages[1] && lit >= totalChars && totalChars > 0;
 }
 
 /** etiqueta del botón de avance según el estado de la reproducción */
@@ -98,6 +115,8 @@ export function TeleprompterOverlay({
   numPages,
   sourceKey,
   onGoToPage,
+  todayPages,
+  todayGoal,
   onClose,
 }: TeleprompterOverlayProps) {
   const tpSet = useSettings((s) => s.teleprompter);
@@ -120,6 +139,10 @@ export function TeleprompterOverlay({
   const { isFullscreen, toggleFullscreen } = useFullscreen();
   const [uiHidden, setUiHidden] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(false);
+
+  // Pantalla despierta: el teleprompter es el caso de uso de la lectura larga;
+  // el overlay existe solo mientras el modo está abierto (con o sin F11).
+  useWakeLock(true);
 
   const rootRef = useRef<HTMLDivElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -166,6 +189,7 @@ export function TeleprompterOverlay({
     firstLen,
     totalChars,
     cancelViewAnim,
+    stageViewAnchor,
   } = tpWin;
 
   const player = useTeleprompterPlayer({
@@ -177,6 +201,7 @@ export function TeleprompterOverlay({
     loadBlocks,
     numPages,
     sourceKey,
+    hasSource: !!doc || !!getPageBlocks,
     onGoToPage,
     stream,
     firstLen,
@@ -184,6 +209,7 @@ export function TeleprompterOverlay({
     spansRef: tpWin.spansRef,
     scrollRef,
     scrollToChar: tpWin.scrollToChar,
+    stageViewAnchor,
     auto,
     presetWps: preset.wps,
     tick: tpTick,
@@ -271,9 +297,23 @@ export function TeleprompterOverlay({
   }, [forward, rewindOne, onClose, pageDone, bookDone, changeFont, toggleFullscreen, setPlaying, scrollRef, cancelViewAnim]);
 
   const stale = isStaleWindow(win, pageNum);
-  const atEnd = isAtEnd(bookDone, win, lit, totalChars);
+  const atEnd = isAtEnd(bookDone, win, lit, totalChars, numPages);
   const nextLabel = nextLabelFor(atEnd, pageDone, t);
   const pct = pagePct(lit, firstLen);
+
+  // Mapa de teclas del teleprompter para el recordatorio fantasma
+  const tpGhostEntries = useMemo<ShortcutGhostEntry[]>(
+    () => [
+      { keys: "→", action: t("ghost.tp.next") },
+      { keys: "←", action: t("ghost.tp.rewind") },
+      { keys: "↑", action: t("ghost.tp.up") },
+      { keys: "Espacio", action: t("ghost.tp.pause") },
+      { keys: "−/+", action: t("ghost.tp.font") },
+      { keys: "M", action: t("ghost.tp.fullscreen") },
+      { keys: "Esc", action: t("ghost.tp.exit") },
+    ],
+    [t]
+  );
 
   const blocksJsx = useMemo(
     () =>
@@ -312,6 +352,10 @@ export function TeleprompterOverlay({
       data-testid="tp-overlay"
       style={{ "--tp-font-scale": fontScale } as React.CSSProperties}
     >
+      {/* Recordatorio de teclas de la inmersión: cada transición de visibilidad
+          de la interfaz (ocultarse por quietud o despertar) lo despliega */}
+      <ShortcutGhost signal={uiHidden} entries={tpGhostEntries} testId="tp-shortcut-ghost" />
+
       {/* Barra superior: identidad + progreso + controles (auto-ocultable) */}
       <div className="tp-chrome absolute inset-x-0 top-0 z-20 flex items-center gap-2 px-5 py-3">
         <div className="min-w-0 flex-1">
@@ -324,6 +368,15 @@ export function TeleprompterOverlay({
             })}
           </p>
         </div>
+        {/* Hoy de ESTE libro: mismo conteo que la cabecera del lector, vivo */}
+        <span
+          className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
+          title={t("reader.goalBookTitle")}
+          data-testid="tp-today"
+        >
+          <Target className="h-3.5 w-3.5" />
+          {todayPages}/{todayGoal}
+        </span>
         <Tip label={t("tp.fontTip", { pct: Math.round(fontScale * 100) })}>
           <div className="flex items-center" data-testid="tp-font-group">
             <Button
