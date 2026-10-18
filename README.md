@@ -36,9 +36,9 @@ instrument, tuned for consistency.
 |:---:|:---:|
 | ![Library, dark](docs/screenshots/library-dark.png) | ![Library, light](docs/screenshots/library-light.png) |
 
-| Cinematic mode — one flat stage, floating text | Same page, light — type is yours (A− / A+) |
+| Teleprompter — one stream, letter by letter | The same stream by day — the type is yours (A− / A+) |
 |:---:|:---:|
-| ![Cinematic mode, dark](docs/screenshots/cinematic-dark.png) | ![Cinematic mode, light](docs/screenshots/cinematic-light.png) |
+| ![Teleprompter, dark](docs/screenshots/teleprompter-dark.png) | ![Teleprompter, light](docs/screenshots/teleprompter-light.png) |
 
 ### House rules
 
@@ -48,17 +48,21 @@ The interface is a statement, not a decoration:
   a calm *marble morning* when light. Nothing screams; everything holds your attention.
 - **Neo-brutalism.** Zero corner radius. Hard 2px ink borders. Shadows that are offset,
   not blurred. Buttons that physically press. What you see is what the UI is.
-- **The cinematic card obeys the text.** One single flat stage — no card border, no
-  shadow, no chrome between you and the sentence. The first word carries a flat
-  highlight the exact size of the word: the mark of where reading begins. Font size
-  scales from 0.8× to 1.6× with `A−` / `A+` (or the `−` / `=` keys).
+- **The teleprompter obeys the text.** Pages are stitched into one continuous
+  stream: headings appear whole, letters light one at a time, and the active
+  letter is held at a comfortable line while the page advances under it — no
+  border, no chrome between you and the sentence. Font size scales from 0.8× to
+  1.6× with `A−` / `A+` (or the `−` / `=` keys); `←` rewinds letter by letter.
 - **Immersion goes all the way.** Hide the UI (idle or the `H` key) or go fullscreen and
-  the page opens up: no side gutters, a wider measure, just the book. Cinematic mode
+  the page opens up: no side gutters, a wider measure, just the book. The teleprompter
   hides its own controls after a few quiet seconds and wakes on any movement — Tab
   included, so keyboard readers are never stranded.
 - **EPUBs become paperback pages.** Reflowable text is paginated into virtual
-  pages of ~320 words, so the rail, streaks, ETA and the cinematic mode work
+  pages of ~320 words, so the rail, streaks, ETA and the teleprompter work
   exactly the same as with PDFs.
+- **PDFs reflow too.** A text mode paginates the extracted PDF text into virtual
+  pages with real reading faces — Literata, EB Garamond, Atkinson Hyperlegible —
+  while the rail and the header keep counting the PDF's real pages.
 - **Three languages, one house.** Español, English and Português from the language
   switcher — the whole interface follows, dates included.
 - **A literature dock, not a toolbox.** Reading settings are seven literature-minded
@@ -102,8 +106,11 @@ your machine.** The Spanish quick-start guide with troubleshooting lives in
 
 - [x] **EPUB support** — virtual pages, chapter outline, metadata covers.
 - [x] **Interface in three languages** — español, English, Português.
-- [x] **Cinematic mode, properly cinematic** — floating text, first-word highlight,
-  idle-hiding controls, fullscreen, cut-to-typing sound on skip.
+- [x] **Teleprompter mode** — one continuous stream, letter-by-letter lighting,
+  headings revealed whole, idle-hiding controls, fullscreen, cut-to-typing sound
+  on skip.
+- [x] **Reflowed PDF text mode** — virtual pages, reading fonts, teleprompter fed
+  by the reflow.
 - [ ] **Per-book font scale** — the reading type size is currently global.
 - [ ] **Bolder light-theme shadows** — the dark house wears its ink more proudly.
 - [ ] **Touch refinements** — desktop-first by design; phones deserve intent, not leftovers.

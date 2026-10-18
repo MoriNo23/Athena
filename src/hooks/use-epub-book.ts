@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { epubPageText, parseEpub, type EpubBook } from "@/lib/epub";
+import { parseEpub, type EpubBook } from "@/lib/epub";
+import type { TeleprompterBlock } from "@/lib/teleprompter";
 
 /**
  * Carga y parsea un EPUB del servidor para el lector.
  * Devuelve las páginas virtuales, el índice de capítulos y un proveedor
- * getPageText(p) que alimenta el modo novela con el mismo contrato que
- * tenía la extracción de texto del PDF.
+ * getPageBlocks(p) que alimenta el modo teleprompter con los bloques reales
+ * (h1-h4 incluidos, para que el flujo reconozca los títulos).
  */
 export function useEpubBook(filePath: string | null) {
   const [book, setBook] = useState<EpubBook | null>(null);
@@ -52,13 +53,18 @@ export function useEpubBook(filePath: string | null) {
     };
   }, [filePath]);
 
-  /** Texto plano de la página p (1-based): párrafos separados por \n\n (motor VN). */
-  const getPageText = useCallback(async (p: number): Promise<string> => {
+  /** Bloques de texto de la página p (1-based) para el teleprompter continuo. */
+  const getPageBlocks = useCallback(async (p: number): Promise<TeleprompterBlock[]> => {
     const pages = bookRef.current?.pages;
-    if (!pages) return "";
+    if (!pages) return [];
     const page = pages[Math.min(Math.max(1, p), pages.length) - 1];
-    return epubPageText(page);
+    const blocks: TeleprompterBlock[] = [];
+    for (const b of page.blocks) {
+      if (b.kind === "img" || !b.text.trim()) continue;
+      blocks.push({ kind: b.kind, text: b.text });
+    }
+    return blocks;
   }, []);
 
-  return { book, pages: book?.pages ?? null, chapters: book?.chapters ?? [], loading, error, getPageText };
+  return { book, pages: book?.pages ?? null, chapters: book?.chapters ?? [], loading, error, getPageBlocks };
 }

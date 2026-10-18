@@ -49,7 +49,7 @@ const BASE = "http://localhost:3000";
     out.vars = {
       bg: csHtml.getPropertyValue("--background").trim(),
       fg: csHtml.getPropertyValue("--foreground").trim(),
-      vnBg: csHtml.getPropertyValue("--vn-bg").trim(),
+      vnBg: csHtml.getPropertyValue("--tp-bg").trim(),
       scrollThumb: csHtml.getPropertyValue("--scroll-thumb").trim(),
     };
     out.bodyBg = getComputedStyle(document.body).backgroundColor;

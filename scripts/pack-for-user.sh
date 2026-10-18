@@ -2,7 +2,7 @@
 # Empaqueta el proyecto para que el usuario se lo lleve a su máquina.
 # Produce: download/riel-de-la-lectura-app.tar.gz (con LEEME.md dentro)
 set -euo pipefail
-ROOT=/home/z/my-project
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT=$ROOT/download/riel-de-la-lectura-app.tar.gz
 
 cd "$ROOT"

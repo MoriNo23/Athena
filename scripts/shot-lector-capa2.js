@@ -10,13 +10,13 @@ const { chromium } = require("playwright");
   await page.getByRole("button", { name: "Empezar a leer" }).first().click();
   await page.waitForSelector('[data-viewport="pdf"]', { timeout: 30000 });
   await page.waitForTimeout(2200);
-  await page.screenshot({ path: "/home/z/my-project/scripts/capa2-lector.png" });
+  await page.screenshot({ path: `${__dirname}/capa2-lector.png` });
 
-  // modo novela visual encima de la capa 2
-  await page.getByTestId("vn-toggle").click();
-  await page.waitForSelector('[data-testid="vn-overlay"]', { timeout: 10000 });
+  // modo teleprompter visual encima de la capa 2
+  await page.getByTestId("tp-toggle").click();
+  await page.waitForSelector('[data-testid="tp-overlay"]', { timeout: 10000 });
   await page.waitForTimeout(2500);
-  await page.screenshot({ path: "/home/z/my-project/scripts/capa2-novela.png" });
+  await page.screenshot({ path: `${__dirname}/capa2-teleprompter.png` });
   await page.keyboard.press("Escape");
 
   console.log("PAGEERRORS:", errors.length, errors.slice(0, 2));

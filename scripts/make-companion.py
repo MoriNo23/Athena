@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Genera un PDF 'compañero' (traducción simulada) de 12 páginas para probar la lectura dual."""
+import os
+
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import navy
 
-OUT = "/home/z/my-project/upload/companion-es.pdf"
+OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "upload", "companion-es.pdf")
+os.makedirs(os.path.dirname(OUT), exist_ok=True)
 
 c = canvas.Canvas(OUT, pagesize=A4)
 width, height = A4

@@ -100,8 +100,10 @@ export function usePdfPageRender(opts: {
   canvasRef: RefObject<HTMLCanvasElement | null>;
   textLayerRef: RefObject<HTMLDivElement | null>;
   onBusyChange: (busy: boolean) => void;
+  /** modo texto: el visor de páginas queda tapado y deja de renderizar */
+  suspended?: boolean;
 }) {
-  const { doc, pageNum, scale, canvasRef, textLayerRef, onBusyChange } = opts;
+  const { doc, pageNum, scale, canvasRef, textLayerRef, onBusyChange, suspended = false } = opts;
   const [renderingPage, setRenderingPage] = useState(false);
   const [pageHasText, setPageHasText] = useState<boolean | null>(null);
   const pageHasTextRef = useRef<boolean | null>(null);
@@ -114,7 +116,7 @@ export function usePdfPageRender(opts: {
 
   // ---- Render de la página actual ----
   useEffect(() => {
-    if (!doc) return;
+    if (!doc || suspended) return;
     let cancelled = false;
 
     (async () => {
@@ -169,11 +171,11 @@ export function usePdfPageRender(opts: {
         /* noop */
       }
     };
-  }, [doc, pageNum, scale, canvasRef, onBusyChange]);
+  }, [doc, pageNum, scale, canvasRef, onBusyChange, suspended]);
 
   // ---- Capa de texto (selección de palabras para el diccionario) ----
   useEffect(() => {
-    if (!doc) return;
+    if (!doc || suspended) return;
     let cancelled = false;
 
     (async () => {
@@ -213,7 +215,7 @@ export function usePdfPageRender(opts: {
         /* noop */
       }
     };
-  }, [doc, pageNum, scale, textLayerRef]);
+  }, [doc, pageNum, scale, textLayerRef, suspended]);
 
   return { renderingPage, pageHasText, pageHasTextRef };
 }

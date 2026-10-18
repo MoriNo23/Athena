@@ -1,10 +1,11 @@
-/* E2E de ESTRÉS del Modo Novela Visual (superpowers systematic-debugging + ponytail).
+/* E2E de ESTRÉS del modo teleprompter continuo (superpowers systematic-debugging + ponytail).
  * Caza bordes duros: libro OCR sin texto, tormenta de clicks con Auto, cambio de
- * preset a mitad de encendido, Escape a mitad de transición, desborde de card en
- * viewport chico, retroceso en 0, sonido OFF, Auto en ÚLTIMA página.
+ * preset a mitad de encendido, Escape a mitad del encendido, columna en viewport
+ * chico, rebobinado hasta el inicio del libro, sonido OFF, Auto en la ÚLTIMA página.
+ * Verifica además lo propio del flujo continuo: scroll real con el carácter activo
+ * a ~40 %, DOM acotado a DOS páginas y CERO referencias a «tarjetas».
  * REGLA DE LA CASA: reset-all primero. 0 errores de consola exigido.
- * Lección: abrir SIEMPRE el libro por nombre (el último leído pasa a ser la
- * primera tarjeta) y leer numPages del header (span «de N»).
+ * Lección: abrir SIEMPRE el libro por nombre y leer numPages del header (span «de N»).
  */
 const { chromium } = require("playwright");
 
@@ -21,34 +22,70 @@ async function abrirQuijote(page) {
   await page.waitForTimeout(900); // deja cargar el doc
 }
 
-async function abrirVN(page) {
-  await page.locator('[data-testid="vn-toggle"]').click();
-  await page.locator('[data-testid="vn-overlay"]').waitFor({ timeout: 8000 });
-  await page.waitForTimeout(600);
+async function abrirTP(page) {
+  await page.locator('[data-testid="tp-toggle"]').click();
+  await page.locator('[data-testid="tp-overlay"]').waitFor({ timeout: 8000 });
+  await page.waitForTimeout(700);
+  await despertar(page);
 }
 
-async function litCount(page) {
-  return page.evaluate(() => document.querySelectorAll('[data-testid="vn-card-box"] .vn-ch.on').length);
+/** el chrome del teleprompter se auto-oculta a los 3,5 s: un movimiento lo
+ *  despierta; sin esto, el hit-test de Playwright pega contra tp-scroll */
+async function despertar(page) {
+  await page.mouse.move(720, 450);
+  await page.waitForTimeout(250);
+}
+
+async function irAPagina(page, n) {
+  await page.getByRole("spinbutton", { name: "Número de página" }).fill(String(n));
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(1200);
+}
+
+async function estado(page) {
+  return page.evaluate(() => {
+    const stream = document.querySelector('[data-testid="tp-stream"]');
+    const scroll = document.querySelector('[data-testid="tp-scroll"]');
+    const on = stream ? stream.querySelectorAll(".tp-ch.on") : [];
+    const last = on.length ? on[on.length - 1].getBoundingClientRect() : null;
+    const rr = scroll ? scroll.getBoundingClientRect() : null;
+    return {
+      start: stream ? Number(stream.getAttribute("data-page-start")) : null,
+      pages: stream ? Number(stream.getAttribute("data-pages")) : 0,
+      chars: stream ? stream.querySelectorAll(".tp-ch").length : 0,
+      lit: on.length,
+      activoPct: last && rr ? Math.round(((last.top - rr.top) / rr.height) * 100) : null,
+      texto: (document.querySelector('[data-testid="tp-overlay"]')?.textContent ?? "").toLowerCase(),
+    };
+  });
 }
 
 async function topBar(page) {
-  return (await page.locator('[data-testid="vn-overlay"] p').nth(1).textContent()) ?? "";
+  return (await page.locator('[data-testid="tp-overlay"] p').nth(1).textContent()) ?? "";
 }
 
-/** deja el overlay en una tarjeta EN MARCHA (encendiendo) y sin auto */
-async function tarjetaEnMarcha(page) {
-  await page.locator('[data-testid="vn-auto"]').getAttribute("aria-pressed").then(async (st) => {
-    if (st === "true") await page.locator('[data-testid="vn-auto"]').click();
-  });
-  const prev = page.locator('[data-testid="vn-prev"]');
-  if (!(await prev.isDisabled())) {
-    await prev.click(); // tarjeta fresca arranca encendiendo
-    await page.waitForTimeout(350);
+/** deja el overlay con una página EN MARCHA (encendiendo) y sin auto */
+async function paginaEnMarcha(page) {
+  await despertar(page);
+  const auto = page.locator('[data-testid="tp-auto"]');
+  if ((await auto.getAttribute("aria-pressed")) === "true") await auto.click();
+  const next = page.locator('[data-testid="tp-next"]');
+  const label = (await next.textContent()) ?? "";
+  if (/Página siguiente|Fin del libro/.test(label)) {
+    await next.click().catch(() => {});
+    await page.waitForTimeout(500);
   }
+  const play = page.locator('[data-testid="tp-play"]');
+  const aria = (await play.getAttribute("aria-label")) ?? "";
+  if (/Reanudar/.test(aria)) await play.click(); // pausada tras rebobinar: reanudar
+  await page.waitForTimeout(400);
 }
 
 (async () => {
-  const browser = await chromium.launch({ args: ["--disable-dev-shm-usage"] });
+  const browser = await chromium.launch({
+    args: ["--disable-dev-shm-usage"],
+    executablePath: process.env.ATENA_CHROMIUM || undefined,
+  });
   try { await fetch("http://localhost:3000/api/progress/reset-all", { method: "POST" }); } catch {}
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
@@ -62,140 +99,163 @@ async function tarjetaEnMarcha(page) {
   const cuaderno = page.locator("article").filter({ hasText: "Cuaderno de Atenas" });
   await cuaderno.getByRole("button", { name: /Empezar a leer|Continuar/ }).click();
   await page.locator('[data-viewport="pdf"]').waitFor({ timeout: 20000 });
-  await abrirVN(page);
+  await abrirTP(page);
   await page.waitForTimeout(800);
-  const empty = await page.locator('[data-testid="vn-empty"]').count();
-  const hasBox = await page.locator('[data-testid="vn-card-box"]').count();
-  check("página sin texto muestra estado vacío", empty === 1 || hasBox >= 1, `empty=${empty} box=${hasBox}`);
+  const vacio = await page.evaluate(() => ({
+    empty: document.querySelectorAll('[data-testid="tp-empty"]').length,
+    chars: document.querySelectorAll('[data-testid="tp-stream"] .tp-ch').length,
+  }));
+  check("página sin texto muestra estado vacío", vacio.empty === 1 || vacio.chars >= 1, `empty=${vacio.empty} chars=${vacio.chars}`);
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
-  check("Escape sale del vacío sin crash", (await page.locator('[data-testid="vn-overlay"]').count()) === 0);
+  check("Escape sale del vacío sin crash", (await page.locator('[data-testid="tp-overlay"]').count()) === 0);
   await page.getByRole("button", { name: "Volver a la biblioteca" }).first().click();
   await page.locator("h1", { hasText: "Atena" }).waitFor({ timeout: 10000 });
 
   console.log("=== B. TORMENTA DE CLICKS CON AUTO (Quijote) ===");
   await abrirQuijote(page);
-  await abrirVN(page);
-  await page.locator('[data-testid="vn-auto"]').click(); // ON
-  await page.locator('[data-testid="vn-speed"]').click();
-  await page.locator('[data-testid="vn-speed-preset-4"]').click({ force: true });
+  await abrirTP(page);
+  await page.locator('[data-testid="tp-auto"]').click(); // ON
+  await page.locator('[data-testid="tp-speed"]').click();
+  await page.locator('[data-testid="tp-speed-preset-4"]').click({ force: true });
   await page.waitForTimeout(200);
-  await page.locator('[data-testid="vn-overlay"] p').first().click(); // cerrar menú sin avanzar
+  await page.locator('[data-testid="tp-overlay"] p').first().click(); // cerrar menú sin avanzar
   for (let i = 0; i < 6; i++) {
-    await page.locator('[data-testid="vn-stage"]').click({ delay: 10 }).catch(() => {});
+    await page.locator('[data-testid="tp-stage"]').click({ delay: 10 }).catch(() => {});
     await page.waitForTimeout(60);
   }
   await page.waitForTimeout(900);
   const stormTop = await topBar(page);
-  const stormState = await page.evaluate(() => ({
-    leaving: document.querySelectorAll('[data-testid="vn-card-leaving"]').length,
-    boxes: document.querySelectorAll('[data-testid="vn-card-box"]').length,
-  }));
-  const mStorm = stormTop.match(/tarjeta (\d+) de (\d+)/);
-  const idxOk = mStorm ? +mStorm[1] >= 1 && +mStorm[1] <= +mStorm[2] : false;
-  check("tarjeta siempre en rango tras tormenta", idxOk, stormTop);
-  check("a lo sumo UNA capa saliente", stormState.leaving <= 1, `leaving=${stormState.leaving}`);
-  check("tarjeta viva presente", stormState.boxes >= 1);
-  await page.locator('[data-testid="vn-auto"]').click(); // OFF para estado estable
+  const storm = await estado(page);
+  const topOk = /Página \d+ de /.test(stormTop);
+  check("estado vivo tras tormenta (página + letras encendidas)", topOk && storm.lit >= 1, `${stormTop} · lit=${storm.lit}`);
+  check("DOM acotado a DOS páginas", storm.pages >= 1 && storm.pages <= 2, `pages=${storm.pages} start=${storm.start}`);
+  check("sin numeración de tarjetas en la interfaz", !/tarjeta/.test(storm.texto), storm.texto.slice(0, 80));
+  const titulo = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="tp-stream"] .tp-block-h');
+    if (!el) return null;
+    return { total: el.querySelectorAll(".tp-ch").length, on: el.querySelectorAll(".tp-ch.on").length, blockOn: el.classList.contains("on") };
+  });
+  check("título del flujo: bloque completo o apagado, nunca a medias", !titulo || (titulo.blockOn ? titulo.on === titulo.total : titulo.on === 0), titulo ? JSON.stringify(titulo) : "sin títulos en la página");
+  await page.locator('[data-testid="tp-auto"]').click(); // OFF para estado estable
 
   console.log("=== C. PRESET A MITAD DE ENCENDIDO ===");
-  await tarjetaEnMarcha(page);
-  const litA = await litCount(page);
-  await page.locator('[data-testid="vn-speed"]').click();
-  await page.locator('[data-testid="vn-speed-preset-1-5"]').click({ force: true });
+  await paginaEnMarcha(page);
+  const litA = (await estado(page)).lit;
+  await page.locator('[data-testid="tp-speed"]').click();
+  await page.locator('[data-testid="tp-speed-preset-1-5"]').click({ force: true });
   await page.waitForTimeout(150);
-  await page.locator('[data-testid="vn-overlay"] p').first().click();
+  await page.locator('[data-testid="tp-overlay"] p').first().click();
   await page.waitForTimeout(900);
-  const litB = await litCount(page);
+  const litB = (await estado(page)).lit;
   check("encendido sigue vivo tras cambiar preset", litB >= litA && litB > 0, `${litA} → ${litB}`);
 
-  console.log("=== D. ESCAPE A MITAD DE TRANSICIÓN ===");
-  await page.locator('[data-testid="vn-stage"]').click(); // dispara disolvencia
+  console.log("=== D. ESCAPE A MITAD DEL ENCENDIDO ===");
+  await page.locator('[data-testid="tp-stage"]').click(); // completa de golpe
   await page.waitForTimeout(80);
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
-  check("overlay muere limpio a mitad de transición", (await page.locator('[data-testid="vn-overlay"]').count()) === 0);
+  check("overlay muere limpio a mitad del encendido", (await page.locator('[data-testid="tp-overlay"]').count()) === 0);
 
-  console.log("=== E. DESBORDE DE CARD (viewport chico) ===");
+  console.log("=== E. COLUMNA EN VIEWPORT CHICO ===");
   await page.setViewportSize({ width: 1024, height: 700 });
   await page.waitForTimeout(600);
-  await abrirVN(page);
-  await page.waitForTimeout(1500);
-  // avanzar a una tarjeta LARGA: el bug histórico era una sola línea infinita
-  await page.locator('[data-testid="vn-next"]').click();
-  await page.waitForTimeout(400);
+  await abrirTP(page);
+  await paginaEnMarcha(page);
+  await page.waitForTimeout(1200);
   const fit = await page.evaluate(() => {
-    const stage = document.querySelector('[data-testid="vn-stage"]');
-    const box = document.querySelector('[data-testid="vn-card-box"]');
-    if (!stage || !box) return null;
-    const sb = stage.getBoundingClientRect();
-    const bb = box.getBoundingClientRect();
+    const stream = document.querySelector('[data-testid="tp-stream"]');
+    const stage = document.querySelector('[data-testid="tp-stage"]');
+    if (!stream || !stage) return null;
+    const sb = stream.getBoundingClientRect();
+    const on = stream.querySelectorAll(".tp-ch.on");
+    const last = on.length ? on[on.length - 1] : null;
     return {
-      stageH: Math.round(sb.height),
-      boxH: Math.round(bb.height),
-      overflow: Math.round(bb.height - sb.height),
       // lección del bug «línea infinita»: el texto debe ENVOLVER, no desbordar
-      hFits: box.scrollWidth <= box.clientWidth + 2,
-      scrollW: box.scrollWidth,
-      clientW: box.clientWidth,
-      boxX: Math.round(bb.x),
-      boxRight: Math.round(bb.right),
+      hFits: stream.scrollWidth <= stream.clientWidth + 2,
+      scrollW: stream.scrollWidth,
+      clientW: stream.clientWidth,
+      x: Math.round(sb.x),
+      right: Math.round(sb.right),
       viewportW: window.innerWidth,
+      activoVisible: last ? last.getBoundingClientRect().top >= sb.top - 80 : true,
     };
   });
-  check("card cabe en el escenario (700px)", !!fit && fit.overflow <= 0, JSON.stringify(fit));
-  check("card ENVUELVE el texto (sin desborde horizontal)", !!fit && fit.hFits, fit ? `scrollW ${fit.scrollW} vs clientW ${fit.clientW}` : "n/a");
-  check("card dentro del viewport (sin corte lateral)", !!fit && fit.boxX >= 0 && fit.boxRight <= fit.viewportW + 1, fit ? `x=${fit.boxX} right=${fit.boxRight}` : "n/a");
-  await page.screenshot({ path: "/home/z/my-project/scripts/vn-stress-small.png" });
+  check("la columna ENVUELVE el texto (sin desborde horizontal)", !!fit && fit.hFits, fit ? `scrollW ${fit.scrollW} vs clientW ${fit.clientW}` : "n/a");
+  check("columna dentro del viewport (sin corte lateral)", !!fit && fit.x >= 0 && fit.right <= fit.viewportW + 1, fit ? `x=${fit.x} right=${fit.right}` : "n/a");
+  check("carácter activo dentro del escenario", !!fit && fit.activoVisible, fit ? String(fit.activoVisible) : "n/a");
+  await page.screenshot({ path: `${__dirname}/tp-stress-small.png` });
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
   await page.setViewportSize({ width: 1440, height: 900 });
 
-  console.log("=== F. RETROCESO EN TARJETA 0 ===");
-  await abrirVN(page);
-  const prev = page.locator('[data-testid="vn-prev"]');
-  for (let i = 0; i < 12 && !(await prev.isDisabled()); i++) {
+  console.log("=== F. REBOBINADO HASTA EL INICIO DEL LIBRO ===");
+  await irAPagina(page, 1);
+  await abrirTP(page);
+  const prev = page.locator('[data-testid="tp-prev"]');
+  for (let i = 0; i < 60 && !(await prev.isDisabled()); i++) {
     await prev.click();
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(60);
   }
-  check("llegamos a tarjeta 1 (vn-prev deshabilitado)", await prev.isDisabled());
+  check("llegamos al inicio de la página 1 (tp-prev deshabilitado)", await prev.isDisabled());
+  const inicio = await estado(page);
   await page.keyboard.press("ArrowLeft");
   await page.waitForTimeout(300);
-  const leavingF = await page.evaluate(() => document.querySelectorAll('[data-testid="vn-card-leaving"]').length);
-  check("ArrowLeft en 0 no crea capa saliente", leavingF === 0, `leaving=${leavingF}`);
+  const tras = await estado(page);
+  check("ArrowLeft en el inicio no rompe ni retrocede de libro", tras.lit === inicio.lit && tras.start === inicio.start, `lit ${inicio.lit} → ${tras.lit} · start ${inicio.start} → ${tras.start}`);
 
-  console.log("=== G. SONIDO OFF NO ROMPE ENCENDIDO ===");
-  await tarjetaEnMarcha(page);
-  const litG1 = await litCount(page);
-  await page.locator('[data-testid="vn-sound"]').click(); // OFF
-  await page.waitForTimeout(800);
-  const litG2 = await litCount(page);
+  console.log("=== G. SONIDO OFF NO ROMPE EL ENCENDIDO ===");
+  await paginaEnMarcha(page);
+  const litG1 = (await estado(page)).lit;
+  await page.locator('[data-testid="tp-sound"]').click(); // OFF
+  await page.waitForTimeout(900);
+  const litG2 = (await estado(page)).lit;
   check("letras siguen encendiendo sin sonido", litG2 > litG1, `${litG1} → ${litG2}`);
-  await page.locator('[data-testid="vn-sound"]').click(); // ON de nuevo
+  await page.locator('[data-testid="tp-sound"]').click(); // ON de nuevo
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
 
-  console.log("=== H. AUTO EN ÚLTIMA PÁGINA (no loop, sin giro fantasma) ===");
-  const deN = await page.locator('span', { hasText: /^de \d+$/ }).last().textContent();
+  console.log("=== H. AUTO EN LA ÚLTIMA PÁGINA (no loop, sin giro fantasma) ===");
+  const deN = await page.locator("span", { hasText: /^de \d+$/ }).last().textContent();
   const numPages = parseInt((deN ?? "de 0").replace("de ", ""), 10);
   check("numPages leído del header", numPages > 0, `de ${numPages}`);
-  await page.getByRole("spinbutton", { name: "Número de página" }).fill(String(numPages));
-  await page.keyboard.press("Enter");
-  await page.waitForTimeout(1500);
-  await abrirVN(page);
-  await page.locator('[data-testid="vn-auto"]').click(); // ON
+  await irAPagina(page, numPages);
+  await abrirTP(page);
+  await page.locator('[data-testid="tp-auto"]').click(); // ON
   let finTxt = "";
   for (let i = 0; i < 14; i++) {
-    await page.locator('[data-testid="vn-stage"]').click().catch(() => {});
+    await page.locator('[data-testid="tp-stage"]').click().catch(() => {});
     await page.waitForTimeout(220);
-    finTxt = (await page.locator('[data-testid="vn-next"]').textContent()) ?? "";
+    finTxt = (await page.locator('[data-testid="tp-next"]').textContent()) ?? "";
     if (/Fin del libro/.test(finTxt)) break;
   }
-  check("botón muestra «Fin del libro» en última página", /Fin del libro/.test(finTxt), finTxt.trim());
+  check("botón muestra «Fin del libro» en la última página", /Fin del libro/.test(finTxt), finTxt.trim());
   const lastTop1 = await topBar(page);
   await page.waitForTimeout(1400);
   const lastTop2 = await topBar(page);
   check("auto en fin de libro NO gira ni crashea", lastTop1 === lastTop2 && new RegExp(`Página ${numPages} de ${numPages}`).test(lastTop2), lastTop2);
+
+  console.log("=== I. MOVIMIENTO REDUCIDO: TODO ENCENDIDO SIN ANIMACIÓN ===");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  await abrirTP(page);
+  await page.waitForTimeout(700);
+  const rm = await estado(page);
+  const rmCss = await page.evaluate(() => {
+    const ch = document.querySelector('[data-testid="tp-stream"] .tp-ch');
+    const h = document.querySelector('[data-testid="tp-stream"] .tp-block-h');
+    return {
+      transicionCh: ch ? getComputedStyle(ch).transitionDuration : null,
+      bloqueOn: h ? h.classList.contains("on") : null,
+    };
+  });
+  check("movimiento reducido: la página entera se enciende sola", rm.lit === rm.chars && rm.chars > 0, `lit=${rm.lit}/${rm.chars}`);
+  check("sin transición de opacidad por carácter", rmCss.transicionCh === "0s", String(rmCss.transicionCh));
+  check("título del flujo también encendido", rmCss.bloqueOn !== false, String(rmCss.bloqueOn));
+  await page.emulateMedia({ reducedMotion: null });
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
 
   check("cero errores de consola/pageerror en toda la suite", errors.length === 0, errors.join(" | ").slice(0, 300));
 

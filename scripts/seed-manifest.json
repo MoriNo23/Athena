@@ -21,9 +21,5 @@
       "pages": 10,
       "cover": "atena-escaneado-cover.png"
     }
-  ],
-  "companion": {
-    "file": "companion-es.pdf",
-    "pages": 12
-  }
+  ]
 }

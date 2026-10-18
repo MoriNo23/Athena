@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useImmersiveWake } from "@/hooks/use-immersive-wake";
 import { useReaderHotkeys } from "@/hooks/use-reader-hotkeys";
@@ -15,6 +15,7 @@ import { useZoomPreset } from "@/hooks/use-zoom-preset";
 import { RailBar } from "@/components/rail/RailBar";
 import { PdfViewport } from "@/components/reader/PdfViewport";
 import { EpubViewport } from "@/components/reader/EpubViewport";
+import { PdfTextView } from "@/components/reader/PdfTextView";
 import { ConfigPanel } from "@/components/reader/ConfigPanel";
 import { DictionaryPopover } from "@/components/reader/DictionaryPopover";
 import { VocabularySheet } from "@/components/reader/VocabularySheet";
@@ -23,12 +24,16 @@ import { ModeDock } from "@/components/modes/ModeDock";
 import { ReaderHeader } from "@/components/reader/ReaderHeader";
 import { ReaderStage } from "@/components/reader/ReaderStage";
 import { PauseDialog } from "@/components/reader/PauseDialog";
-import { CinematicOverlay } from "@/components/reader/CinematicOverlay";
+import { TeleprompterOverlay } from "@/components/reader/TeleprompterOverlay";
 import { useSettings } from "@/lib/settings";
 import { useI18n, formatDate } from "@/lib/i18n";
 import { useEpubBook } from "@/hooks/use-epub-book";
+import { usePdfText } from "@/hooks/use-pdf-text";
 import { epubPageText, type EpubPage } from "@/lib/epub";
-import { clampVnFontScale, VN_FONT_STEP } from "@/lib/types";
+import { paginatePdfText, type PdfTextIndex } from "@/lib/pdf-text";
+import { probePdfTextLayer } from "@/lib/pdf-text-index";
+import type { TeleprompterBlock } from "@/lib/teleprompter";
+import { clampTeleprompterFontScale, TELEPROMPTER_FONT_STEP } from "@/lib/types";
 import type { BookDTO } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import type { PDFDocumentProxy } from "pdfjs-dist";
@@ -59,11 +64,13 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   const rail = useSettings((s) => s.rail);
   const dailyGoal = useSettings((s) => s.reading.dailyGoal);
   const scrollStepPct = useSettings((s) => s.reading.scrollStepPct);
+  const readerFont = useSettings((s) => s.reading.font);
+  const setReading = useSettings((s) => s.setReading);
   const toggleKey = useSettings((s) => s.immersion.toggleKey);
   const vocabularyCount = useSettings((s) => s.vocabulary.length);
   const immersion = useSettings((s) => s.immersion);
-  const vnFontScale = useSettings((s) => s.vn.fontScale);
-  const setVn = useSettings((s) => s.setVn);
+  const tpFontScale = useSettings((s) => s.teleprompter.fontScale);
+  const setTeleprompter = useSettings((s) => s.setTeleprompter);
 
   /** EPUB: el libro reflowable se lee en páginas virtuales de texto */
   const isEpub = book.filePath.toLowerCase().endsWith(".epub");
@@ -81,7 +88,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [vocabOpen, setVocabOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
-  const [vnOpen, setVnOpen] = useState(false);
+  const [tpOpen, setTpOpen] = useState(false);
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   // true cuando corremos embebidos (iframe del preview) y el teclado está en el padre
   const [embeddedNoFocus, setEmbeddedNoFocus] = useState(false);
@@ -164,9 +171,112 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     [numPages, setPageNum, turn, commitMilestones, scheduleSave, extrasRef]
   );
 
-  const silentJumpTo = useCallback(
-    (p: number) => goToPage(p, { silent: true }),
+  // ---------- Modo texto del PDF (Página | Texto) ----------
+  // El toggle solo se ofrece con capa de texto real y el modo se recuerda en el
+  // libro (`extras.readerMode`). El visor de páginas queda montado debajo
+  // (tapado) para no perder el documento ni sus paneles.
+  const [hasTextLayer, setHasTextLayer] = useState(false);
+
+  useEffect(() => {
+    if (isEpub || !doc) return;
+    let alive = true;
+    probePdfTextLayer(doc)
+      .then((ok) => alive && setHasTextLayer(ok))
+      .catch(() => alive && setHasTextLayer(false));
+    return () => {
+      alive = false;
+    };
+  }, [isEpub, doc]);
+
+  const textMode = !isEpub && hasTextLayer && extras.readerMode === "text";
+
+  // Extracción en segundo plano: la lectura arranca con el prefijo ya listo
+  const {
+    ready: textReady,
+    total: textTotal,
+    page: textPage,
+    ensurePage: textEnsure,
+  } = usePdfText(textMode ? book.id : null, textMode ? doc : null);
+
+  /** páginas virtuales del prefijo extraído (null mientras no hay nada paginable) */
+  const textIndex = useMemo<PdfTextIndex | null>(() => {
+    if (!textMode || textReady === 0) return null;
+    const realPages = Array.from({ length: textReady }, (_, i) => textPage(i + 1) ?? []);
+    return paginatePdfText(realPages);
+  }, [textMode, textReady, textPage]);
+
+  // Navegación virtual: la elección local solo vale dentro de su página real;
+  // lo demás se deriva de `pageNum` (nada de espejos en efectos).
+  const [localVirtual, setLocalVirtual] = useState<number | null>(null);
+  const textLastReal =
+    textIndex && textIndex.pages.length > 0 ? textIndex.pageStart[textIndex.pages.length - 1] : 0;
+  /** página real pedida por el riel que aún no es paginable (el visor espera con indicador) */
+  const waitingReal = textMode && textIndex !== null && pageNum > textLastReal ? pageNum : null;
+  /** página virtual actual (1-based) */
+  const textVirtual = useMemo(() => {
+    if (!textIndex || textIndex.pages.length === 0) return 1;
+    if (
+      localVirtual !== null &&
+      localVirtual >= 1 &&
+      localVirtual <= textIndex.pages.length &&
+      textIndex.pageStart[localVirtual - 1] === pageNum
+    ) {
+      return localVirtual;
+    }
+    const v = textIndex.realToVirtual[pageNum - 1] ?? -1;
+    return v >= 0 ? v + 1 : 1;
+  }, [textIndex, pageNum, localVirtual]);
+
+  // La página que espera el riel se adelanta en la extracción (prioridad)
+  useEffect(() => {
+    if (waitingReal === null) return;
+    void textEnsure(waitingReal);
+  }, [waitingReal, textEnsure]);
+
+  /** Navegación virtual: la página real de origen manda para riel, hitos y ETA */
+  const goToVirtual = useCallback(
+    (v: number, opts?: { silent?: boolean }) => {
+      if (!textIndex || textIndex.pages.length === 0) return;
+      const clamped = Math.max(1, Math.min(textIndex.pages.length, Math.round(v)));
+      setLocalVirtual(clamped);
+      goToPage(textIndex.pageStart[clamped - 1], opts);
+    },
+    [textIndex, goToPage]
+  );
+
+  /** Saltos de fuera del reflujo (riel, número de página, peek): sin ancla local */
+  const jumpOutsideText = useCallback(
+    (p: number, opts?: { silent?: boolean }) => {
+      setLocalVirtual(null);
+      goToPage(p, opts);
+    },
     [goToPage]
+  );
+
+  const setPdfReadingMode = useCallback(
+    (mode: "page" | "text") => {
+      patchExtras({ readerMode: mode });
+    },
+    [patchExtras]
+  );
+
+  const silentJumpTo = useCallback(
+    (p: number) => jumpOutsideText(p, { silent: true }),
+    [jumpOutsideText]
+  );
+
+  /** modo texto con páginas virtuales listas: el teleprompter las consume */
+  const tpTextMode = textMode && textIndex !== null && textIndex.pages.length > 0;
+
+  /** bloques de una página virtual para el teleprompter (mismo contrato que el EPUB) */
+  const tpVirtualBlocks = useCallback(
+    async (v: number): Promise<TeleprompterBlock[]> => {
+      const pages = textIndex?.pages;
+      if (!pages || pages.length === 0) return [];
+      const page = pages[Math.min(Math.max(1, Math.round(v)), pages.length) - 1];
+      return page.blocks.map((b) => ({ kind: b.kind, text: b.text }));
+    },
+    [textIndex]
   );
 
   /** Extracto de texto de la página p para el carrusel peek (EPUB). */
@@ -204,18 +314,18 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   /** Tamaño de letra del lector (EPUB): mismo multiplicador global que el modo cinematográfico */
   const fontDelta = useCallback(
     (dir: 1 | -1) => {
-      setVn({ fontScale: clampVnFontScale(vnFontScale + dir * VN_FONT_STEP) });
+      setTeleprompter({ fontScale: clampTeleprompterFontScale(tpFontScale + dir * TELEPROMPTER_FONT_STEP) });
     },
-    [vnFontScale, setVn]
+    [tpFontScale, setTeleprompter]
   );
 
-  // En EPUB, «zoom» = tamaño de letra (teclas +/− y Ctrl+rueda)
+  // En EPUB o modo texto, «zoom» = tamaño de letra (teclas +/− y Ctrl+rueda)
   const hotkeyZoomBy = useCallback(
     (factor: number) => {
-      if (isEpub) fontDelta(factor > 1 ? 1 : -1);
+      if (isEpub || textMode) fontDelta(factor > 1 ? 1 : -1);
       else zoomBy(factor);
     },
-    [isEpub, fontDelta, zoomBy]
+    [isEpub, textMode, fontDelta, zoomBy]
   );
   const noopPreset = useCallback(() => {}, []);
   const noopZoomBy = useCallback(() => {}, []);
@@ -289,13 +399,14 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     [scrollStepPct]
   );
 
-  // Atajos de teclado del lector (hook dedicado, spec crapper)
+  // Atajos de teclado del lector (hook dedicado, spec crapper).
+  // En modo texto, la unidad de navegación es la página VIRTUAL.
   useReaderHotkeys({
-    goToPage,
-    pageNum,
+    goToPage: textMode ? goToVirtual : goToPage,
+    pageNum: textMode ? textVirtual : pageNum,
     zoomBy: hotkeyZoomBy,
     toggleFullscreen,
-    applyZoomPreset: isEpub ? noopPreset : applyZoomPreset,
+    applyZoomPreset: isEpub || textMode ? noopPreset : applyZoomPreset,
     peekOpenRef: peek.peekOpenRef,
     scrollByStep,
     toggleHideUi,
@@ -387,6 +498,30 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
       onBusyChange={setPdfBusy}
       onError={setPdfError}
       onDoc={setDoc}
+      suspended={textMode}
+    />
+  );
+
+  // Aviso de página sin texto: el riel pidió una página vacía y el flujo
+  // continúa en la siguiente con contenido (realToVirtual ya la mapeó).
+  const textEmptyNotice = useMemo(() => {
+    if (!textMode || !textIndex || waitingReal !== null) return null;
+    const page = textIndex.pages[textVirtual - 1];
+    if (!page || page.realPage <= pageNum) return null;
+    return t("reader.textEmptyPage", { n: pageNum, m: page.realPage });
+  }, [textMode, textIndex, textVirtual, pageNum, waitingReal, t]);
+
+  // Modo texto: reflujo sobre el visor de páginas (que sigue montado debajo)
+  const pdfTextView = (
+    <PdfTextView
+      index={textIndex}
+      virtualPage={textVirtual}
+      waitingReal={waitingReal}
+      notice={textEmptyNotice}
+      ready={textReady}
+      total={textTotal}
+      fontScale={tpFontScale}
+      onFontDelta={fontDelta}
     />
   );
 
@@ -396,7 +531,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
       key={book.filePath}
       pages={epub.pages}
       pageNum={pageNum}
-      fontScale={vnFontScale}
+      fontScale={tpFontScale}
       onFontDelta={fontDelta}
     />
   );
@@ -405,6 +540,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
 
   return (
     <div
+      data-reader-font={readerFont}
       className={cn(
         "flex h-screen flex-col overflow-hidden",
         chromeHidden && "chrome-immersed"
@@ -434,7 +570,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
             pct={pct}
             numPages={numPages}
             pageNum={pageNum}
-            goToPage={goToPage}
+            goToPage={jumpOutsideText}
             onBack={onBack}
             isFullscreen={isFullscreen}
             onToggleFullscreen={toggleFullscreen}
@@ -443,12 +579,16 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
             onZoomBy={isEpub ? noopZoomBy : zoomBy}
             onPreset={isEpub ? noopPreset : applyZoomPreset}
             isEpub={isEpub}
-            epubFontScale={vnFontScale}
+            epubFontScale={tpFontScale}
             onEpubFontDelta={fontDelta}
+            pdfMode={!isEpub && hasTextLayer ? (textMode ? "text" : "page") : null}
+            onPdfModeChange={setPdfReadingMode}
+            readerFont={readerFont}
+            onReaderFontChange={(f) => setReading({ font: f })}
             dockVisible={dockVisible}
             onToggleDock={() => setDockOpen((v) => !v)}
-            vnOpen={vnOpen}
-            onToggleVn={() => setVnOpen((v) => !v)}
+            tpOpen={tpOpen}
+            onToggleTeleprompter={() => setTpOpen((v) => !v)}
             vocabularyCount={vocabularyCount}
             onOpenVocabulary={() => setVocabOpen(true)}
             todayStreak={todayStats.streak}
@@ -475,6 +615,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
               pageNum={pageNum}
               numPages={numPages}
               viewport={viewport}
+              overlay={textMode ? pdfTextView : undefined}
               pauseArmed={pauseArmed}
               pauseDialogOpen={pauseDialogOpen}
               onOpenPause={() => openPauseDialog(() => extrasRef.current.pause?.recap ?? "")}
@@ -579,17 +720,20 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
         onTake={takePause}
       />
 
-      {/* Modo cinematográfico (antes «novela visual»): tarjetas a pantalla
-          completa letra a letra, con su propia inmersión y pantalla completa */}
-      {vnOpen && (
-        <CinematicOverlay
+      {/* Modo teleprompter: la página se enciende letra a letra a pantalla
+          completa, con su propia inmersión y pantalla completa. En modo texto
+          lo alimentan las páginas VIRTUALES del PDF (mismo contrato que el
+          EPUB); en modo página, las páginas reales. */}
+      {tpOpen && (
+        <TeleprompterOverlay
           book={book}
-          doc={isEpub ? null : doc}
-          getPageText={isEpub ? epub.getPageText : undefined}
-          pageNum={pageNum}
-          numPages={numPages}
-          onGoToPage={silentJumpTo}
-          onClose={() => setVnOpen(false)}
+          doc={isEpub || tpTextMode ? null : doc}
+          getPageBlocks={tpTextMode ? tpVirtualBlocks : isEpub ? epub.getPageBlocks : undefined}
+          pageNum={tpTextMode ? textVirtual : pageNum}
+          numPages={tpTextMode ? textIndex!.pages.length : numPages}
+          sourceKey={tpTextMode ? "text" : isEpub ? "epub" : "pdf"}
+          onGoToPage={tpTextMode ? goToVirtual : silentJumpTo}
+          onClose={() => setTpOpen(false)}
         />
       )}
 

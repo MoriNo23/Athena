@@ -2,9 +2,10 @@
 
 import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
-import { filterCss, useSettings } from "@/lib/settings";
+import { reflowFilterCss, useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import type { EpubPage } from "@/lib/epub";
+import { TextBlocks } from "@/components/reader/TextBlocks";
 
 interface EpubViewportProps {
   /** páginas virtuales ya parseadas (null = cargando) */
@@ -26,7 +27,7 @@ export function EpubViewport({ pages, pageNum, fontScale, onFontDelta }: EpubVie
   const filters = useSettings((s) => s.filters);
   const wheelBoost = useSettings((s) => s.reading.wheelBoost);
   const { t } = useI18n();
-  const cssFilter = filterCss(filters);
+  const cssFilter = reflowFilterCss(filters);
   const warmth = filters.warmth;
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -86,37 +87,19 @@ export function EpubViewport({ pages, pageNum, fontScale, onFontDelta }: EpubVie
           <p className="text-sm">{t("epub.opening")}</p>
         </div>
       ) : (
-        <div className="epub-frame relative mx-auto w-full px-6 sm:px-10">
+        <div className="relative h-full w-full">
           {/* frame de contenido: filtros + tinte cálido, igual que la página del PDF */}
           <div
             className="epub-page relative"
             style={{
               filter: cssFilter === "none" ? undefined : cssFilter,
-              ["--vn-font-scale" as string]: fontScale,
+              ["--tp-font-scale" as string]: fontScale,
             }}
             data-testid="epub-page"
             data-page={pageNum}
           >
             <div className="epubLayer" aria-label={t("epub.page", { n: pageNum })}>
-              {page.blocks.map((b, i) =>
-                b.kind === "img" ? (
-                  <img key={i} src={b.src} alt={b.alt} className="epub-img" draggable={false} />
-                ) : b.kind === "quote" ? (
-                  <blockquote key={i} className="epub-quote" dangerouslySetInnerHTML={{ __html: b.html }} />
-                ) : b.kind === "li" ? (
-                  <p key={i} className="epub-li" dangerouslySetInnerHTML={{ __html: b.html }} />
-                ) : b.kind === "h1" ? (
-                  <h2 key={i} className="epub-h epub-h1" dangerouslySetInnerHTML={{ __html: b.html }} />
-                ) : b.kind === "h2" ? (
-                  <h3 key={i} className="epub-h epub-h2" dangerouslySetInnerHTML={{ __html: b.html }} />
-                ) : b.kind === "h3" ? (
-                  <h3 key={i} className="epub-h epub-h3" dangerouslySetInnerHTML={{ __html: b.html }} />
-                ) : b.kind === "h4" ? (
-                  <h4 key={i} className="epub-h epub-h3" dangerouslySetInnerHTML={{ __html: b.html }} />
-                ) : (
-                  <p key={i} className="epub-p" dangerouslySetInnerHTML={{ __html: b.html }} />
-                )
-              )}
+              <TextBlocks blocks={page.blocks} />
             </div>
 
             {warmth > 0 && (

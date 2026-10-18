@@ -1,5 +1,5 @@
 /* E2E de SOPORTE EPUB: subida con probe (título/autor/portada de la metadata),
- * lectura en páginas virtuales (navegación, tipografía A−/A+), modo novela,
+ * lectura en páginas virtuales (navegación, tipografía A−/A+), modo teleprompter,
  * diccionario por selección, índice de capítulos, peek textual y persistencia
  * de progreso. REGLA DE LA CASA: reset-all ANTES de tocar nada. 0 page errors.
  */
@@ -103,19 +103,19 @@ function check(name, ok, detail = "") {
   await page.waitForTimeout(200);
   await page.screenshot({ path: "scripts/epub-03-lector.png" });
 
-  // ---------------- E. MODO NOVELA ----------------
-  console.log("=== E. MODO NOVELA VISUAL (texto del EPUB) ===");
-  await page.locator('[data-testid="vn-toggle"]').click();
-  await page.locator('[data-testid="vn-overlay"]').waitFor({ timeout: 10000 });
-  await page.locator('[data-testid="vn-card-box"]').waitFor({ timeout: 10000 });
+  // ---------------- E. MODO TELEPROMPTER ----------------
+  console.log("=== E. MODO TELEPROMPTER (texto del EPUB) ===");
+  await page.locator('[data-testid="tp-toggle"]').click();
+  await page.locator('[data-testid="tp-overlay"]').waitFor({ timeout: 10000 });
+  await page.locator('[data-testid="tp-card-box"]').waitFor({ timeout: 10000 });
   await page.waitForTimeout(800); // encendido letra a letra
-  const cardText = await page.locator('[data-testid="vn-card-box"]').textContent();
+  const cardText = await page.locator('[data-testid="tp-card-box"]').textContent();
   check("la tarjeta VN trae texto del capítulo", cardText.length > 20, `${cardText.length} chars`);
-  check("VN muestra el libro correcto", (await page.locator('[data-testid="vn-overlay"] p').first().textContent()).includes("La Sombra del Riel"));
-  await page.screenshot({ path: "scripts/epub-04-novela.png" });
+  check("VN muestra el libro correcto", (await page.locator('[data-testid="tp-overlay"] p').first().textContent()).includes("La Sombra del Riel"));
+  await page.screenshot({ path: "scripts/epub-04-teleprompter.png" });
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
-  check("Escape cierra el modo novela", (await page.locator('[data-testid="vn-overlay"]').count()) === 0);
+  check("Escape cierra el modo teleprompter", (await page.locator('[data-testid="tp-overlay"]').count()) === 0);
 
   // ---------------- F. DICCIONARIO POR SELECCIÓN ----------------
   console.log("=== F. DICCIONARIO (selección en .epubLayer) ===");

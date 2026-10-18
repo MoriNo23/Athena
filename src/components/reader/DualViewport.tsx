@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { loadPdfLib, PDFJS_ASSETS } from "@/lib/pdf-client";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Loader2 } from "lucide-react";
+import { useTheme } from "next-themes";
 
 interface DualViewportProps {
   companionPath: string;
@@ -22,8 +23,10 @@ interface DualViewportProps {
  */
 export function DualViewport({ companionPath, mainPage, mainTotal, companionTotal }: DualViewportProps) {
   const { t } = useI18n();
+  const { resolvedTheme } = useTheme();
   const filters = useSettings((s) => s.filters);
-  const cssFilter = filterCss(filters);
+  // `auto` sigue al tema: sin resolvedTheme (aún sin montar) la casa asume oscuro
+  const cssFilter = filterCss(filters, resolvedTheme !== "light");
   const warmth = filters.warmth;
 
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);

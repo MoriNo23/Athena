@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Genera un PDF 'escaneado' sintético: páginas solo-imagen (JPEG), sin capa de texto.
 Simula un libro escaneado real para probar el OCR de Riel."""
+import os
 
 from PIL import Image, ImageDraw, ImageFont
+
+Image.init()  # PdfImagePlugin indexa Image.SAVE["JPEG"] sin registrar plugins
 
 W, H = 1240, 1754  # A4 a ~150 dpi
 FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -72,6 +75,6 @@ pages = [
     render_page("Notas del editor", ["Este libro de prueba contiene dos paginas", "escaneadas en espanol y una en ingles."], 3),
 ]
 
-out = "/home/z/my-project/scripts/libro-escaneado-ocr.pdf"
+out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "libro-escaneado-ocr.pdf")
 pages[0].save(out, save_all=True, append_images=pages[1:], resolution=150.0, quality=82)
 print("OK:", out)

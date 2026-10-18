@@ -1,9 +1,11 @@
 """Genera un PDF de prueba de 24 páginas con contenido legible."""
+import os
+
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 
-OUT = "/home/z/my-project/scripts/test-book.pdf"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-book.pdf")
 
 c = canvas.Canvas(OUT, pagesize=A4)
 W, H = A4

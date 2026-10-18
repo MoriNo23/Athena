@@ -10,7 +10,7 @@ async function startBookButton(page) {
 }
 
 (async () => {
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ executablePath: process.env.ATENA_CHROMIUM || undefined });
   // REGLA DE LA CASA: cada prueba parte de cero (insignias, sesiones, página 1
   // en todos los libros, incluidos los capturados img). Pide el endpoint de
   // reinicio total antes de tocar nada.

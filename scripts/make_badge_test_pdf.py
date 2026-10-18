@@ -1,9 +1,11 @@
 """PDF de prueba corto (6 páginas) para el flujo de insignias + portada PNG."""
+import os
+
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.pdfgen import canvas
 
-OUT = "/home/z/my-project/scripts/badge-test-book.pdf"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "badge-test-book.pdf")
 
 c = canvas.Canvas(OUT, pagesize=A4)
 W, H = A4

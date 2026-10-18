@@ -1,8 +1,10 @@
 // Ver diccionario Page completo + warnings de pdf.js
 import { getDocument, VerbosityLevel } from "pdfjs-dist/legacy/build/pdf.mjs";
 import fs from "fs";
+import { fileURLToPath } from "node:url";
 
-const raw = fs.readFileSync("/home/z/my-project/public/uploads/b4f502e072dc54fea.pdf");
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const raw = fs.readFileSync(`${ROOT}/public/uploads/b4f502e072dc54fea.pdf`);
 const str = raw.toString("latin1");
 
 // Diccionario de la primera página (ampliar ventana)
@@ -47,7 +49,7 @@ try {
     if (img.data[i] < 245 || img.data[i + 1] < 245 || img.data[i + 2] < 245) nonWhite++;
   }
   console.log("RENDER @0.5x:", canvas.width + "x" + canvas.height, "pixeles no-blancos (muestreo):", nonWhite);
-  fs.writeFileSync("/home/z/my-project/scripts/p1-test.png", canvas.toBuffer("image/png"));
+  fs.writeFileSync(`${ROOT}/scripts/p1-test.png`, canvas.toBuffer("image/png"));
   console.log("PNG guardado en scripts/p1-test.png");
 } catch (e) {
   console.log("render node no disponible:", e.message);

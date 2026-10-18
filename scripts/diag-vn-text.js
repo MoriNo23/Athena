@@ -11,19 +11,19 @@ const { chromium } = require("playwright");
   await page.waitForSelector('[data-viewport="pdf"]', { timeout: 30000 });
   await page.waitForTimeout(2500);
 
-  await page.getByTestId("vn-toggle").click();
-  await page.waitForSelector('[data-testid="vn-overlay"]', { timeout: 10000 });
+  await page.getByTestId("tp-toggle").click();
+  await page.waitForSelector('[data-testid="tp-overlay"]', { timeout: 10000 });
   await page.waitForTimeout(1500);
 
   const info = await page.evaluate(() => {
-    const overlay = document.querySelector('[data-testid="vn-overlay"]');
-    const box = document.querySelector('[data-testid="vn-card-box"]');
-    const empty = document.querySelector('[data-testid="vn-empty"]');
-    const card = document.querySelector('[data-testid="vn-card"]');
+    const overlay = document.querySelector('[data-testid="tp-overlay"]');
+    const box = document.querySelector('[data-testid="tp-card-box"]');
+    const empty = document.querySelector('[data-testid="tp-empty"]');
+    const card = document.querySelector('[data-testid="tp-card"]');
     return {
-      overlayText: overlay ? overlay.querySelector(".vn-top").textContent.slice(0, 160) : null,
+      overlayText: overlay ? overlay.querySelector(".tp-top").textContent.slice(0, 160) : null,
       boxExists: !!box,
-      boxChars: box ? box.querySelectorAll(".vn-ch").length : -1,
+      boxChars: box ? box.querySelectorAll(".tp-ch").length : -1,
       boxText: box ? box.textContent.slice(0, 90) : null,
       emptyShown: !!empty,
       emptyText: empty ? empty.textContent.slice(0, 80) : null,

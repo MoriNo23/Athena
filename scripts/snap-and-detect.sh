@@ -1,25 +1,33 @@
 #!/bin/bash
-# Snapshot del DOM renderizado (agent-browser ya navegó a la vista) → HTML estático
-# sin <script>, CSS enlazado rescrito a ruta local → escaneo con impeccable detect file://
-# Uso: snap-and-detect.sh <nombre>   (requiere que agent-browser esté en la vista deseada)
+# Snapshot del DOM renderizado → HTML estático sin <script>, CSS enlazado
+# rescrito a ruta local → escaneo con impeccable detect file://
+# Uso: snap-and-detect.sh <nombre> [archivo.html]
+#   - con archivo.html: usa ese DOM ya renderizado (p. ej. de scripts/cdp-capture.mjs)
+#   - sin él: vuelca el DOM de la vista actual con agent-browser eval
 set -u
 NAME="${1:-snap}"
-OUT=/home/z/my-project/scripts/audit-snapshots
-IMB=$(ls -d ~/.impeccable/bin/*/impeccable | sort -V | tail -1)
-CHROME=/home/z/.cache/ms-playwright/chromium-1200/chrome-linux64/chrome
+RAW_FILE="${2:-}"
+OUT="$(cd "$(dirname "$0")" && pwd)/audit-snapshots"
+IMB=$(ls -d ~/.impeccable/bin/*/impeccable 2>/dev/null | sort -V | tail -1)
+[ -n "${IMB:-}" ] && [ -x "$IMB" ] || IMB="$HOME/.agents/skills/impeccable/scripts/impeccable"
+CHROME="${CHROME:-$(command -v chromium || command -v google-chrome)}"
 mkdir -p "$OUT"
 
 # 1) Volcar el DOM renderizado
-timeout 60 agent-browser eval "document.documentElement.outerHTML" > "$OUT/$NAME.raw" 2>/dev/null
+if [ -n "$RAW_FILE" ]; then
+  cp "$RAW_FILE" "$OUT/$NAME.raw"
+else
+  timeout 60 agent-browser eval "document.documentElement.outerHTML" > "$OUT/$NAME.raw" 2>/dev/null
+fi
 if [ ! -s "$OUT/$NAME.raw" ]; then echo "ERROR: snapshot vacío"; exit 1; fi
 
 # 2) Fetch del CSS enlazado y post-proceso (python)
-cd /home/z/my-project
+cd "$(dirname "$0")/.."
 python3 - "$OUT" "$NAME" <<'PY'
 import json, re, sys, urllib.request, pathlib
 out, name = sys.argv[1], sys.argv[2]
 raw = pathlib.Path(f"{out}/{name}.raw").read_text(encoding="utf-8")
-html = json.loads(raw)  # el eval devuelve un string JSON-encoded
+html = json.loads(raw) if raw.lstrip().startswith('"') else raw  # agent-browser devuelve JSON-encoded
 # quitar <script> (no se re-ejecutan en file://, evita reacciones raras del parser)
 html = re.sub(r"<script\b[^>]*>.*?</script>", "", html, flags=re.S | re.I)
 # rescibir el CSS enlazado absoluto y reescribirlo a archivo local

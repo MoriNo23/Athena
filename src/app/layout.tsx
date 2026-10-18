@@ -1,5 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import {
+  Atkinson_Hyperlegible,
+  EB_Garamond,
+  Fraunces,
+  Geist,
+  Geist_Mono,
+  Literata,
+} from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -18,6 +25,30 @@ const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
   axes: ["opsz", "SOFT", "WONK"],
+});
+
+// Fuentes curadas de lectura (la elección del lector vive en el store y manda
+// por --reader-font); la UI conserva Fraunces.
+const literata = Literata({
+  variable: "--font-literata",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
+const ebGaramond = EB_Garamond({
+  variable: "--font-eb-garamond",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
+});
+
+const atkinson = Atkinson_Hyperlegible({
+  variable: "--font-atkinson",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -47,7 +78,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${literata.variable} ${ebGaramond.variable} ${atkinson.variable} antialiased bg-background text-foreground`}
       >
         <ThemeProvider>
           {/* ---- Capa 2: fondo secundario estático (Atenas brutalista) ----

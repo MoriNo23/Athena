@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Forja los libros gratuitos de prueba para la biblioteca de Atena.
 
-Genera en /home/z/my-project/public/uploads:
+Genera en <repo>/public/uploads:
   1. don-quijote-atena.pdf     — PDF digital en español (40 págs), texto buscable.
   2. meditaciones-atena.pdf    — PDF digital en inglés (24 págs) para el diccionario.
   3. atena-escaneado.pdf       — PDF «capturado» (img): páginas solo-imagen, para OCR.
@@ -24,7 +24,7 @@ from reportlab.lib.units import cm
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer
 
-BASE = "/home/z/my-project"
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = f"{BASE}/public/uploads"
 os.makedirs(OUT, exist_ok=True)
 

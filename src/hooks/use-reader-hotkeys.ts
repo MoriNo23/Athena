@@ -44,11 +44,11 @@ function isBlockedTarget(t: EventTarget | null): boolean {
   if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
   if (el.isContentEditable) return true;
   // dentro de diálogos/sheets/popovers abiertos (p. ej. ajustes con sliders) no navegamos
-  if (el.closest('[role="dialog"]')) return true;
+  if (el.closest?.('[role="dialog"]')) return true;
   // controles que usan las flechas para su propia navegación
   const role = el.getAttribute?.("role");
   if (role === "slider" || role === "tab" || role === "menuitem" || role === "option" || role === "combobox") return true;
-  if (el.closest('[role="slider"], [role="menu"], [role="listbox"], [role="radiogroup"], [role="tablist"]')) return true;
+  if (el.closest?.('[role="slider"], [role="menu"], [role="listbox"], [role="radiogroup"], [role="tablist"]')) return true;
   return false;
 }
 

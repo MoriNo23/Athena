@@ -17,7 +17,7 @@ Re-ejecutar si algún día se vuelve a copiar el worker desde node_modules.
 """
 from pathlib import Path
 
-WORKER = Path("/home/z/my-project/public/pdf.worker.min.mjs")
+WORKER = Path(__file__).resolve().parent.parent / "public" / "pdf.worker.min.mjs"
 MARKER = "atena-polyfill"
 HEADER = """/* atena-polyfill: Map.getOrInsert/getOrInsertComputed (TC39 upsert) para
  * Chromium viejos. Inyectado por scripts/patch-pdf-worker.py — NO copiar

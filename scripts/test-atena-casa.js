@@ -1,5 +1,5 @@
 /* E2E de la CASA ATENA renovada: psicología azul (tema claro/oscuro con
- * next-themes), tipografía del modo novela (A−/A+ y teclas −/=), presets
+ * next-themes), tipografía del modo teleprompter (A−/A+ y teclas −/=), presets
  * de modos ELIMINADOS (dock = ajustes de literatura) y neobrutalismo.
  * REGLA DE LA CASA: reset-all ANTES de tocar nada. 0 page errors exigido.
  */
@@ -99,63 +99,63 @@ async function startBookButton(page) {
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
 
-  // ---------------- TIPOGRAFÍA DEL MODO NOVELA ----------------
-  console.log("=== F. MODO NOVELA: TAMAÑO DE LETRA ===");
-  await page.locator('[data-testid="vn-toggle"]').click();
-  await page.locator('[data-testid="vn-overlay"]').waitFor({ timeout: 8000 });
-  const scale0 = await page.evaluate(() => document.querySelector('[data-testid="vn-overlay"]').style.getPropertyValue("--vn-font-scale"));
+  // ---------------- TIPOGRAFÍA DEL MODO TELEPROMPTER ----------------
+  console.log("=== F. MODO TELEPROMPTER: TAMAÑO DE LETRA ===");
+  await page.locator('[data-testid="tp-toggle"]').click();
+  await page.locator('[data-testid="tp-overlay"]').waitFor({ timeout: 8000 });
+  const scale0 = await page.evaluate(() => document.querySelector('[data-testid="tp-overlay"]').style.getPropertyValue("--tp-font-scale"));
   check("fontScale default 1", scale0 === "1", scale0);
 
-  const fs0 = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('[data-testid="vn-card-box"]')).fontSize));
-  await page.locator('[data-testid="vn-font-plus"]').click();
+  const fs0 = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('[data-testid="tp-card-box"]')).fontSize));
+  await page.locator('[data-testid="tp-font-plus"]').click();
   await page.waitForTimeout(200);
   const fs1 = await page.evaluate(() => {
-    const box = document.querySelector('[data-testid="vn-card-box"]');
-    return { scale: document.querySelector('[data-testid="vn-overlay"]').style.getPropertyValue("--vn-font-scale"), fs: parseFloat(getComputedStyle(box).fontSize) };
+    const box = document.querySelector('[data-testid="tp-card-box"]');
+    return { scale: document.querySelector('[data-testid="tp-overlay"]').style.getPropertyValue("--tp-font-scale"), fs: parseFloat(getComputedStyle(box).fontSize) };
   });
   check("A+ sube a 1.1 y la letra crece", fs1.scale === "1.1" && fs1.fs > fs0, `${fs0}px → ${fs1.fs}px`);
 
   await page.keyboard.press("+");
   await page.waitForTimeout(200);
-  const fs2 = await page.evaluate(() => document.querySelector('[data-testid="vn-overlay"]').style.getPropertyValue("--vn-font-scale"));
+  const fs2 = await page.evaluate(() => document.querySelector('[data-testid="tp-overlay"]').style.getPropertyValue("--tp-font-scale"));
   check("tecla + sube a 1.2", fs2 === "1.2", fs2);
 
-  await page.locator('[data-testid="vn-font-minus"]').click();
+  await page.locator('[data-testid="tp-font-minus"]').click();
   await page.waitForTimeout(200);
-  const fs3 = await page.evaluate(() => document.querySelector('[data-testid="vn-overlay"]').style.getPropertyValue("--vn-font-scale"));
+  const fs3 = await page.evaluate(() => document.querySelector('[data-testid="tp-overlay"]').style.getPropertyValue("--tp-font-scale"));
   check("A− baja a 1.1", fs3 === "1.1", fs3);
   await page.keyboard.press("-");
   await page.waitForTimeout(200);
-  const fs4 = await page.evaluate(() => document.querySelector('[data-testid="vn-overlay"]').style.getPropertyValue("--vn-font-scale"));
+  const fs4 = await page.evaluate(() => document.querySelector('[data-testid="tp-overlay"]').style.getPropertyValue("--tp-font-scale"));
   check("tecla − baja a 1.0", parseFloat(fs4) === 1, fs4);
 
   console.log("=== G. TOPES Y ENVOLVENTE ===");
-  const plusBtn = page.locator('[data-testid="vn-font-plus"]');
+  const plusBtn = page.locator('[data-testid="tp-font-plus"]');
   for (let i = 0; i < 8 && !(await plusBtn.isDisabled()); i++) { await plusBtn.click(); await page.waitForTimeout(120); }
-  const scaleTop = await page.evaluate(() => document.querySelector('[data-testid="vn-overlay"]').style.getPropertyValue("--vn-font-scale"));
+  const scaleTop = await page.evaluate(() => document.querySelector('[data-testid="tp-overlay"]').style.getPropertyValue("--tp-font-scale"));
   check("tope 1.6 con A+ deshabilitado", parseFloat(scaleTop) === 1.6 && (await plusBtn.isDisabled()), `${scaleTop} disabled=${await plusBtn.isDisabled()}`);
   // tarjeta larga: el texto debe ENVOLVER (lección de la línea infinita)
-  await page.locator('[data-testid="vn-next"]').click();
+  await page.locator('[data-testid="tp-next"]').click();
   await page.waitForTimeout(400);
   const wrap = await page.evaluate(() => {
-    const box = document.querySelector('[data-testid="vn-card-box"]');
-    const spans = box.querySelectorAll(".vn-ch");
+    const box = document.querySelector('[data-testid="tp-card-box"]');
+    const spans = box.querySelectorAll(".tp-ch");
     let lastY = null, lines = 0;
     for (const s of spans) { const r = s.getBoundingClientRect(); if (lastY === null || Math.abs(r.y - lastY) > 4) { lines++; lastY = r.y; } }
     return { nSpans: spans.length, lines, scrollW: box.scrollWidth, clientW: box.clientWidth, fits: box.scrollWidth <= box.clientWidth + 2 };
   });
   check("tarjeta larga envuelve en varias líneas (1.6×)", wrap.lines > 1 && wrap.fits, `lines=${wrap.lines} ${wrap.scrollW}/${wrap.clientW}`);
-  const minusBtn = page.locator('[data-testid="vn-font-minus"]');
+  const minusBtn = page.locator('[data-testid="tp-font-minus"]');
   for (let i = 0; i < 10 && !(await minusBtn.isDisabled()); i++) { await minusBtn.click(); await page.waitForTimeout(120); }
-  const scaleBottom = await page.evaluate(() => document.querySelector('[data-testid="vn-overlay"]').style.getPropertyValue("--vn-font-scale"));
+  const scaleBottom = await page.evaluate(() => document.querySelector('[data-testid="tp-overlay"]').style.getPropertyValue("--tp-font-scale"));
   check("suelo 0.8 con A− deshabilitado", parseFloat(scaleBottom) === 0.8 && (await minusBtn.isDisabled()), `${scaleBottom} disabled=${await minusBtn.isDisabled()}`);
 
   console.log("=== H. PERSISTE TRAS SALIR Y VOLVER ===");
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
-  await page.locator('[data-testid="vn-toggle"]').click();
-  await page.locator('[data-testid="vn-overlay"]').waitFor({ timeout: 8000 });
-  const scaleBack = await page.evaluate(() => document.querySelector('[data-testid="vn-overlay"]').style.getPropertyValue("--vn-font-scale"));
+  await page.locator('[data-testid="tp-toggle"]').click();
+  await page.locator('[data-testid="tp-overlay"]').waitFor({ timeout: 8000 });
+  const scaleBack = await page.evaluate(() => document.querySelector('[data-testid="tp-overlay"]').style.getPropertyValue("--tp-font-scale"));
   check("fontScale 0.8 persiste al reabrir", parseFloat(scaleBack) === 0.8, scaleBack);
   await page.keyboard.press("Escape");
   await page.waitForTimeout(400);
@@ -185,7 +185,7 @@ async function startBookButton(page) {
   check("hero con sombra dura desplazada", /7px 7px/.test(brutal.heroShadow ?? ""), (brutal.heroShadow ?? "").slice(0, 40));
 
   check("cero page errors en toda la suite", errors.length === 0, errors.join(" | ").slice(0, 300));
-  await page.screenshot({ path: "/home/z/my-project/scripts/atena-casa-final.png" });
+  await page.screenshot({ path: `${__dirname}/atena-casa-final.png` });
 
   await browser.close();
   console.log(`\nRESULTADO: ${pass} PASS / ${fail} FAIL`);

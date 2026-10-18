@@ -2,7 +2,9 @@
 import { getDocument, OPS } from "pdfjs-dist/legacy/build/pdf.mjs";
 import fs from "fs";
 
-const raw = fs.readFileSync("/home/z/my-project/public/uploads/b4f502e072dc54fea.pdf");
+import { fileURLToPath } from "node:url";
+
+const raw = fs.readFileSync(fileURLToPath(new URL("../public/uploads/b4f502e072dc54fea.pdf", import.meta.url)));
 const str = raw.toString("latin1");
 
 // Filtros y recursos en el PDF crudo

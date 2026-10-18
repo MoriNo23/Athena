@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Auditoría matemática de la fórmula de ritmo del Modo Novela Visual (Atena).
+Auditoría matemática de la fórmula de ritmo del modo teleprompter (Atena).
 
 Caza de bichitos pedida: «la animación o las pausas carecen de sentido».
 Este script modela la línea de tiempo EXACTA que usa el motor TypeScript
-(src/lib/vn.ts) y verifica con math que el ritmo tiene sentido físico:
+(src/lib/teleprompter.ts) y verifica con math que el ritmo tiene sentido físico:
 
   FÓRMULA BAJO AUDICIÓN
     delay(letra)        = 1000 / (wps * LPW)          [LPW = letras/palabra ≈ 6]
@@ -30,10 +30,10 @@ Este script modela la línea de tiempo EXACTA que usa el motor TypeScript
 
 import math
 
-# --- Constantes espejo de src/lib/vn.ts (fuente de verdad: ese archivo) ---
-LPW = 6          # VN_LETTERS_PER_WORD
-COMMA = 4        # VN_COMMA_PAUSE_LETTERS
-PERIOD = 9       # VN_PERIOD_PAUSE_LETTERS
+# --- Constantes espejo de src/lib/teleprompter.ts (fuente de verdad: ese archivo) ---
+LPW = 6          # TELEPROMPTER_LETTERS_PER_WORD
+COMMA = 4        # TELEPROMPTER_COMMA_PAUSE_LETTERS
+PERIOD = 9       # TELEPROMPTER_PERIOD_PAUSE_LETTERS
 
 PUNCT_STRONG = set(".!?…")
 PUNCT_WEAK = set(",;:")
@@ -56,7 +56,7 @@ def check(name, ok, detail=""):
 
 
 def build_timeline(text, wps):
-    """Réplica exacta de buildVnTimeline() de src/lib/vn.ts (delays redondeados igual)."""
+    """Réplica exacta de buildTeleprompterTimeline() de src/lib/teleprompter.ts (delays redondeados igual)."""
     base = 1000.0 / (wps * LPW)
     steps = []
     pending = 0.0
@@ -81,6 +81,53 @@ def rounded_total(text, wps):
     return sum(int(d + 0.5) for _, d in steps)
 
 
+# --- Flujo continuo (réplica de buildTeleprompterStream / teleprompterRewind) ---
+HEADING = 12  # TELEPROMPTER_HEADING_PAUSE_LETTERS
+
+
+def build_stream(blocks, wps):
+    """Réplica de buildTeleprompterStream() de src/lib/teleprompter.ts."""
+    base = 0.0 if wps is None else 1000.0 / (wps * LPW)
+    steps, out = [], []
+    pending = 0.0
+    for kind, text in blocks:
+        text = " ".join(text.split())
+        if not text:
+            continue
+        heading = kind in ("h1", "h2", "h3", "h4")
+        start = len(steps)
+        chars = list(text)
+        for j, ch in enumerate(chars):
+            delay = base + pending
+            pending = 0.0
+            if heading:
+                if j == 0:
+                    delay += base * HEADING
+                else:
+                    delay = 0.0
+            steps.append((ch, delay))
+            if heading:
+                continue
+            if ch in PUNCT_STRONG:
+                pending = max(pending, base * PERIOD)
+            elif ch in PUNCT_WEAK:
+                pending = max(pending, base * COMMA)
+        if heading:
+            pending = max(pending, base * HEADING)
+        out.append((kind, start, len(chars), heading))
+    return steps, out
+
+
+def rewind(cursor):
+    """Réplica de teleprompterRewind(): -1 = página anterior encendida entera."""
+    page, lit = cursor
+    if lit > 0:
+        return (page, lit - 1)
+    if page > 1:
+        return (page - 1, -1)
+    return None
+
+
 # Textos de prueba: prosa española con densidad realista de puntuación
 MUESTRA_LARGA = (
     "La cueva olía a piedra mojada, y el eco repetía cada paso como si la montaña "
@@ -103,7 +150,7 @@ CALIBRACIÓN = [
 
 def main():
     print("=" * 74)
-    print("AUDITORÍA MATEMÁTICA — fórmula de ritmo del Modo Novela Visual (Atena)")
+    print("AUDITORÍA MATEMÁTICA — fórmula de ritmo del modo teleprompter (Atena)")
     print("=" * 74)
     print(f"constantes: LPW={LPW}  COMMA={COMMA}  PERIOD={PERIOD}\n")
 
@@ -230,6 +277,48 @@ def main():
     total60 = rounded_total(t60, 1.5) / 1000.0
     check("tarjeta de 60 palabras en Lenta entre 38 y 62 s", 38 <= total60 <= 62,
           f"60 palabras → {total60:.1f} s (≈{60/total60:.2f} pal/s efectivas)")
+
+    # ---------- T9: flujo por bloques (títulos) ----------
+    print("\nT9 · Flujo continuo: el título estrena pausa y aparece completo")
+    base = 1000.0 / (2.5 * LPW)
+    steps, out = build_stream(
+        [("p", "Hola, mundo."), ("h2", "El título"), ("p", "Cuerpo que sigue.")], 2.5
+    )
+    h_start, h_len = out[1][1], out[1][2]
+    h_end = h_start + h_len
+    check("bloques contiguos y título marcado",
+          [b[2] for b in out] == [12, 9, 17] and out[1][3] and not out[0][3],
+          " / ".join(f"{k}:{s}+{n}" for k, s, n, _ in out))
+    check("primer carácter del título paga punto + pausa de título",
+          math.isclose(steps[h_start][1], base * (1 + PERIOD + HEADING), rel_tol=1e-9),
+          f"{steps[h_start][1]:.2f} ms vs {base * (1 + PERIOD + HEADING):.2f} ms")
+    check("el resto del título se enciende de golpe",
+          all(d == 0 for _, d in steps[h_start + 1:h_end]))
+    check("el cuerpo espera el respiro del título",
+          math.isclose(steps[h_end][1], base * (1 + HEADING), rel_tol=1e-9),
+          f"{steps[h_end][1]:.2f} ms vs {base * (1 + HEADING):.2f} ms")
+
+    # ---------- T10: rebobinado inverso ----------
+    print("\nT10 · Rebobinado: orden inverso exacto, letra a letra")
+    p_steps, _ = build_stream([("p", "Uno dos.")], 1.5)
+    visitados, cursor = [], (1, len(p_steps))
+    while cursor is not None and cursor[0] == 1:
+        visitados.append(cursor[1])
+        cursor = rewind(cursor)
+        if cursor is None or cursor[1] == -1:
+            break
+    check("del último carácter al primero, uno a uno",
+          visitados[0] == len(p_steps) and visitados[-1] == 0
+          and all(visitados[i] == visitados[i - 1] - 1 for i in range(1, len(visitados))),
+          ",".join(map(str, visitados)))
+
+    # ---------- T11: cruce de página encendida ----------
+    print("\nT11 · Cruce de inicio de página: la anterior llega ENCENDIDA")
+    check("página 2 al inicio ⇒ página 1 con lit=-1 (encendida entera)",
+          rewind((2, 0)) == (1, -1), str(rewind((2, 0))))
+    check("primera página al inicio ⇒ no hay retroceso", rewind((1, 0)) is None)
+    prev_steps, _ = build_stream([("p", "Anterior.")], 1.5)
+    check("encendida = todos sus pasos", len(prev_steps) == 9, str(len(prev_steps)))
 
     # ---------- tabla resumen ----------
     print("\nResumen por preset (MUESTRA_MEDIA, 12 palabras):")

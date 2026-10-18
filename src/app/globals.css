@@ -94,15 +94,20 @@
   --sidebar-border: oklch(0.28 0.05 258 / 65%);
   --sidebar-ring: oklch(0.55 0.155 250 / 55%);
 
-  /* Scroll + modo cinematográfico (fondo único, texto flotante) */
+  /* Scroll + teleprompter (el teleprompter comparte el fondo del lector) */
   --scroll-thumb: oklch(0.72 0.03 245);
-  --vn-bg: oklch(0.952 0.022 235);
-  --vn-lead: oklch(0.55 0.155 250 / 26%);
 
-  /* Escenario del lector: papel cálido en claro (el «modo de papel» de la
-     casa). En el EPUB el texto flota DIRECTO sobre el escenario, así que este
-     color ES el papel del libro — debe contrastar con --foreground del tema. */
-  --stage: oklch(0.958 0.014 75);
+  /* Tokens de lectura: la superficie donde vive el libro — mármol de la
+     mañana en claro, fría y limpia, con el texto flotando directo encima.
+     Contrastes medidos en scripts/audit-reader-contrast.py (AA+). */
+  --reader-bg: oklch(0.985 0.012 235);
+  --reader-ink: oklch(0.26 0.05 258);
+  --reader-title: oklch(0.2 0.055 258);
+  --reader-rule: oklch(0.58 0.045 250);
+  --tp-bg: var(--reader-bg);
+
+  /* Fuente del texto reflowable: la elige el lector (selector en la cabecera) */
+  --reader-font: var(--font-literata), Georgia, serif;
 
   color-scheme: light;
 }
@@ -146,13 +151,14 @@
   --brutal-shadow-lg: 7px 7px 0 0 oklch(0.03 0.02 258 / 65%);
 
   --scroll-thumb: oklch(0.4 0.04 258);
-  --vn-bg: oklch(0.12 0.045 253);
-  --vn-lead: oklch(0.66 0.14 246 / 30%);
 
-  /* Escenario del lector: noche cálida en oscuro (idéntico al color que
-     siempre tuvo — no se toca lo aprobado). En el EPUB el texto flota
-     DIRECTO sobre este fondo. */
-  --stage: oklch(0.12 0.008 75);
+  /* Tokens de lectura: noche egea elevada sobre el fondo de la app — azul
+     profundo y sereno, sin el papel cálido de antes. */
+  --reader-bg: oklch(0.185 0.05 253);
+  --reader-ink: oklch(0.92 0.018 250);
+  --reader-title: oklch(0.97 0.02 250);
+  --reader-rule: oklch(0.52 0.04 253);
+  --tp-bg: var(--reader-bg);
 
   color-scheme: dark;
 }
@@ -493,101 +499,98 @@ html:not(.dark) .atena-hero .seal-glow {
   filter: drop-shadow(0 0 18px oklch(0.55 0.155 250 / 38%));
 }
 
-/* ---------- Modo cinematográfico ---------- */
+/* ---------- Teleprompter ---------- */
 /* REGLA DE ORO (lección del typewriter borroso): sobre el TEXTO solo se
    animan opacity y color. NUNCA transform ni filter. */
 /* Un SOLO fondo: color plano y callado — el escenario no compite con la
-   letra. La tarjeta NO lleva borde ni sombra (el texto flota directo sobre
-   el escenario); su fondo es el MISMO color del escenario para tapar la
-   capa saliente sin verse. */
-.vn-overlay {
-  background: var(--vn-bg);
+   letra. El texto flota directo sobre el escenario, en una columna continua. */
+.tp-overlay {
+  background: var(--tp-bg);
 }
-.vn-progress-fill {
+.tp-progress-fill {
   background: var(--primary);
   transition: width 0.2s ease-out;
 }
-/* La entrada de la tarjeta ES el encendido letra a letra: nada de fade de
-   caja (con fondo opaco haría ghosting contra la capa saliente) */
-.vn-card {
-  animation: none;
-}
-/* Tarjeta saliente congelada: solo se desvanece la opacidad, sin re-layout.
-   Rápida (320ms) para que apenas se perciba el residuo fuera de la caja. */
-.vn-card--out {
-  animation: vn-card-out 320ms cubic-bezier(0.33, 0, 0.2, 1) both;
-  pointer-events: none;
-}
-@keyframes vn-card-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-.vn-card-box {
+/* La columna continua: un solo flujo con scroll real; el motor sube el
+   carácter activo a ~40 % del alto mientras las letras se encienden. */
+.tp-stream {
   white-space: pre-wrap;
   overflow-wrap: break-word;
   min-width: 0;
-  /* Plana por designio y SIN presencia: ni borde, ni sombra, ni caja visible.
-     El fondo replica el escenario (invisible a la vista, opaco al resto) para
-     cubrir la capa saliente durante la disolvencia. El texto es lo único que manda. */
-  border: none;
-  border-radius: 0;
-  background: var(--vn-bg);
-  box-shadow: none;
-  padding: clamp(1.9rem, 3.5vw, 2.9rem) clamp(2.1rem, 4vw, 3.3rem);
-  font-family: var(--font-fraunces), serif;
-  /* Tamaño de letra del lector: --vn-font-scale la mueve el control A−/A+ */
-  font-size: calc(clamp(1.35rem, 1.05rem + 0.9vw, 1.78rem) * var(--vn-font-scale, 1));
+  font-family: var(--reader-font);
+  /* Tamaño de letra del lector: --tp-font-scale la mueve el control A−/A+ */
+  font-size: calc(clamp(1.35rem, 1.05rem + 0.9vw, 1.78rem) * var(--tp-font-scale, 1));
   line-height: 1.9;
-  color: var(--foreground);
+  color: var(--reader-ink);
 }
-.vn-ch {
-  /* sin white-space: pre — hereda pre-wrap de la card para que el texto
+.tp-block {
+  margin: 0 0 1.1em;
+}
+/* Título del flujo (h1-h4): aparece completo con fundido y su propio respiro */
+.tp-block-h {
+  margin: 1.35em 0 0.95em;
+  font-size: 1.22em;
+  line-height: 1.35;
+  font-weight: 650;
+  /* Apagado legible: AA+ para texto grande (≥3:1) en ambos temas; el encendido
+     lo lleva a opacidad 1. Antes 0.18 quedaba en 1,4–1,6:1 (hallazgo del
+     detector en la auditoría de este cambio). */
+  opacity: 0.55;
+  transition: opacity 520ms ease-out;
+}
+.tp-block-h.on {
+  opacity: 1;
+}
+/* el título no se enciende letra a letra: lo revela el bloque entero */
+.tp-block-h .tp-ch {
+  opacity: 1;
+  transition: none;
+}
+.tp-ch {
+  /* sin white-space: pre — hereda pre-wrap del flujo para que el texto
      ENVUELVA en los espacios (lección del bug «línea infinita»: pre mataba
-     los puntos de quiebre y la tarjeta se desbordaba a lo ancho) */
-  opacity: 0.17;
+     los puntos de quiebre y la columna se desbordaba a lo ancho) */
+  opacity: 0.55;
   transition: opacity 130ms ease-out, color 130ms ease-out;
 }
-.vn-ch.on {
+.tp-ch.on {
   opacity: 1;
-  color: var(--foreground);
+  color: var(--reader-ink);
 }
-/* Resaltado de la primera palabra: la marca de dónde empieza la lectura,
-   del tamaño EXACTO de la palabra (simetría perfecta con la letra). Se
-     enciende junto con los caracteres — subrayador plano, sin degradado. */
-.vn-lead {
-  background: var(--vn-lead);
-  padding: 0.09em 0.045em;
-  margin: 0 -0.045em;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
+/* En pantallas estrechas la letra baja de 24px y el umbral AA sube a 4.5:1:
+   el apagado se acerca un punto más para seguir siendo texto legible. */
+@media (max-width: 640px) {
+  .tp-ch,
+  .tp-block-h {
+    opacity: 0.68;
+  }
 }
 /* Inmersión propia del modo: la UI (barra, progreso, controles) se oculta
    con la quietud; despierta con mouse/tecla/click. El cursor también se va. */
-.vn-chrome {
+.tp-chrome {
   transition: opacity 0.45s ease, visibility 0.45s ease;
 }
-.vn-immersed .vn-chrome {
+.tp-immersed .tp-chrome {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
 }
-.vn-immersed .vn-stage {
+.tp-immersed .tp-stage {
   cursor: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .vn-card,
-  .vn-card--out {
-    animation: none;
+  .tp-block-h {
     opacity: 1;
+    transition: none;
   }
-  .vn-ch {
+  .tp-ch {
     opacity: 1 !important;
     transition: none;
   }
-  .vn-chrome {
+  .tp-chrome {
     transition: none;
   }
-  .vn-progress-fill {
+  .tp-progress-fill {
     transition: none;
   }
 }
@@ -719,48 +722,43 @@ html:not(.dark) .atena-hero .seal-glow {
 .badge-chip.tier-oro { background: oklch(0.8 0.13 85 / 16%); border-color: oklch(0.8 0.13 85 / 45%); color: oklch(0.85 0.13 88); }
 .badge-chip.tier-diamante { background: oklch(0.85 0.06 200 / 14%); border-color: oklch(0.85 0.06 200 / 45%); color: oklch(0.88 0.06 205); }
 
+/* Fuente de lectura elegida por el lector: el atributo lo pone la raíz del
+   lector (ReaderView) para que SSR y cliente coincidan desde el primer trazo. */
+[data-reader-font="garamond"] {
+  --reader-font: var(--font-eb-garamond), Garamond, Georgia, serif;
+}
+[data-reader-font="atkinson"] {
+  --reader-font: var(--font-atkinson), Verdana, Helvetica, sans-serif;
+}
+
 /* ---------- EPUB: la página virtual ---------- */
-/* Tipografía de lectura con el mismo contrato que la tarjeta cinematográfica:
-   Fraunces, aire, y el multiplicador global --vn-font-scale (A−/A+).
+/* Tipografía de lectura con el mismo contrato que la teleprompter:
+   --reader-font (la fuente que elige el lector), aire, y el multiplicador
+   global --tp-font-scale (A−/A+).
    Legibilidad primero: base más grande (clamp subido), peso 450 — un cuerpo
    de libro debe leerse sin esfuerzo — y opsz de texto (trazo más firme que
    el recorte display). La sangría de primera línea sigue la regla de
    imprenta: el párrafo que abre página o viene tras título/cita/imagen va
    al margen; los siguientes, sangrados. */
 .epub-page {
-  font-family: var(--font-fraunces), serif;
-  font-size: calc(clamp(1.16rem, 1rem + 0.7vw, 1.45rem) * var(--vn-font-scale, 1));
+  font-family: var(--reader-font);
+  font-size: calc(clamp(1.16rem, 1rem + 0.7vw, 1.45rem) * var(--tp-font-scale, 1));
   font-weight: 450;
   font-variation-settings: "opsz" 15;
   line-height: 1.85;
-  color: var(--foreground);
+  color: var(--reader-ink);
+  /* La hoja llena el visor: con un filtro activo el papel se filtra y un
+     hueco debajo dejaría ver la costura entre papel y escenario. */
+  min-height: 100%;
   /* Papel propio (idéntico al escenario: costura invisible): así la cadena de
      filtros (brillo/sepia/noche-invert) transforma el PAPEL como en el visor
      de PDF — sin esto, invert() voltearía solo la tinta y dejaría el fondo. */
-  background: var(--stage);
-  padding: clamp(2rem, 4vh, 3.2rem) 0 6rem;
-  /* Medida de imprenta: ~70 caracteres por línea a CUALQUIER tamaño de
-     letra (el ancho viaja en em, así A−/A+ no estira la medida) */
-  max-width: 36em;
-  margin-inline: auto;
-}
-/* Marco del visor EPUB: jaula de 860px centrada con aire a los lados…
-   …hasta que la lectura se vuelve inmersiva. Con la UI oculta (H/idle) o
-   en pantalla completa, la jaula se abre: sin capas de ancho y la medida
-   se ensancha a 44em — el libro ES la pantalla, no un recuadro dentro. */
-.epub-frame {
-  max-width: 860px;
-}
-.chrome-immersed .epub-frame,
-:fullscreen .epub-frame,
-:-webkit-full-screen .epub-frame {
-  max-width: none;
-  padding-inline: clamp(1.25rem, 3.5vw, 3rem);
-}
-.chrome-immersed .epub-page,
-:fullscreen .epub-page,
-:-webkit-full-screen .epub-page {
-  max-width: 44em;
+  background: var(--reader-bg);
+  /* A todo el ancho con padding intencional: sin jaula central ni medida en
+     em — el libro ES la pantalla; el aire lo pone el padding (y en inmersión
+     o pantalla completa nada cambia porque nunca hubo marco que abrir). */
+  padding-block: clamp(2rem, 4vh, 3.2rem) 6rem;
+  padding-inline: clamp(1.25rem, 3vw, 3.5rem);
 }
 .epubLayer {
   cursor: text;
@@ -779,8 +777,8 @@ blockquote + .epub-p {
   text-indent: 0;
 }
 .epub-h {
-  font-family: var(--font-fraunces), serif;
   font-weight: 600;
+  color: var(--reader-title);
   line-height: 1.22;
   margin: 1.9em 0 0.7em;
   text-wrap: balance;
@@ -792,7 +790,7 @@ blockquote + .epub-p {
   font-size: 1.62em;
   letter-spacing: 0.005em;
   padding-bottom: 0.28em;
-  border-bottom: 2px solid var(--ink);
+  border-bottom: 2px solid var(--reader-rule);
 }
 .epub-h2 {
   font-size: 1.3em;
@@ -805,9 +803,9 @@ blockquote + .epub-p {
 .epub-quote {
   margin: 1.15em 0 1.35em;
   padding: 0.3em 0 0.3em 1.1em;
-  /* Filete editorial fino en tinta (la casa habla con ink, no con franjas
-     gruesas de color): 2px, la mitad de la voz primaria */
-  border-left: 2px solid color-mix(in oklch, var(--ink) 72%, transparent);
+  /* Filete editorial fino (la casa habla con la regla del lector): 2px,
+     la mitad de la voz primaria */
+  border-left: 2px solid var(--reader-rule);
   font-style: italic;
   opacity: 0.94;
 }
@@ -832,5 +830,5 @@ blockquote + .epub-p {
 }
 /* Extracto de texto del carrusel peek (miniatura textual de página EPUB) */
 .epub-peek-card p {
-  font-family: var(--font-fraunces), serif;
+  font-family: var(--reader-font);
 }

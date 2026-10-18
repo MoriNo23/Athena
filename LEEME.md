@@ -7,9 +7,11 @@
 
 Una app de lectura gamificada para PDFs y EPUBs: riel de progreso configurable,
 insignias por libros terminados, lectura dual (PDF compañero sincronizado),
-OCR para libros escaneados, diccionario, modo cinematográfico (la página se lee
-a ritmo, letra a letra), modo inmersión sin márgenes e interfaz en español,
-inglés o portugués. Todo corre en TU máquina, TU biblioteca es TUYA.
+OCR para libros escaneados, diccionario, modo teleprompter continuo (las páginas
+se encadenan como un solo texto y se encienden letra a letra), modo texto
+(el PDF se refluye con tipografías de lectura y páginas virtuales), modo
+inmersión sin márgenes e interfaz en español, inglés o portugués. Todo corre en
+TU máquina, TU biblioteca es TUYA.
 
 ## Requisitos
 
