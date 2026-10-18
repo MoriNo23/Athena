@@ -22,6 +22,8 @@ node_modules
 
 # misc
 .DS_Store
+# estado local del agente (sesiones/habilidades de OpenCode)
+/.opencode/
 *.pem
 
 # debug
