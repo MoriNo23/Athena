@@ -13,6 +13,7 @@ import { usePeekGesture } from "@/hooks/use-peek-gesture";
 import { useFinishEta } from "@/hooks/use-finish-eta";
 import { useZoomPreset } from "@/hooks/use-zoom-preset";
 import { useFullscreen } from "@/hooks/use-fullscreen";
+import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useEmbeddedFocus } from "@/hooks/use-embedded-focus";
 import { useScrollStep } from "@/hooks/use-scroll-step";
 import { usePdfTextMode } from "@/hooks/use-pdf-text-mode";
@@ -29,6 +30,7 @@ import { ReaderHeader } from "@/components/reader/ReaderHeader";
 import { ReaderStage } from "@/components/reader/ReaderStage";
 import { PauseDialog } from "@/components/reader/PauseDialog";
 import { TeleprompterOverlay } from "@/components/reader/TeleprompterOverlay";
+import { ShortcutGhost, type ShortcutGhostEntry } from "@/components/reader/ShortcutGhost";
 import { useSettings } from "@/lib/settings";
 import { useI18n, formatDate } from "@/lib/i18n";
 import { useEpubBook } from "@/hooks/use-epub-book";
@@ -106,6 +108,33 @@ function teleprompterSourceFor(args: {
     sourceKey: tpTextMode ? "text" : isEpub ? "epub" : "pdf",
     onGoToPage: tpTextMode ? goToVirtual : silentJumpTo,
   } as const;
+}
+
+/** Mapa de teclas del lector para el recordatorio fantasma (pantalla completa) */
+function readerGhostEntriesFor(
+  t: (k: string) => string,
+  toggleKey: string
+): ShortcutGhostEntry[] {
+  return [
+    { keys: "←/→", action: t("ghost.reader.pages") },
+    { keys: "↑/↓", action: t("ghost.reader.scroll") },
+    { keys: "+/−", action: t("ghost.reader.zoom") },
+    { keys: "F", action: t("ghost.reader.fitPage") },
+    { keys: "O", action: t("ghost.reader.fitOptimal") },
+    { keys: "M", action: t("ghost.reader.fullscreen") },
+    ...(toggleKey ? [{ keys: toggleKey.toUpperCase(), action: t("ghost.reader.hideUi") }] : []),
+  ];
+}
+
+/** Recordatorio de teclas del lector: cada transición del chrome en pantalla
+    completa (tecla o inactividad); fuera de ella no existe. */
+function ReaderShortcutGhost(props: {
+  isFullscreen: boolean;
+  chromeHidden: boolean;
+  entries: ShortcutGhostEntry[];
+}) {
+  if (!props.isFullscreen) return null;
+  return <ShortcutGhost signal={props.chromeHidden} entries={props.entries} testId="reader-shortcut-ghost" />;
 }
 
 export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
@@ -308,6 +337,9 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   // ---------- Pantalla completa ----------
   const { isFullscreen, toggleFullscreen } = useFullscreen();
 
+  // Pantalla despierta mientras la lectura está en pantalla completa.
+  useWakeLock(isFullscreen);
+
   // ---------- Inmersión: la UI se desvanece si el mouse queda quieto ----------
   useEffect(() => {
     overlaysOpenRef.current =
@@ -395,6 +427,9 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   // la meta propia del libro manda; sin ella, el mínimo global de ajustes.
   const effectiveGoal = book.dailyGoal ?? dailyGoal;
   const todayPagesShown = bookPagesToday; // vivo durante la sesión: sube con cada giro contable
+
+  // Mapa de teclas del lector para el recordatorio fantasma (pantalla completa)
+  const readerGhostEntries = useMemo(() => readerGhostEntriesFor(t, toggleKey), [t, toggleKey]);
 
   // Lectura dual activa: toggle + PDF compañero cargado
   const dualActive = modes.toggles.dualRead && !!book.companionPath && !!book.companionPages;
@@ -660,6 +695,8 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
             silentJumpTo,
           })}
           onClose={() => setTpOpen(false)}
+          todayPages={todayPagesShown}
+          todayGoal={effectiveGoal}
         />
       )}
 
@@ -672,6 +709,13 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
           {t("rv.kbdHint")}
         </div>
       )}
+
+      {/* Recordatorio de teclas del lector: solo existe en pantalla completa */}
+      <ReaderShortcutGhost
+        isFullscreen={isFullscreen}
+        chromeHidden={chromeHidden}
+        entries={readerGhostEntries}
+      />
 
       {/* Indicador sutil de guardado */}
       {busy && (

@@ -1,7 +1,7 @@
-/* E2E del MODO AUTO del modo teleprompter (Task 36).
- * Comprueba: toggle persistente, avance automático de tarjeta tras terminar,
- * pausa congela el auto (no avanza), reanudar continúa, y al acabar la página
- * gira sola. Además: fondo opaco con fachada ateniense y card brutalista.
+/* E2E del MODO AUTO del modo teleprompter (Task 36, adaptado al flujo continuo).
+ * Comprueba: toggle persistente, encendido automático sin interacción, pausa
+ * congela el encendido (no avanza), reanudar continúa, y al acabar la página
+ * gira sola con Auto. Además: fondo único sólido y columna plana.
  * REGLA DE LA CASA: reset-all ANTES de tocar nada. 0 page errors exigido.
  */
 const { chromium } = require("playwright");
@@ -52,74 +52,74 @@ function check(name, ok, detail = "") {
   const topTxt = await page.locator('[data-testid="tp-overlay"] p').nth(1).textContent();
   check("preset Viva activa", /Viva/.test(topTxt ?? ""), topTxt ?? "");
 
-  console.log("=== D. AVANCE AUTOMÁTICO DE TARJETA ===");
-  // completar la tarjeta 1 con UN click (solo el encendido; el avance será del auto)
-  await page.locator('[data-testid="tp-stage"]').click();
-  // sin contador de tarjetas en el estado, el avance se ve en el texto de la tarjeta
-  const cardTxt = () => page.locator('[data-testid="tp-card-box"]').first().textContent();
-  const card1 = await cardTxt();
+  console.log("=== D. ENCENDIDO AUTOMÁTICO SIN INTERACCIÓN ===");
+  // sin tarjetas: el flujo continuo enciende solo con Auto activo
+  const litCount = () =>
+    page.evaluate(() => document.querySelectorAll('[data-testid="tp-stream"] .tp-ch.on').length);
+  const lit0 = await litCount();
   const t0 = Date.now();
   let advanced = false, waited = 0;
-  while (waited < 12000) {
-    if ((await cardTxt()) !== card1) { advanced = true; break; }
-    await page.waitForTimeout(150);
+  while (waited < 15000) {
+    if ((await litCount()) > lit0) { advanced = true; break; }
+    await page.waitForTimeout(200);
     waited = Date.now() - t0;
   }
-  check("auto avanza a la tarjeta siguiente sin click", advanced, `${waited} ms`);
-  check("overlay sigue vivo tras avance", (await page.locator('[data-testid="tp-card-box"]').count()) >= 1);
+  check("auto enciende solo sin click", advanced, `${waited} ms`);
+  check("overlay sigue vivo tras avance", (await page.locator('[data-testid="tp-stream"]').count()) >= 1);
 
   console.log("=== E. PAUSA CONGELA EL AUTO ===");
-  // pausar en cuanto la tarjeta siguiente empiece a encender
+  // pausar con el flujo en marcha
   await page.keyboard.press(" ");
   await page.waitForTimeout(300);
-  const cardPaused = await cardTxt();
-  const litNow = await page.evaluate(() => document.querySelectorAll('[data-testid="tp-card-box"] .tp-ch.on').length);
+  const pageStartPaused = await page.evaluate(() => document.querySelector('[data-testid="tp-stream"]')?.getAttribute("data-page-start"));
+  const litNow = await litCount();
   await page.waitForTimeout(1600);
-  const litThen = await page.evaluate(() => document.querySelectorAll('[data-testid="tp-card-box"] .tp-ch.on').length);
+  const litThen = await litCount();
+  const pageStartAfter = await page.evaluate(() => document.querySelector('[data-testid="tp-stream"]')?.getAttribute("data-page-start"));
   const txtPaused = await page.locator('[data-testid="tp-overlay"] p').nth(1).textContent();
   check("pausa congela encendido", litNow === litThen, `${litNow} vs ${litThen}`);
-  check("auto NO avanza en pausa", (await cardTxt()) === cardPaused, txtPaused ?? "");
+  check("auto NO avanza en pausa", pageStartPaused === pageStartAfter, txtPaused ?? "");
 
   console.log("=== F. REANUDAR → AUTO CONTINÚA ===");
   await page.keyboard.press(" ");
   const t1 = Date.now();
   let advanced3 = false;
-  while (Date.now() - t1 < 12000) {
-    if ((await cardTxt()) !== cardPaused) { advanced3 = true; break; }
+  while (Date.now() - t1 < 15000) {
+    if ((await litCount()) > litThen) { advanced3 = true; break; }
     await page.waitForTimeout(200);
   }
-  check("auto continúa a la tarjeta siguiente", advanced3);
+  check("auto continúa tras reanudar", advanced3);
 
   console.log("=== G. FIN DE PÁGINA: GIRA SOLA ===");
   const t2 = Date.now();
   let page2 = false;
-  while (Date.now() - t2 < 30000) {
+  while (Date.now() - t2 < 60000) {
     const txt = await page.locator('[data-testid="tp-overlay"] p').nth(1).textContent();
     if (/Página 2 de /.test(txt ?? "")) { page2 = true; break; }
     await page.waitForTimeout(300);
   }
   check("auto gira la página al acabar", page2, `${Math.round((Date.now() - t2) / 1000)} s`);
-  check("tarjeta nueva encendida en página 2", (await page.locator('[data-testid="tp-card-box"]').count()) >= 1);
+  check("página nueva encendida en la columna", (await litCount()) > 0);
 
-  console.log("=== H. ESCENARIO CÓMODO (fondo único sólido + card plana) ===");
+  console.log("=== H. ESCENARIO CÓMODO (fondo único sólido + columna plana) ===");
   const visual = await page.evaluate(() => {
     const ov = document.querySelector(".tp-overlay");
-    const box = document.querySelector('[data-testid="tp-card-box"]');
+    const box = document.querySelector('[data-testid="tp-stream"]');
     if (!ov || !box) return null;
     const sov = getComputedStyle(ov);
     const sbox = getComputedStyle(box);
     return {
       singleBg: sov.backgroundImage === "none" && sov.backgroundColor !== "rgba(0, 0, 0, 0)",
       bgIsVar: sov.backgroundColor.length > 0,
-      cardBorder: sbox.borderTopWidth,
-      cardBgAlpha: sbox.backgroundColor,
-      cardRadius: sbox.borderRadius,
+      boxBorder: sbox.borderTopWidth,
+      boxBgAlpha: sbox.backgroundColor,
+      boxRadius: sbox.borderRadius,
       fontScaleVar: box.closest('[data-testid="tp-overlay"]')?.style.getPropertyValue("--tp-font-scale") ?? "",
     };
   });
   check("fondo único sólido (sin imágenes ni degradados)", !!visual?.singleBg, visual?.bgIsVar ?? "");
-  check("card SIN borde", visual?.cardBorder === "0px", visual?.cardBorder ?? "");
-  check("card SIN redondeo", visual?.cardRadius === "0px", visual?.cardRadius ?? "");
+  check("columna SIN borde", visual?.boxBorder === "0px", visual?.boxBorder ?? "");
+  check("columna SIN redondeo", visual?.boxRadius === "0px", visual?.boxRadius ?? "");
 
   await page.screenshot({ path: `${__dirname}/tp-redesign.png` });
 

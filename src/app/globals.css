@@ -604,6 +604,61 @@ html:not(.dark) .atena-hero .seal-glow {
     transition: none;
   }
 }
+/* El anclaje de scroll lo hace el ancla atómica del hook de ventana (medida
+   sobre los spans reales antes del swap): el anchoring nativo del navegador
+   pelearía con esa compensación — se desactiva en la columna. */
+.tp-scroll {
+  overflow-anchor: none;
+}
+
+/* ---------- Recordatorio de teclas fantasma (inmersiones) ---------- */
+/* Columna a la derecha, letras grandes y transparentes (marca de agua):
+   cada tecla y qué hace cuando la interfaz se oculta o se muestra en los
+   modos de pantalla completa. Decorativo y sin puntero: nunca bloquea la
+   lectura ni captura el mouse. Solo transiciona opacidad — con movimiento
+   reducido no hay desplazamiento (y no lo hay en ningún modo). */
+.shortcut-ghost {
+  position: fixed;
+  right: clamp(18px, 4vw, 64px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: right;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+}
+.shortcut-ghost.shortcut-ghost-on {
+  opacity: 0.5;
+}
+.shortcut-ghost-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 14px;
+  line-height: 1.25;
+}
+.shortcut-ghost-key {
+  font-family: var(--font-display), ui-serif, serif;
+  font-size: clamp(1.6rem, 2.6vw, 2.4rem);
+  font-weight: 700;
+  color: var(--foreground);
+  border: 1px solid color-mix(in oklab, var(--foreground) 35%, transparent);
+  border-radius: 10px;
+  padding: 2px 12px;
+}
+.shortcut-ghost-action {
+  font-size: clamp(0.95rem, 1.4vw, 1.25rem);
+  color: color-mix(in oklab, var(--foreground) 72%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .shortcut-ghost {
+    transition: none;
+  }
+}
 
 /* ---------- Modo inmersión: la interfaz se desvanece ---------- */
 /* La opacidad sola NO basta: las cajas chrome siguen en el flex y el libro
