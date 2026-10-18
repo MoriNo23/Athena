@@ -1,0 +1,58 @@
+[
+  {
+    "antipattern": "buried-raster",
+    "name": "Raster buried under a wash or opacity",
+    "description": "A background image under a near-opaque gradient wash, or a raster on an element at near-zero opacity, never reaches the screen: the page shows the wash, and the produced texture or photo ships as a compliance token. Let the material show (a tint under 0.9 alpha, a blend mode, an opacity you can see) or remove the file.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "file:///home/extra/repositorios/atena/scripts/audit-snapshots/baseline-cine-light-390x844.html",
+    "line": 0,
+    "snippet": "raster background at opacity 0.05",
+    "selector": "div.atena-capa2__fachada"
+  },
+  {
+    "antipattern": "buried-raster",
+    "name": "Raster buried under a wash or opacity",
+    "description": "A background image under a near-opaque gradient wash, or a raster on an element at near-zero opacity, never reaches the screen: the page shows the wash, and the produced texture or photo ships as a compliance token. Let the material show (a tint under 0.9 alpha, a blend mode, an opacity you can see) or remove the file.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "file:///home/extra/repositorios/atena/scripts/audit-snapshots/baseline-cine-light-390x844.html",
+    "line": 0,
+    "snippet": "raster background at opacity 0.04",
+    "selector": "div.atena-capa2__busto"
+  },
+  {
+    "antipattern": "overused-font",
+    "name": "Overused font",
+    "description": "Inter, Roboto, Fraunces, Geist, Plus Jakarta Sans, and Space Grotesk are used on so many sites they no longer feel distinctive. Each new wave of AI-generated UIs converges on the same handful of faces. Choose a face that gives your interface personality.",
+    "severity": "warning",
+    "category": "slop",
+    "file": "file:///home/extra/repositorios/atena/scripts/audit-snapshots/baseline-cine-light-390x844.html",
+    "line": 0,
+    "snippet": "Primary font: fraunces (84% of text)",
+    "selector": "body"
+  },
+  {
+    "antipattern": "flat-type-hierarchy",
+    "name": "Flat type hierarchy",
+    "description": "Dominant heading and body roles are separated by less than 1.25× at every step, leaving the size hierarchy flat. Add at least one stronger size step.",
+    "severity": "advisory",
+    "category": "slop",
+    "file": "file:///home/extra/repositorios/atena/scripts/audit-snapshots/baseline-cine-light-390x844.html",
+    "line": 0,
+    "snippet": "Role sizes: body 12px, h2 14px, h3 14px (largest adjacent step 1.17:1; target 1.25:1; weight separates headings from body text)",
+    "advisory": true,
+    "selector": "body"
+  },
+  {
+    "antipattern": "body-text-viewport-edge",
+    "name": "Body text touching viewport edge",
+    "description": "Body paragraphs render flush against the left or right viewport edge with no container providing horizontal padding: closer than 16px, or 12px on viewports 480px wide or narrower. Wrap content in a container with at least 16px (ideally 24-32px) of horizontal padding, or apply max-width with mx-auto. Body text that runs past the viewport edge is reported once per page as overflow, naming the widest element: constrain that element's width instead of adding padding.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "file:///home/extra/repositorios/atena/scripts/audit-snapshots/baseline-cine-light-390x844.html",
+    "line": 0,
+    "snippet": "text runs past the right edge of the 390px viewport and is cut off: div.flex.min-h-0.shrink-0 reaches 26px past it, with text in 3 blocks",
+    "selector": "body"
+  }
+]

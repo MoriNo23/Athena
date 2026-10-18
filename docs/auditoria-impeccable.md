@@ -1,6 +1,6 @@
 # Auditoría Impeccable — Atena
 
-Fecha: 2026-10-17 · Motor: [impeccable](https://github.com/pbakaus/impeccable) v0.1.15 (59 reglas deterministas + revisión visual VLM) · Superficies auditadas: biblioteca (oscuro/claro, 1280×800 y 390×844), lector EPUB, lector PDF, modo novela visual.
+Fecha: 2026-10-17 · Motor: [impeccable](https://github.com/pbakaus/impeccable) v0.1.15 (59 reglas deterministas + revisión visual VLM) · Superficies auditadas: biblioteca (oscuro/claro, 1280×800 y 390×844), lector EPUB, lector PDF en página y en texto, teleprompter continuo.
 
 ## Puntuación de salud
 
@@ -34,7 +34,7 @@ Fecha: 2026-10-17 · Motor: [impeccable](https://github.com/pbakaus/impeccable) 
 ## Lo que funciona bien (mantener y replicar)
 
 - Contraste del cuerpo y de la UI verificado por el detector en ambos temas (después de los fixes, cero hallazgos primarios y cero avisos).
-- Aria-labels en español en TODOS los controles; el modo novela es un `role=dialog` con barra de progreso; foco gestionado al abrir libro y tras Enter/Escape del input de página.
+- Aria-labels en español en TODOS los controles; el modo teleprompter es un `role=dialog` con barra de progreso; foco gestionado al abrir libro y tras Enter/Escape del input de página.
 - `prefers-reduced-motion` enciende todas las letras y desactiva animaciones — la ruta alternativa correcta.
 - Paginación del EPUB real del usuario (Sofía, 670 páginas): mediana 289 palabras/página, 0 páginas sobre el tope, 0 vacías, parse en 471ms.
 
@@ -44,3 +44,166 @@ Fecha: 2026-10-17 · Motor: [impeccable](https://github.com/pbakaus/impeccable) 
 - Regresión: motor EPUB 25/25 · e2e EPUB 28/28 (subida→ficha→riel→VN→diccionario→índice→peek→persistencia, 0 errores de página) · `tsc` 0 en `src` · `eslint` 0.
 - Revisión visual (VLM): medida cómoda, jerarquía clara, portadas coherentes con el sistema brutalista.
 - Estado del usuario restaurado byte a byte tras las pruebas (BD + uploads).
+
+---
+
+## Baseline «Teleprompter y lector» — 2026-10-17
+
+Antes de arrancar el cambio `teleprompter-and-reader` (tempo/palabra encendida,
+ancho de lectura, marcas de estructura, progreso real en el teleprompter, modo
+texto de PDF). Método: app real en `localhost:3000` (dev), navegación por CDP
+(`scripts/cdp-capture.mjs` sobre chromium headless), snapshot estático +
+[impeccable](https://pbakaus.github.io/impeccable/) **v4.6.0** `detect`
+(`scripts/snap-and-detect.sh`).
+
+**Superficies** (3 vistas × 2 temas × 2 viewports = 12 capturas):
+
+| Vista | Estado capturado |
+|-------|------------------|
+| Lector EPUB | «El mundo de Sofia», página 5 (texto) |
+| Lector PDF | «Don Quijote (Selección Atena)», página 1 (canvas) |
+| Teleprompter (versión en tarjetas) | Sofia p.5 en tarjetas, ~3,5 s de encendido (marca de primera palabra visible) |
+
+Tema oscuro/claro vía `theme` de next-themes; viewports 1280×800 y 390×844.
+
+**Capturas:** `docs/screenshots/baseline-{epub,pdf,cine}-{dark,light}-{1280x800,390x844}.png`
+**JSON del detector:** `docs/auditoria/baseline/baseline-{...}.json` (mismo nombre)
+
+**Hallazgos baseline (sin arreglar todavía):**
+
+| Regla | Severidad | Dónde | Nota |
+|-------|-----------|-------|------|
+| `flat-type-hierarchy` | advisory | las 12 | Menos de 1.25× entre títulos y cuerpo dominantes |
+| `body-text-viewport-edge` | warning | las 6 de 390×844 | Cuerpo pegado al borde sin contenedor con padding |
+| `low-contrast` | warning | 4 en claro (EPUB/PDF) | Botón del header del lector no llega a AA en tema claro; el overlay en tarjetas tapa el header y no lo reporta |
+| `buried-raster` | warning | 6 en claro | Decoración de la sala (`atena-capa2__fachada`, `__busto`) bajo un velo casi opaco: nunca llega a la pantalla en claro |
+| `overused-font` | warning | 2 del teleprompter en tarjetas (oscuro) | Fuente de sistema con firma de plantilla (Inter/Geist y compañía) |
+
+Los defectos concretos del cambio (ancho de medida ~93ch, marca `--vn-lead`,
+progreso encendido/total, cifras quemadas de velocidad) se documentan y arreglan
+en las tareas 3.x–6.x; este baseline es su «antes» comparable.
+
+---
+
+## Tokens de lectura (tarea 3.1) — 2026-10-17
+
+Se jubila `--stage` (papel cálido) y entran los tokens de lectura por tema:
+`--reader-bg`, `--reader-ink`, `--reader-title`, `--reader-rule`; `--tp-bg`
+pasa a ser alias de `--reader-bg` (teleprompter y lector comparten superficie).
+`ReaderStage`, `.epub-page`, los títulos, filetes y el teleprompter los consumen.
+
+Cálculo reproducible: `python3 scripts/audit-reader-contrast.py` (oklch → sRGB →
+luminancia WCAG, umbrales AA+; exit 1 si algo no llega):
+
+| Tema | Token | Color sRGB | Contraste vs fondo | Umbral |
+|------|-------|-----------|--------------------|--------|
+| Claro | fondo | `#F3FCFF` | — | — |
+| | cuerpo | `#14243C` | **14.91:1** | ≥ 4.5 ✔ |
+| | títulos | `#05152E` | **17.39:1** | ≥ 3 ✔ |
+| | regla | `#667D94` | 4.09:1 | ≥ 3 ✔ |
+| Oscuro | fondo | `#021328` | — | — |
+| | cuerpo | `#DCE6F0` | **14.75:1** | ≥ 4.5 ✔ |
+| | títulos | `#EBF7FF` | **17.09:1** | ≥ 3 ✔ |
+| | regla | `#596B80` | 3.40:1 | ≥ 3 ✔ |
+
+**Capturas:** `docs/screenshots/lectura-claro-1280x800.png`,
+`docs/screenshots/lectura-oscuro-1280x800.png` (Sofia p.5, dock cerrado).
+
+## Preparación del modo texto (tarea 4.2) — 2026-10-17
+
+La extracción del PDF corre en segundo plano por libro (`src/lib/pdf-text-index.ts`
++ `usePdfText`): la lectura arranca con el prefijo listo, el progreso se publica
+coalescido (≤ ~1 notificación cada 150 ms) y el riel puede adelantar su página
+destino (`ensurePdfTextPage`). Caché en memoria por sesión; si el libro se cierra
+a mitad, lo extraído se conserva y la siguiente entrada retoma donde quedó.
+
+Medición reproducible: `bun scripts/test-pdf-text-prep.ts` (tomo sintético de
+**670 páginas**, `scripts/libro-largo-670.pdf`, generado con
+`python3 scripts/make-big-pdf.py 670 --nopad --out libro-largo-670.pdf`):
+
+| Medida | Resultado |
+|--------|-----------|
+| Una página suelta (primera lectura posible) | **59–97 ms** |
+| Preparación completa de 670 páginas | **4,7 s** (7,0 ms/página; 4,3–6,0 s según carga) |
+| Prioridad del riel (página 600 al saltar) | **24–47 ms** |
+| Primera página visible con el bombeo | `ready ≥ 1` y `done = false` ✔ (la lectura empieza antes de terminar) |
+| Notificaciones a la UI | ≈ 40 para 670 páginas (coalescencia activa) |
+
+Nota: los tiempos son del reloj de bun con el fake worker de pdf.js (el poll de
+20 ms sufre contención y exagera «primera página lista»); en el navegador la
+extracción real corre en el worker de pdf.js y la UI queda libre entre páginas.
+
+## Modo texto reflowable (tareas 4.3–4.4) — 2026-10-17
+
+El PDF digital se puede leer como texto reflowado (`PdfTextView`): páginas
+virtuales de ~320 palabras paginadas como en el EPUB, tipografías de lectura —
+Literata, EB Garamond, Atkinson Hyperlegible, servidas con `next/font` y la
+variable `--reader-font` — letra escalable en caliente y un aviso cuando la
+página real pedida no tiene texto extraíble («La página N no tiene texto;
+continúo en la M»). El riel, el contador y los hitos siguen hablando de páginas
+reales; el teleprompter consume las virtuales (tarea 6.1), y al girar de página
+en modo texto las dos primeras se sirven al instante del prefijo ya extraído.
+
+Límite conocido (heurística de muebles): el filtro de encabezados y pies
+(`extractPdfPageBlocks`) solo actúa cuando recibe `pageHeight`; el camino
+directo del teleprompter sobre páginas reales (libros que no usan el modo
+texto) no lo pasa, así que en PDFs con encabezado repetido esas líneas pueden
+colarse en el flujo. El modo texto sí lo pasa y las filtra.
+
+**Capturas:** `docs/screenshots/pdf-texto-claro-1280x800.png`,
+`docs/screenshots/pdf-texto-oscuro-1280x800.png` (Quijote, modo texto); la
+matriz «después» añade `after-texto-{dark,light}-{1280x800,390x844}.png`.
+
+---
+
+## Después «Teleprompter y lector» — 2026-10-17
+
+Método idéntico al baseline (app real en dev, `scripts/cdp-capture.mjs` +
+`scripts/snap-and-detect.sh`, impeccable **v4.6.0** `detect --json`). Ahora son
+**4 superficies × 2 temas × 2 viewports = 16 capturas**: se añaden el modo
+texto del PDF y el teleprompter de flujo continuo (las tarjetas del «modo cine»
+ya no existen).
+
+**Capturas:** `docs/screenshots/after-{epub,pdf,texto,tp}-{dark,light}-{1280x800,390x844}.png`
+**JSON del detector:** `docs/auditoria/after/after-{...}.json` (mismo nombre).
+El par de README `teleprompter-{dark,light}.png` se regeneró con el flujo
+continuo (Sofia p.5, ~3,5 s de encendido, Auto apagado).
+
+### Resolución del baseline
+
+| Regla (baseline) | Antes | Después | Estado |
+|------------------|-------|---------|--------|
+| `flat-type-hierarchy` (advisory) | 12/12 superficies | 0 | **Resuelta** — la escala tipográfica del lector (tarea 3.1) da el escalón que pedía la regla |
+| `body-text-viewport-edge` (warning) | 6/6 en 390×844 | 0 | **Resuelta** — el reflow del modo texto y el padding del flujo contienen el cuerpo |
+| `overused-font` (warning) | 2 (teleprompter en tarjetas) | 0 | **Resuelta** — el teleprompter hereda la fuente de lectura de la casa (`--reader-font`) |
+| `buried-raster` (warning) | 6 en claro | 16 en claro (8 superficies) | **Permanece, justificada** — es la misma decoración de la sala (`atena-capa2__fachada`, `__busto`) bajo un velo casi opaco; en claro nunca llega a la pantalla, igual que en el baseline. Aparece en las 4 superficies porque el snapshot incluye la biblioteca de fondo |
+| `low-contrast` (warning) | 5 | 9 | **Permanece, justificada** — un único patrón preexistente: botones «Pantalla completa» (header del lector y chrome del teleprompter) con `text-primary` sobre tinte `primary/10`: 4,0:1 en claro y 3,4–3,5:1 en oscuro móvil. Mismo elemento y mismos valores que ya marcaba el baseline; el arreglo toca el token global `--primary` (usado por botones, riel y progreso) y queda como seguimiento: variante de texto más oscura para usos «azul sobre tinte» |
+
+Balance: **39 hallazgos del baseline → 25**, todos los restantes son los dos
+patrones preexistentes ya documentados arriba; ninguna regla nueva sin resolver.
+
+### Hallazgo nuevo del cambio: el apagado del teleprompter (resuelto en el mismo pase)
+
+El detector marcó el texto aún no encendido del flujo (`span.tp-ch` y los
+títulos `.tp-block-h`): 1,4–1,6:1. Heredaba el apagado de las tarjetas
+(`opacity: 0,17/0,18`). Se sube a **0,55** — y **0,68** en pantallas ≤ 640 px,
+donde la letra baja de 24 px y el umbral AA sube a 4,5:1. Re-escaneo verificado
+de las 4 capturas del teleprompter: oscuro **0 hallazgos** (1280 y 390), claro
+solo el `buried-raster` preexistente. La señal del modo queda intacta: el texto
+encendido va a contraste completo (≈15:1) sobre un apagado que ahora es texto
+legible y no una mancha.
+
+### Otros ajustes de este pase
+
+- `scripts/test-vn-stress.js` despierta el chrome del teleprompter antes de
+  tocar sus controles: el auto-ocultado (3,5 s) le ganaba la carrera al
+  hit-test de Playwright (flacuencia del arnés, no de la app).
+- `scripts/test-hotkeys-e2e.js` y `scripts/test-dead-keys.js` aceptan
+  `ATENA_CHROMIUM` para correr con el Chromium del sistema.
+
+**Verificación final:** `bunx tsc --noEmit` limpio · `bun run lint` 0 errores
+(2 avisos de complejidad tolerados) · `scripts/test-vn-stress.js` **21/21** ·
+`scripts/test-pdf-text-prep.ts` **9/9** (4,7 s / 7,0 ms por página en 670) ·
+`scripts/audit-reader-contrast.py` AA+ · `scripts/audit_teleprompter_timing.py`
+fórmula sana · i18n es/en/pt con paridad perfecta de 501 claves y pase en vivo
+sin claves crudas.

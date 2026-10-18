@@ -1,0 +1,25 @@
+[
+  {
+    "antipattern": "flat-type-hierarchy",
+    "name": "Flat type hierarchy",
+    "description": "Dominant heading and body roles are separated by less than 1.25× at every step, leaving the size hierarchy flat. Add at least one stronger size step.",
+    "severity": "advisory",
+    "category": "slop",
+    "file": "file:///home/extra/repositorios/atena/scripts/audit-snapshots/baseline-pdf-dark-390x844.html",
+    "line": 0,
+    "snippet": "Role sizes: body 12px, h2 14px, h3 14px (largest adjacent step 1.17:1; target 1.25:1; weight separates headings from body text)",
+    "advisory": true,
+    "selector": "body"
+  },
+  {
+    "antipattern": "body-text-viewport-edge",
+    "name": "Body text touching viewport edge",
+    "description": "Body paragraphs render flush against the left or right viewport edge with no container providing horizontal padding: closer than 16px, or 12px on viewports 480px wide or narrower. Wrap content in a container with at least 16px (ideally 24-32px) of horizontal padding, or apply max-width with mx-auto. Body text that runs past the viewport edge is reported once per page as overflow, naming the widest element: constrain that element's width instead of adding padding.",
+    "severity": "warning",
+    "category": "quality",
+    "file": "file:///home/extra/repositorios/atena/scripts/audit-snapshots/baseline-pdf-dark-390x844.html",
+    "line": 0,
+    "snippet": "text runs past the right edge of the 390px viewport and is cut off: div.flex.min-h-0.shrink-0 reaches 26px past it, with text in 3 blocks",
+    "selector": "body"
+  }
+]
