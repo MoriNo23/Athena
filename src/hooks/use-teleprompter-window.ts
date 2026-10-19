@@ -8,6 +8,7 @@ import {
   teleprompterCharCount,
   type TeleprompterBlock,
 } from "@/lib/teleprompter";
+import { createViewAnim } from "@/lib/view-anim";
 
 /** Ventana de lectura: la página actual y la siguiente (DOM acotado a dos) */
 export interface StreamWindow {
@@ -82,11 +83,13 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps 
 
   /** Cancela la transición en curso: el desplazamiento manual manda sobre el
       seguimiento (rueda, ↑) y el objetivo se recalcula contra el DOM real. */
-  const cancelViewAnim = useCallback(() => {
+  const cancelViewAnim = useCallback((): boolean => {
     if (viewAnimRef.current) {
       cancelAnimationFrame(viewAnimRef.current);
       viewAnimRef.current = 0;
+      return true; // había una transición en vuelo
     }
+    return false;
   }, []);
 
   const animateScrollTopTo = useCallback(
@@ -94,17 +97,23 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps 
       const root = scrollRef.current;
       if (!root) return;
       cancelViewAnim();
-      const from = root.scrollTop;
-      const delta = target - from;
+      const delta = target - root.scrollTop;
       if (Math.abs(delta) < 1) return;
-      const dur = viewAnimDuration(delta);
-      const t0 = performance.now();
+      // La cámara cede ante cualquier otro desplazamiento (ver lib/view-anim):
+      // la rueda manda aunque el navegador la resuelva fuera de nuestro rAF.
+      const anim = createViewAnim({
+        el: root,
+        target,
+        duration: viewAnimDuration(delta),
+        t0: performance.now(),
+        ease: easeOutCubic,
+      });
       const step = (now: number) => {
-        const el = scrollRef.current;
-        if (!el) return; // desmontado: el bucle muere solo
-        const p = Math.min(1, (now - t0) / dur);
-        el.scrollTop = from + delta * easeOutCubic(p);
-        viewAnimRef.current = p < 1 ? requestAnimationFrame(step) : 0;
+        if (!scrollRef.current) {
+          viewAnimRef.current = 0; // desmontado: el bucle muere solo
+          return;
+        }
+        viewAnimRef.current = anim.step(now) === "run" ? requestAnimationFrame(step) : 0;
       };
       viewAnimRef.current = requestAnimationFrame(step);
     },

@@ -567,7 +567,10 @@ export function TeleprompterOverlay({
               // releer hacia arriba pausa el avance; no apaga el texto.
               // Cualquier giro manual cancela la transición de vista: el objetivo
               // se recalcula contra el DOM real al reanudar el seguimiento.
-              cancelViewAnim();
+              // Si había una transición en vuelo, se fija el scrollTop actual: así
+              // se detiene también un scroll suave del compositor que la cámara
+              // hubiera dejado en marcha (solo la primera vez, no en cada giro).
+              if (cancelViewAnim()) e.currentTarget.scrollTop = e.currentTarget.scrollTop;
               if (e.deltaY < 0) setPlaying(false);
             }}
           >

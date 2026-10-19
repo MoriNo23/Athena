@@ -21,7 +21,41 @@ const manifest = JSON.parse(fs.readFileSync(path.join(BASE, "scripts", "seed-man
 const doReset = !process.argv.includes("--no-reset");
 const db = new PrismaClient();
 
+/** Archivos del manifiesto (libros + portadas) que no están en public/uploads */
+function faltantes() {
+  return manifest.books
+    .flatMap((b) => [b.file, b.cover])
+    .filter((f) => !fs.existsSync(path.join(UPLOADS, f)));
+}
+
+/**
+ * Garantiza los libros semilla: si faltan archivos los genera con
+ * scripts/make-seed-books.py (dominio público; necesita python3 con
+ * reportlab, pypdf y pillow). Si no puede, dice QUÉ falta y cómo arreglarlo
+ * en vez de romperse a mitad de la siembra.
+ */
+function asegurarArchivos() {
+  let falta = faltantes();
+  if (falta.length === 0) return;
+  console.log(`[seed] faltan ${falta.length} archivo(s) en public/uploads: ${falta.join(", ")} — generando…`);
+  const r = require("node:child_process").spawnSync(
+    "python3",
+    [path.join(BASE, "scripts", "make-seed-books.py")],
+    { stdio: "inherit" }
+  );
+  falta = faltantes();
+  if (r.status !== 0 || falta.length > 0) {
+    throw new Error(
+      `No se pudieron garantizar los libros semilla (faltan: ${falta.join(", ") || "ver error arriba"}).\n` +
+        "Instala las dependencias y repite:\n" +
+        "  pip install reportlab pypdf pillow\n" +
+        "  python3 scripts/make-seed-books.py && bun scripts/seed-library.mjs"
+    );
+  }
+}
+
 async function main() {
+  asegurarArchivos();
   const created = [];
   for (const b of manifest.books) {
     const filePath = `/uploads/${b.file}`;

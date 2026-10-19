@@ -12,15 +12,22 @@
 
 ## 3. Entorno reproducible
 
-- [ ] 3.1 `scripts/seed-library.mjs` vuelve a garantizar sus libros: los PDFs semilla se generan con `make-big-pdf.py` (el escaneado OCR se toma de `scripts/`) cuando no están en `public/uploads/`, o el script dice qué falta en vez de romperse. Verificación: `bun scripts/seed-library.mjs` deja la biblioteca con «Don Quijote», «Cuaderno de Atenas» y «Meditaciones».
-- [ ] 3.2 Procedimiento de verificación (`scripts/README` o el propio change): dev server con el CSS recompilado (`scripts/with-dev.sh`, que reinicia el servidor porque Turbopack no recompila `globals.css` en caliente), semilla, fixture de cámara y recorrido de las sondas con el resultado esperado. Verificación: el procedimiento se puede seguir desde cero en otra máquina.
+- [x] 3.1 `scripts/seed-library.mjs` vuelve a garantizar sus libros: los PDFs semilla se generan con `make-big-pdf.py` (el escaneado OCR se toma de `scripts/`) cuando no están en `public/uploads/`, o el script dice qué falta en vez de romperse. Verificación: `bun scripts/seed-library.mjs` deja la biblioteca con «Don Quijote», «Cuaderno de Atenas» y «Meditaciones».
+- [x] 3.2 Procedimiento de verificación (`scripts/README` o el propio change): dev server con el CSS recompilado (`scripts/with-dev.sh`, que reinicia el servidor porque Turbopack no recompila `globals.css` en caliente), semilla, fixture de cámara y recorrido de las sondas con el resultado esperado. Verificación: el procedimiento se puede seguir desde cero en otra máquina.
 
 ## 4. Verificación completa (todo el teleprompter)
 
 - [ ] 4.1 `node scripts/probe-auto-cruce.js` (5/5), `node scripts/probe-flechas-tp.js` (9/9), `node scripts/probe-camara-suave.js` (8/8) en verde.
 - [ ] 4.2 `node scripts/test-vn-auto.js` (18/18), `node scripts/test-vn-stress.js` (completa) y `node scripts/test-hotkeys-e2e.js` en verde con el servidor dev.
 - [ ] 4.3 `bunx tsc --noEmit`, `bun run lint` y `bun run crap:changed` en verde.
-- [ ] 4.4 `openspec validate teleprompter-verificacion-y-rueda --strict` sin hallazgos.
+- [x] 4.4 `openspec validate teleprompter-verificacion-y-rueda --strict` sin hallazgos.
+
+## Estado de esta tanda (sin navegador ni Prisma)
+
+- **2.1 (arreglo C1) aplicado, sin medir en navegador.** `lib/view-anim.ts`: la cámara cede en cuanto el `scrollTop` real no es el que ella dejó, venga de la rueda, del compositor o del teclado; y `onWheel` fija el `scrollTop` cuando cancela una transición en vuelo. Cubierto por `scripts/test-view-anim.ts` (5/5). **Siguen abiertas** 1.1, 1.2 (instrumentar y descartar candidatos), 2.2 y 4.1/4.2: requieren Chromium y Prisma, no disponibles en este entorno.
+- 3.1: `seed-library.mjs` genera los PDFs faltantes con `make-seed-books.py` o dice qué falta. Comprobado: detección y regeneración de archivos; la siembra completa a la BD no se ejecutó (Prisma).
+- 3.2: procedimiento en `scripts/VERIFICACION-TELEPROMPTER.md`.
+- 4.3: `eslint` limpio; `tsc` solo falla por `@prisma/client` sin generar (red); `crap:changed` no ejecutado.
 
 ## Notas de estado (para quien siga)
 
