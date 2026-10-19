@@ -546,10 +546,15 @@ html:not(.dark) .atena-hero .seal-glow {
      lo lleva a opacidad 1. Antes 0.18 quedaba en 1,4–1,6:1 (hallazgo del
      detector en la auditoría de este cambio). */
   opacity: 0.55;
-  transition: opacity 520ms ease-out;
+  /* Aparición suave: el título se asienta desde apenas más abajo mientras se
+     enciende, en vez de saltar de golpe al llegar la cámara. */
+  transform: translateY(0.3em);
+  transition: opacity 900ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 900ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 .tp-block-h.on {
   opacity: 1;
+  transform: none;
 }
 /* el título no se enciende letra a letra: lo revela el bloque entero */
 .tp-block-h .tp-ch {
@@ -591,6 +596,7 @@ html:not(.dark) .atena-hero .seal-glow {
 @media (prefers-reduced-motion: reduce) {
   .tp-block-h {
     opacity: 1;
+    transform: none;
     transition: none;
   }
   .tp-ch {

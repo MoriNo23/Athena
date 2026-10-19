@@ -84,8 +84,8 @@ function teleprompterSourceFor(args: {
   pageNum: number;
   textPages: number;
   numPages: number;
-  goToVirtual: (v: number, opts?: { silent?: boolean }) => void;
-  silentJumpTo: (p: number) => void;
+  goToVirtual: (v: number, opts?: { silent?: boolean; noPause?: boolean }) => void;
+  jumpOutsideText: (p: number, opts?: { silent?: boolean; noPause?: boolean }) => void;
 }) {
   const {
     isEpub,
@@ -98,7 +98,7 @@ function teleprompterSourceFor(args: {
     textPages,
     numPages,
     goToVirtual,
-    silentJumpTo,
+    jumpOutsideText,
   } = args;
   return {
     doc: isEpub || tpTextMode ? null : doc,
@@ -106,7 +106,15 @@ function teleprompterSourceFor(args: {
     pageNum: tpTextMode ? textVirtual : pageNum,
     numPages: tpTextMode ? textPages : numPages,
     sourceKey: tpTextMode ? "text" : isEpub ? "epub" : "pdf",
-    onGoToPage: tpTextMode ? goToVirtual : silentJumpTo,
+    // Los giros del teleprompter CUENTAN como lectura (páginas de hoy, hitos y
+    // fin de libro) en los tres dominios: antes PDF/EPUB usaban el salto
+    // silencioso y el modo automático no sumaba páginas. Sin diálogo de pausa:
+    // quedaría detrás de la capa inmersiva.
+    onGoToPage: (page: number, opts?: { silent?: boolean }) => {
+      const o = { silent: opts?.silent ?? false, noPause: true };
+      if (tpTextMode) goToVirtual(page, o);
+      else jumpOutsideText(page, o);
+    },
   } as const;
 }
 
@@ -234,14 +242,14 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   });
 
   const goToPage = useCallback(
-    (target: number, opts?: { silent?: boolean }) => {
+    (target: number, opts?: { silent?: boolean; noPause?: boolean }) => {
       const clamped = Math.min(Math.max(1, Math.round(target)), numPages);
       const prev = pageNumRef.current;
       if (clamped === prev) return;
       pageNumRef.current = clamped;
       setPageNum(clamped);
       const silent = opts?.silent ?? false;
-      turn(clamped, prev, silent, () => extrasRef.current.pause?.recap ?? "");
+      turn(clamped, prev, silent, () => extrasRef.current.pause?.recap ?? "", opts?.noPause ?? false);
       commitMilestones(clamped, silent);
       scheduleSave(clamped);
     },
@@ -692,7 +700,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
             textPages: textIndex?.pages.length ?? 0,
             numPages,
             goToVirtual,
-            silentJumpTo,
+            jumpOutsideText,
           })}
           onClose={() => setTpOpen(false)}
           todayPages={todayPagesShown}

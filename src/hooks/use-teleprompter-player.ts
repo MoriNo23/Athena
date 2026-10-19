@@ -20,8 +20,8 @@ interface UseTeleprompterPlayerOpts {
   /** hay fuente de bloques (doc cargado o extractor por página): sin ella no
       se construye ventana — evita clavar una ventana vacía sin recuperación */
   hasSource: boolean;
-  /** gira la página real del lector (cuenta como lectura y hitos) */
-  onGoToPage: (page: number) => void;
+  /** gira la página real del lector (cuenta como lectura y hitos salvo `silent`) */
+  onGoToPage: (page: number, opts?: { silent?: boolean }) => void;
   stream: ReturnType<typeof import("@/lib/teleprompter").buildTeleprompterStream>;
   firstLen: number;
   totalChars: number;
@@ -120,7 +120,8 @@ export function useTeleprompterPlayer({
       setPlaying(true);
       setPageDone(false);
       setBookDone(false);
-      if (start !== pageNum) onGoToPage(start);
+      // alineación al abrir: no es lectura, no suma páginas
+      if (start !== pageNum) onGoToPage(start, { silent: true });
     })();
     return () => {
       alive = false;

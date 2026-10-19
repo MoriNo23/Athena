@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tip } from "@/components/reader/ZoomControls";
@@ -55,7 +55,7 @@ interface TeleprompterOverlayProps {
    */
   sourceKey: string;
   /** gira la página real del lector (cuenta como lectura y hitos) */
-  onGoToPage: (page: number) => void;
+  onGoToPage: (page: number, opts?: { silent?: boolean }) => void;
   /** páginas de hoy de ESTE libro (mismo conteo que la cabecera del lector) */
   todayPages: number;
   /** meta efectiva del libro (propia o global) para el par de hoy */
@@ -191,6 +191,27 @@ export function TeleprompterOverlay({
     cancelViewAnim,
     stageViewAnchor,
   } = tpWin;
+
+  // Fundido de página: al cambiar de página (cruce en Auto, Shift+→/←) la
+  // columna entra desde un velo suave en vez de cambiar de golpe. WAAPI sobre
+  // el contenedor del flujo: no toca el layout ni el scroll (la cámara y el
+  // ancla atómica siguen intactas) y corre antes del pintado, sin parpadeo.
+  const streamRef = useRef<HTMLDivElement | null>(null);
+  const lastPageRef = useRef<number | null>(null);
+  const curStart = win?.start ?? null;
+  useLayoutEffect(() => {
+    if (curStart == null) return;
+    const prev = lastPageRef.current;
+    lastPageRef.current = curStart;
+    if (prev == null || prev === curStart) return; // apertura: sin fundido
+    const el = streamRef.current;
+    if (!el || preset.wps == null) return; // preset Instantánea: salta
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate(
+      [{ opacity: 0.25 }, { opacity: 1 }],
+      { duration: 700, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)" }
+    );
+  }, [curStart, preset.wps]);
 
   const player = useTeleprompterPlayer({
     pageNum,
@@ -551,6 +572,7 @@ export function TeleprompterOverlay({
             }}
           >
             <div
+              ref={streamRef}
               className="tp-stream mx-auto w-full max-w-[780px]"
               data-testid="tp-stream"
               data-page-start={win.start}
