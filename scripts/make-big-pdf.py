@@ -5,6 +5,7 @@ Sin argumentos mantiene el uso de siempre: 60 páginas + 25MB de relleno tras el
 
   python3 scripts/make-big-pdf.py                                   # 60 págs, con relleno
   python3 scripts/make-big-pdf.py 670 --nopad --out libro-largo.pdf # tomo para medir la preparación
+  python3 scripts/make-big-pdf.py 4 --nopad --lines 6 --out x.pdf   # 6 líneas por página
 """
 import os
 import sys
@@ -17,6 +18,11 @@ ARGS = sys.argv[1:]
 PAGES = next((int(a) for a in ARGS if a.isdigit()), 60)
 PAD = "--nopad" not in ARGS
 NAME = ARGS[ARGS.index("--out") + 1] if "--out" in ARGS else "gordo-test.pdf"
+# líneas de cuerpo por página: la densidad decide cuánto tarda el teleprompter
+# en cruzar una página (las sondas necesitan páginas cortas para no esperar)
+LINES = 46
+if "--lines" in ARGS:
+    LINES = int(ARGS[ARGS.index("--lines") + 1])
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), NAME)
 
@@ -36,7 +42,7 @@ for i in range(1, PAGES + 1):
     c.setFillColorRGB(0.2, 0.2, 0.2)
     c.setFont("Helvetica", 9)
     y = H - 5 * cm
-    for _ in range(46):
+    for _ in range(LINES):
         c.drawString(2.5 * cm, y, f"p{i}: {RELLENO[:120]}")
         y -= 0.55 * cm
         if y < 2 * cm:

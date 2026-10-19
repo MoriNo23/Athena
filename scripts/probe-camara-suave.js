@@ -19,6 +19,7 @@
  * Uso: node scripts/probe-camara-suave.js
  */
 const { chromium } = require("playwright");
+const { asegurarLibro, abrirTeleprompter } = require("./tp-fixture");
 
 const BASE = "http://localhost:3000";
 let pass = 0, fail = 0;
@@ -86,22 +87,28 @@ function sampleCrossing(page, maxWait) {
     ≤1 inversión de dirección y el flujo sigue encendiendo */
 function analyzeCrossing(samples, crossedAt, viewportH) {
   if (crossedAt < 0) return { ok: false, why: "no se detectó el cruce" };
-  const pre = samples.filter((s) => s.t <= crossedAt - 30);
-  const post = samples.filter((s) => s.t >= crossedAt + 30 && s.t <= crossedAt + 250);
-  if (pre.length === 0 || post.length === 0) return { ok: false, why: "ventana de muestras vacía" };
-  const yPre = pre[pre.length - 1].y;
-  const yPost = post[post.length - 1].y;
-  // Umbral de movimiento SIGNIFICATIVO: ~6% del alto visible. El barrido y el
-  // vaivén que este change elimina son de cientos de px con rampas graduales;
-  // los micro-ajustes ≤30px del relleno sin caché (asentamiento de fuentes y
-  // del layout al entrar la página siguiente) son invisibles y no cuentan.
+  const antes = samples.filter((s) => s.t <= crossedAt - 30);
+  const despues = samples.filter((s) => s.t >= crossedAt);
+  if (antes.length === 0 || despues.length === 0) {
+    return { ok: false, why: "ventana de muestras vacía" };
+  }
+  const yPre = antes[antes.length - 1].y;
+  // el valor asentado es la PRIMERA muestra tras el cruce: con una columna
+  // densa el hilo principal se bloquea durante el intercambio y las muestras
+  // llegan con retraso (por eso la ventana es por muestras, no por reloj)
+  const yPost = despues[0].y;
+  const iPre = samples.indexOf(antes[antes.length - 1]);
+  const iPost = samples.indexOf(despues[0]);
+  // 1) atómico: entre la última muestra antes y la primera después no puede
+  //    haber valores intermedios (una rampa); un salto directo no deja ninguno
   const SIG = 50;
-  // 1) atómico: el asentamiento admite el valor del ANCLA y el residual que
-  //    asienta el animador (≤2 valores intermedios); un barrido animado dejaría
-  //    una rampa con muchos valores distintos
-  const lo = Math.min(yPre, yPost), hi = Math.max(yPre, yPost);
-  const sweep = post.filter((s) => s.y > lo + SIG && s.y < hi - SIG);
-  const buckets = new Set(sweep.map((s) => Math.round(s.y / 4)));
+  const lo = Math.min(yPre, yPost);
+  const hi = Math.max(yPre, yPost);
+  const barrido = samples
+    .slice(iPre + 1, iPost)
+    .map((s) => s.y)
+    .filter((v) => v > lo + SIG && v < hi - SIG);
+  const buckets = new Set(barrido.map((v) => Math.round(v / 4)));
   const atomic = buckets.size <= 2;
   // 2) sin vaivén: en la ventana de ASENTAMIENTO (swap + ancla + residual),
   //    ≤1 cambio de dirección con movimientos significativos (>SIG). La
@@ -132,40 +139,16 @@ function analyzeCrossing(samples, crossedAt, viewportH) {
     why: "",
     yPre,
     yPost,
-    sweep: sweep.length,
-    sweepSamples: sweep.map((s) => `${s.t}:${s.y}`).join(" "),
+    sweep: barrido.length,
+    sweepSamples: barrido.map((v) => String(v)).join(" "),
     reversals,
     viewportH,
   };
 }
 
-/** abre el teleprompter del primer libro con texto de la biblioteca */
+/** abre el teleprompter del libro de prueba (mismo fixture que las demás sondas) */
 async function abrirTeleprompterDePrimerLibro(page) {
-  await page.goto(BASE, { waitUntil: "networkidle" });
-  await page.locator("article").first().waitFor({ timeout: 15000 });
-  const cards = page.locator("article");
-  const n = await cards.count();
-  for (let i = 0; i < n; i++) {
-    const card = cards.nth(i);
-    const btn = card.getByRole("button", { name: /Empezar a leer|Continuar/ });
-    if ((await btn.count()) === 0) continue;
-    await btn.click();
-    await page.locator('[data-viewport="pdf"]').waitFor({ timeout: 20000 });
-    await page.waitForTimeout(700);
-    await despertar(page);
-    await page.locator('[data-testid="tp-toggle"]').click();
-    await page.locator('[data-testid="tp-overlay"]').waitFor({ timeout: 8000 });
-    await page.waitForTimeout(900);
-    const empty = await page.locator('[data-testid="tp-empty"]').count();
-    if (empty > 0) {
-      // sin capa de texto: siguiente libro
-      await page.keyboard.press("Escape");
-      await page.waitForTimeout(400);
-      continue;
-    }
-    return true;
-  }
-  return false;
+  return abrirTeleprompter(page);
 }
 
 (async () => {
@@ -181,6 +164,7 @@ async function abrirTeleprompterDePrimerLibro(page) {
     await fetch("http://localhost:3000/api/progress/reset-all", { method: "POST" });
   } catch {}
 
+  await asegurarLibro();
   const opened = await abrirTeleprompterDePrimerLibro(page);
   check("teleprompter abierto sobre un libro con texto", opened);
 
@@ -239,7 +223,7 @@ async function abrirTeleprompterDePrimerLibro(page) {
     await page.waitForTimeout(80); // a mitad de la transición
     const preWheel = await page.evaluate(() => document.querySelector('[data-testid="tp-scroll"]').scrollTop);
     await page.mouse.wheel(0, -240); // releer hacia arriba
-    await page.waitForTimeout(120); // el seguimiento NO debe arrastrar de vuelta
+    await page.waitForTimeout(500); // el scroll del navegador se asienta antes de medir
     const afterWheel = await page.evaluate(() => document.querySelector('[data-testid="tp-scroll"]').scrollTop);
     const fighting = await scrollTopSamples(page, 200);
     const drift = Math.max(...fighting.map((s) => Math.abs(s.y - afterWheel)));
@@ -250,16 +234,12 @@ async function abrirTeleprompterDePrimerLibro(page) {
     );
 
     // --- X1. primer cruce (la página +2 aún sin caché) ---
-    // estado: pausado al final de la página (tras la rueda): → reanuda y el
-    // motor se planta en pageDone; el click AUTORIZA el cruce (allowCross) y
-    // el paso del motor —pendiente del delay del 1er carácter de la página
-    // nueva (≈0.5 s con título)— desliza la ventana solo. Sin → final: lo
-    // cancelaría antes de que el paso pendiente dispare.
+    // estado: pausado al final de la página (tras la rueda). Shift+→ es la
+    // orden de salto de página: la ventana nueva entra en el mismo render
+    // (cruce atómico) y el relleno de la página +2 llega después (sin caché).
     const sx1 = sampleCrossing(page, 20000);
     await page.waitForTimeout(60);
-    await page.keyboard.press("ArrowRight"); // reanudar → pageDone
-    await page.waitForTimeout(700);
-    await page.mouse.click(640, 500); // autorizar el cruce
+    await page.keyboard.press("Shift+ArrowRight"); // salto de página
     const cx1 = await sx1;
     const a1 = analyzeCrossing(cx1.samples, cx1.crossedAt, 800);
     check(
@@ -269,13 +249,13 @@ async function abrirTeleprompterDePrimerLibro(page) {
     );
 
     // --- X2. cruce con la página siguiente ya en caché (precargada en X1) ---
-    // estado: fluye en la página nueva: click = revelado completo, → = orden
-    // de cruce (el paso pendiente desliza ~0.5 s después)
+    // estado: fluye en la página nueva: click = revelado completo,
+    // Shift+→ = salto de página
     const sx2 = sampleCrossing(page, 20000);
     await page.waitForTimeout(400);
     await page.mouse.click(640, 500); // revelado completo
     await page.waitForTimeout(400);
-    await page.keyboard.press("ArrowRight"); // autorizar el cruce
+    await page.keyboard.press("Shift+ArrowRight"); // salto de página
     const cx2 = await sx2;
     const a2 = analyzeCrossing(cx2.samples, cx2.crossedAt, 800);
     check(
@@ -295,7 +275,7 @@ async function abrirTeleprompterDePrimerLibro(page) {
     await page.waitForTimeout(400);
     await page.mouse.click(640, 500); // revelado completo
     await page.waitForTimeout(400);
-    await page.keyboard.press("ArrowRight"); // autorizar el cruce
+    await page.keyboard.press("Shift+ArrowRight"); // salto de página
     await page
       .waitForFunction(
         ({ prev }) => {
@@ -306,8 +286,8 @@ async function abrirTeleprompterDePrimerLibro(page) {
             document.querySelector(".tp-block-h.on") !== null
           );
         },
-        { timeout: 15000 },
-        { prev: prevPage }
+        { prev: prevPage },
+        { timeout: 15000 }
       )
       .catch(() => {});
     await page.keyboard.press(" "); // pausa: el asentamiento de la vista se congela
