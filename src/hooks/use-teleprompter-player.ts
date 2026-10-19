@@ -224,6 +224,9 @@ export function useTeleprompterPlayer({
 
     const step = () => {
       if (cancelled) return;
+      // un avance manual puede haber movido el encendido: el motor sigue desde
+      // ahí en vez de volver a iluminar por detrás
+      if (litRef.current > i) i = litRef.current;
       // cruce ANTES de encender: si el flujo ya llegó al fin de la página, la
       // ventana se desliza sin encender caracteres de la página nueva contra
       // el DOM viejo (la orden de cámara del cruce la pone el ancla, no el motor)
@@ -282,6 +285,35 @@ export function useTeleprompterPlayer({
     return () => window.clearTimeout(timer);
   }, [auto, playing, pageDone, bookDone, presetWps]);
 
+  // ---------- avance manual de una letra ----------
+  /**
+   * `→`: enciende UN carácter más (si cae dentro de un título, enciende el
+   * bloque entero, como ya hace el motor) y lleva la vista al carácter
+   * nuevo. El avance automático se pausa: la orden manual manda. Al final de
+   * la página no hace nada — ese gesto es el salto de página.
+   */
+  const stepForward = useCallback(() => {
+    const spans = spansRef.current;
+    const cur = litRef.current;
+    if (spans.length === 0 || cur >= firstLen || cur >= spans.length) return;
+    setPlaying(false);
+    const heading = stream.blocks.find((b) => b.heading && cur >= b.start && cur < b.start + b.length);
+    const end = heading ? heading.start + heading.length : cur + 1;
+    for (let k = cur; k < end; k++) spans[k]?.classList.add("on");
+    if (heading) spans[heading.start]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
+    litRef.current = end;
+    setLit(end);
+    scrollToChar(end - 1);
+  }, [firstLen, scrollToChar, spansRef, stream]);
+
+  /** `Shift+→`: salto a la página siguiente (el cruce atómico, sin esperar al motor) */
+  const goToNextPage = useCallback(() => {
+    const cur = winRef.current;
+    if (!cur || !cur.pages[1]) return; // no hay página siguiente en la ventana
+    setPlaying(true);
+    slide(0);
+  }, [slide, winRef]);
+
   // ---------- rebobinado ----------
   const loadPreviousPage = useCallback(() => {
     const cur = winRef.current;
@@ -304,6 +336,11 @@ export function useTeleprompterPlayer({
       onGoToPage(prev);
     })();
   }, [loadBlocks, onGoToPage, setWin, stageViewAnchor, winRef]);
+
+  /** `Shift+←`: salto a la página anterior (completa y encendida, lista para releer) */
+  const goToPrevPage = useCallback(() => {
+    loadPreviousPage();
+  }, [loadPreviousPage]);
 
   const rewindOne = useCallback(() => {
     const cur = winRef.current;
@@ -364,5 +401,5 @@ export function useTeleprompterPlayer({
     else setBookDone(true);
   }, [bookDone, pageDone, playing, win, firstLen, totalChars, stream, spansRef]);
 
-  return { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne };
+  return { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne, stepForward, goToNextPage, goToPrevPage };
 }

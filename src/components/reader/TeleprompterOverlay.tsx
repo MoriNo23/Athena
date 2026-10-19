@@ -215,7 +215,7 @@ export function TeleprompterOverlay({
     tick: tpTick,
   });
 
-  const { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne } = player;
+  const { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne, stepForward, goToNextPage, goToPrevPage } = player;
 
   // ---------- el overlay toma el foco (bloquea los atajos del lector) ----------
   useEffect(() => {
@@ -261,11 +261,15 @@ export function TeleprompterOverlay({
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
         e.stopPropagation();
-        forward();
+        // → avanza una letra; Shift+→ cambia de página
+        if (e.shiftKey) goToNextPage();
+        else stepForward();
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
         e.stopPropagation();
-        rewindOne();
+        // ← retrocede una letra; Shift+← vuelve a la página anterior
+        if (e.shiftKey) goToPrevPage();
+        else rewindOne();
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         e.stopPropagation();
@@ -294,7 +298,7 @@ export function TeleprompterOverlay({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [forward, rewindOne, onClose, pageDone, bookDone, changeFont, toggleFullscreen, setPlaying, scrollRef, cancelViewAnim]);
+  }, [forward, rewindOne, stepForward, goToNextPage, goToPrevPage, onClose, pageDone, bookDone, changeFont, toggleFullscreen, setPlaying, scrollRef, cancelViewAnim]);
 
   const stale = isStaleWindow(win, pageNum);
   const atEnd = isAtEnd(bookDone, win, lit, totalChars, numPages);
@@ -306,6 +310,7 @@ export function TeleprompterOverlay({
     () => [
       { keys: "→", action: t("ghost.tp.next") },
       { keys: "←", action: t("ghost.tp.rewind") },
+      { keys: "Shift+→ / ←", action: t("ghost.tp.page") },
       { keys: "↑", action: t("ghost.tp.up") },
       { keys: "Espacio", action: t("ghost.tp.pause") },
       { keys: "−/+", action: t("ghost.tp.font") },
@@ -535,7 +540,7 @@ export function TeleprompterOverlay({
         ) : (
           <div
             ref={scrollRef}
-            className="tp-scroll h-full overflow-y-auto px-6 pb-28 pt-24"
+            className="tp-scroll h-full overflow-y-auto px-6 pb-28"
             data-testid="tp-scroll"
             onWheel={(e) => {
               // releer hacia arriba pausa el avance; no apaga el texto.

@@ -137,6 +137,7 @@ async function paginaEnMarcha(page) {
     return { total: el.querySelectorAll(".tp-ch").length, on: el.querySelectorAll(".tp-ch.on").length, blockOn: el.classList.contains("on") };
   });
   check("título del flujo: bloque completo o apagado, nunca a medias", !titulo || (titulo.blockOn ? titulo.on === titulo.total : titulo.on === 0), titulo ? JSON.stringify(titulo) : "sin títulos en la página");
+  await despertar(page); // el chrome se auto-oculta tras 3,5 s de quietud
   await page.locator('[data-testid="tp-auto"]').click(); // OFF para estado estable
 
   console.log("=== C. PRESET A MITAD DE ENCENDIDO ===");

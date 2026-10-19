@@ -609,6 +609,12 @@ html:not(.dark) .atena-hero .seal-glow {
    pelearía con esa compensación — se desactiva en la columna. */
 .tp-scroll {
   overflow-anchor: none;
+  /* BANDA DE LECTURA: la cámara sitúa el carácter activo al 40 % del alto
+     (use-teleprompter-window.ts, scrollToChar). La columna reserva ese mismo
+     40 % por encima del primer carácter: sin ella la banda sería
+     inalcanzable al inicio de cada página y tras cada cruce — el navegador
+     clampa el scroll a 0 y la columna rebota. */
+  padding-top: 40vh;
 }
 
 /* ---------- Recordatorio de teclas fantasma (inmersiones) ---------- */

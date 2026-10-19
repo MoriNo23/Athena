@@ -99,6 +99,15 @@ function check(name, ok, detail = "") {
     await page.waitForTimeout(300);
   }
   check("auto gira la página al acabar", page2, `${Math.round((Date.now() - t2) / 1000)} s`);
+  // la página nueva enciende su primer carácter (un título abre con un respiro:
+  // se espera la condición, no se mide en el mismo instante del giro)
+  await page
+    .waitForFunction(
+      () => document.querySelectorAll('[data-testid="tp-stream"] .tp-ch.on').length > 0,
+      undefined,
+      { timeout: 10000 }
+    )
+    .catch(() => {});
   check("página nueva encendida en la columna", (await litCount()) > 0);
 
   console.log("=== H. ESCENARIO CÓMODO (fondo único sólido + columna plana) ===");
