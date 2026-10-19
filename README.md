@@ -1,6 +1,6 @@
 <div align="center">
 
-# ATENA
+<img src="public/brand/atena-wordmark.svg" alt="ATENA" height="76" />
 
 ### FINISH YOUR BOOKS.
 
