@@ -132,7 +132,7 @@ export function useReadingSession(opts: {
   );
 
   /** Registro de un giro de página: cuenta páginas leídas y arma el diálogo de pausa */
-  const turn = useCallback((page: number, prev: number, silent: boolean, getRecap: () => string) => {
+  const turn = useCallback((page: number, prev: number, silent: boolean, getRecap: () => string, noPause = false) => {
     if (silent) {
       // Salto silencioso (riel, peek, input, sync): no cuenta páginas leídas
       lastSavedPage.current = page;
@@ -152,8 +152,10 @@ export function useReadingSession(opts: {
     }
 
     // pausa en corte natural: al girar la página con la sesión cumplida
-    // (los saltos silenciosos no abren el diálogo)
-    if (!silent && pauseArmedRef.current && page > prev && !pauseDialogRef.current) {
+    // (los saltos silenciosos no abren el diálogo; tampoco los giros que
+    // cuentan desde el teleprompter: el diálogo quedaría tapado por la capa
+    // inmersiva, sin poder verse, y la pausa sigue armada para el lector)
+    if (!silent && !noPause && pauseArmedRef.current && page > prev && !pauseDialogRef.current) {
       setPauseDraft(getRecap());
       setPauseDialogOpen(true);
     }

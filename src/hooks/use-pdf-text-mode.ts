@@ -15,7 +15,7 @@ interface UsePdfTextModeOpts {
   isEpub: boolean;
   pageNum: number;
   /** navegación real (riel, hitos, guardado): la página real manda siempre */
-  goToPage: (target: number, opts?: { silent?: boolean }) => void;
+  goToPage: (target: number, opts?: { silent?: boolean; noPause?: boolean }) => void;
   patchExtras: (patch: { readerMode?: "page" | "text" }) => void;
   /** modo guardado en el libro (`extras.readerMode`) */
   readerMode: "page" | "text" | undefined;
@@ -94,7 +94,7 @@ export function usePdfTextMode({ book, doc, isEpub, pageNum, goToPage, patchExtr
 
   /** Navegación virtual: la página real de origen manda para riel, hitos y ETA */
   const goToVirtual = useCallback(
-    (v: number, opts?: { silent?: boolean }) => {
+    (v: number, opts?: { silent?: boolean; noPause?: boolean }) => {
       if (!textIndex || textIndex.pages.length === 0) return;
       const clamped = Math.max(1, Math.min(textIndex.pages.length, Math.round(v)));
       setLocalVirtual(clamped);
@@ -105,7 +105,7 @@ export function usePdfTextMode({ book, doc, isEpub, pageNum, goToPage, patchExtr
 
   /** Saltos de fuera del reflujo (riel, número de página, peek): sin ancla local */
   const jumpOutsideText = useCallback(
-    (p: number, opts?: { silent?: boolean }) => {
+    (p: number, opts?: { silent?: boolean; noPause?: boolean }) => {
       setLocalVirtual(null);
       goToPage(p, opts);
     },
