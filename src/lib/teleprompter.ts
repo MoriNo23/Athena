@@ -121,6 +121,9 @@ export interface TeleprompterBlock {
 /** Pausa antes de un título y antes del cuerpo que lo sigue, en letras. */
 export const TELEPROMPTER_HEADING_PAUSE_LETTERS = 12;
 
+/** Con Auto, espera antes de pasar a la página siguiente (ms): que el cambio no sea brusco */
+export const TELEPROMPTER_PAGE_TURN_MS = 2000;
+
 export interface TeleprompterStreamBlock extends TeleprompterBlock {
   /** primer carácter del bloque dentro del flujo (los bloques son contiguos) */
   start: number;

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { BookCheck, ChevronsRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { TELEPROMPTER_PAGE_TURN_MS } from "@/lib/teleprompter";
 
 /** Letras antes del fin de la página a partir de las cuales el Auto avisa del cambio (≈2 s) */
 export const PAGE_SOON_CHARS = 48;
@@ -47,8 +48,10 @@ export function TeleprompterPageNotice(p: Props) {
     return () => window.clearTimeout(id);
   }, [arrival]);
 
-  const soon =
-    p.auto && p.playing && !p.pageDone && p.hasNext && p.start != null && p.lit > 0 && p.firstLen - p.lit <= PAGE_SOON_CHARS;
+  // con `pageDone` (revelado instantáneo) el Auto también cruzará solo
+  const soon = p.auto && p.playing && p.hasNext && p.start != null && p.lit > 0 && p.firstLen - p.lit <= PAGE_SOON_CHARS;
+  // la página ya está encendida: es la pausa de 2 s antes del cruce
+  const waiting = p.hasNext && p.lit >= p.firstLen;
   const goalReached = p.todayGoal > 0 && p.todayPages >= p.todayGoal;
 
   let kind: "soon" | "arrived";
@@ -81,6 +84,14 @@ export function TeleprompterPageNotice(p: Props) {
         <BookCheck className="h-4 w-4" aria-hidden="true" />
       )}
       <span>{text}</span>
+      {kind === "soon" && waiting && (
+        <span
+          className="tp-notice-bar"
+          aria-hidden="true"
+          data-testid="tp-page-notice-bar"
+          style={{ animationDuration: `${TELEPROMPTER_PAGE_TURN_MS}ms` }}
+        />
+      )}
     </div>
   );
 }

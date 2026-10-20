@@ -32,3 +32,22 @@ export function stepWait<W>(
   }
   return plannedWait;
 }
+
+/**
+ * Espera planeada del paso que empieza en la letra `lit`. Con Auto, al llegar
+ * al final de la página (con página siguiente cargada) el paso es el CRUCE y
+ * espera `turnMs` para que el cambio no sea brusco; las señales manuales
+ * (`allowCross`) no esperan. Fuera de ahí, el retardo normal del carácter.
+ */
+export function plannedStepDelay(o: {
+  lit: number;
+  firstLen: number;
+  hasNext: boolean;
+  auto: boolean;
+  allowCross: boolean;
+  stepDelay: number;
+  turnMs: number;
+}): number {
+  const atBoundary = o.hasNext && o.lit >= o.firstLen;
+  return atBoundary && o.auto && !o.allowCross ? o.turnMs : o.stepDelay;
+}

@@ -187,14 +187,17 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps 
       reanudación tras releer o un cruce de página nunca anima desde una
       posición vieja — parten de donde esté la vista ahora. */
   const scrollToChar = useCallback(
-    (idx: number) => {
+    (idx: number, opts?: { instant?: boolean }) => {
       const root = scrollRef.current;
       const el = spansRef.current[idx];
       if (!root || !el) return;
       const r = el.getBoundingClientRect();
       const rr = root.getBoundingClientRect();
       const target = root.scrollTop + (r.top - rr.top - root.clientHeight * 0.4);
-      if (viewInstantRef.current) {
+      // `instant`: el rebobinado acompaña la posición de forma DIRECTA (sin
+      // animación de cámara): el resultado depende solo del layout y de qué
+      // letras están encendidas, nunca de una animación en vuelo.
+      if (viewInstantRef.current || opts?.instant) {
         cancelViewAnim();
         root.scrollTop = target;
         return;
