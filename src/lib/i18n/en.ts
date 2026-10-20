@@ -435,6 +435,9 @@ export const en: Record<string, string> = {
   // ---------- teleprompter ----------
   "tp.aria": "Teleprompter",
   "tp.status": "Page {page} of {total} · {speed}",
+  "tp.pageSoon": "Turning to page {n}…",
+  "tp.pageArrived": "Page {n} · today {today}/{goal}",
+  "tp.pageGoalDone": "Page {n} · today's goal reached! {today}/{goal}",
   "tp.fontTip": "Font size {pct}% (− and + work too)",
   "tp.fontMinusAria": "Decrease font size",
   "tp.fontPlusAria": "Increase font size",

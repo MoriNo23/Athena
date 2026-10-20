@@ -84,8 +84,8 @@ function teleprompterSourceFor(args: {
   pageNum: number;
   textPages: number;
   numPages: number;
-  goToVirtual: (v: number, opts?: { silent?: boolean; noPause?: boolean }) => void;
-  jumpOutsideText: (p: number, opts?: { silent?: boolean; noPause?: boolean }) => void;
+  /** DEBE ser estable entre renders: el motor del teleprompter depende de él */
+  onGoToPage: (page: number, opts?: { silent?: boolean }) => void;
 }) {
   const {
     isEpub,
@@ -97,8 +97,7 @@ function teleprompterSourceFor(args: {
     pageNum,
     textPages,
     numPages,
-    goToVirtual,
-    jumpOutsideText,
+    onGoToPage,
   } = args;
   return {
     doc: isEpub || tpTextMode ? null : doc,
@@ -106,15 +105,7 @@ function teleprompterSourceFor(args: {
     pageNum: tpTextMode ? textVirtual : pageNum,
     numPages: tpTextMode ? textPages : numPages,
     sourceKey: tpTextMode ? "text" : isEpub ? "epub" : "pdf",
-    // Los giros del teleprompter CUENTAN como lectura (páginas de hoy, hitos y
-    // fin de libro) en los tres dominios: antes PDF/EPUB usaban el salto
-    // silencioso y el modo automático no sumaba páginas. Sin diálogo de pausa:
-    // quedaría detrás de la capa inmersiva.
-    onGoToPage: (page: number, opts?: { silent?: boolean }) => {
-      const o = { silent: opts?.silent ?? false, noPause: true };
-      if (tpTextMode) goToVirtual(page, o);
-      else jumpOutsideText(page, o);
-    },
+    onGoToPage,
   } as const;
 }
 
@@ -289,6 +280,23 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   const silentJumpTo = useCallback(
     (p: number) => jumpOutsideText(p, { silent: true }),
     [jumpOutsideText]
+  );
+
+  /**
+   * Giro de página del teleprompter. Los giros CUENTAN como lectura (páginas de
+   * hoy, hitos, fin de libro) en PDF, EPUB y modo texto; sin diálogo de pausa
+   * (quedaría tras la capa inmersiva). IMPORTANTE: `useCallback` — el motor del
+   * teleprompter lo tiene entre sus dependencias, y el lector se re-renderiza
+   * cada segundo (cronómetro): una identidad nueva por render reiniciaba el
+   * temporizador de las pausas largas (títulos) y el Auto se quedaba clavado.
+   */
+  const tpGoToPage = useCallback(
+    (page: number, opts?: { silent?: boolean }) => {
+      const o = { silent: opts?.silent ?? false, noPause: true };
+      if (tpTextMode) goToVirtual(page, o);
+      else jumpOutsideText(page, o);
+    },
+    [tpTextMode, goToVirtual, jumpOutsideText]
   );
 
   /** Extracto de texto de la página p para el carrusel peek (EPUB). */
@@ -699,8 +707,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
             pageNum,
             textPages: textIndex?.pages.length ?? 0,
             numPages,
-            goToVirtual,
-            jumpOutsideText,
+            onGoToPage: tpGoToPage,
           })}
           onClose={() => setTpOpen(false)}
           todayPages={todayPagesShown}

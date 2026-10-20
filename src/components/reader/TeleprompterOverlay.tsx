@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tip } from "@/components/reader/ZoomControls";
+import { TeleprompterPageNotice } from "@/components/reader/TeleprompterPageNotice";
 import { ShortcutGhost, type ShortcutGhostEntry } from "@/components/reader/ShortcutGhost";
 import {
   ChevronLeft,
@@ -326,7 +327,6 @@ export function TeleprompterOverlay({
   const nextLabel = nextLabelFor(atEnd, pageDone, t);
   const pct = pagePct(lit, firstLen);
 
-  // Mapa de teclas del teleprompter para el recordatorio fantasma
   const tpGhostEntries = useMemo<ShortcutGhostEntry[]>(
     () => [
       { keys: "→", action: t("ghost.tp.next") },
@@ -381,6 +381,19 @@ export function TeleprompterOverlay({
       {/* Recordatorio de teclas de la inmersión: cada transición de visibilidad
           de la interfaz (ocultarse por quietud o despertar) lo despliega */}
       <ShortcutGhost signal={uiHidden} entries={tpGhostEntries} testId="tp-shortcut-ghost" />
+
+      {/* Aviso de cambio de página del Auto (no depende de la barra auto-oculta) */}
+      <TeleprompterPageNotice
+        auto={auto}
+        playing={playing}
+        pageDone={pageDone}
+        hasNext={!!win?.pages[1]}
+        start={curStart}
+        lit={lit}
+        firstLen={firstLen}
+        todayPages={todayPages}
+        todayGoal={todayGoal}
+      />
 
       {/* Barra superior: identidad + progreso + controles (auto-ocultable) */}
       <div className="tp-chrome absolute inset-x-0 top-0 z-20 flex items-center gap-2 px-5 py-3">
