@@ -204,7 +204,8 @@ export function TeleprompterOverlay({
     if (curStart == null) return;
     const prev = lastPageRef.current;
     lastPageRef.current = curStart;
-    if (prev == null || prev === curStart) return; // apertura: sin fundido
+    // apertura o retroceso: sin fundido (la animación de página es solo hacia delante)
+    if (prev == null || curStart <= prev) return;
     const el = streamRef.current;
     if (!el || preset.wps == null) return; // preset Instantánea: salta
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;

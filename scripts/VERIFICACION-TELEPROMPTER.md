@@ -32,6 +32,9 @@ nuevo. **Mata lo que haya en el puerto 3000.**
 |---|---|
 | `bun scripts/test-view-anim.ts` (sin servidor) | 5/5 |
 | `bun scripts/test-teleprompter-engine.ts` (sin servidor) | «MOTOR SANA» |
+| `bun scripts/test-step-timer.ts` (sin servidor) | 14/14 |
+| `bun scripts/test-page-notice.tsx` (sin servidor) | 7/7 |
+| `bun scripts/test-tp-css.ts` (sin servidor) | 9/9 |
 | `bash scripts/with-dev.sh node scripts/probe-auto-cruce.js` | 5/5 |
 | `bash scripts/with-dev.sh node scripts/probe-flechas-tp.js` | 9/9 |
 | `bash scripts/with-dev.sh node scripts/probe-camara-suave.js` | 8/8 (R1, C1, X1, X2, T1, B1) |

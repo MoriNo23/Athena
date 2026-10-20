@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { teleprompterRewind, teleprompterCharCount, type TeleprompterBlock } from "@/lib/teleprompter";
-import { TELEPROMPTER_LETTERS_PER_WORD } from "@/lib/teleprompter";
+import { TELEPROMPTER_PAGE_TURN_MS } from "@/lib/teleprompter";
 import type { StreamWindow } from "@/hooks/use-teleprompter-window";
-import { stepWait, type PendingStep } from "@/lib/step-timer";
+import { plannedStepDelay, stepWait, type PendingStep } from "@/lib/step-timer";
 
 interface UseTeleprompterPlayerOpts {
   /** página real pedida por el lector (1-based) */
@@ -28,7 +28,7 @@ interface UseTeleprompterPlayerOpts {
   totalChars: number;
   spansRef: React.RefObject<HTMLSpanElement[]>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
-  scrollToChar: (idx: number) => void;
+  scrollToChar: (idx: number, opts?: { instant?: boolean }) => void;
   /** publica el ancla de vista para el próximo cambio de ventana (sin reacomodo) */
   stageViewAnchor: (oldIndex: number, newIndex: number) => void;
   /** Auto: al agotar la página sigue sola */
@@ -274,8 +274,22 @@ export function useTeleprompterPlayer({
         setBookDone(true);
         return;
       }
-      schedule(Math.max(8, stream.steps[i]?.delay ?? 40));
+      schedule(delayAt(i));
     };
+
+    /** Espera planeada del paso que empieza en `idx`: con Auto, el cruce de
+        página espera `TELEPROMPTER_PAGE_TURN_MS` (cambio no brusco) */
+    function delayAt(idx: number) {
+      return plannedStepDelay({
+        lit: idx,
+        firstLen,
+        hasNext: !!win?.pages[1],
+        auto,
+        allowCross: allowCrossRef.current,
+        stepDelay: stream.steps[idx]?.delay ?? 40,
+        turnMs: TELEPROMPTER_PAGE_TURN_MS,
+      });
+    }
 
     /** Programa el próximo paso y anota cuándo vence (ver `dueRef`) */
     function schedule(delay: number) {
@@ -284,7 +298,7 @@ export function useTeleprompterPlayer({
     }
     // arranque o reinicio del efecto: si el paso pendiente es el mismo, solo
     // espera lo que le faltaba
-    schedule(stepWait(stream.steps[i]?.delay ?? 40, dueRef.current, i, win, performance.now()));
+    schedule(stepWait(delayAt(i), dueRef.current, i, win, performance.now()));
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
@@ -295,14 +309,14 @@ export function useTeleprompterPlayer({
   useEffect(() => {
     if (!auto || !playing || bookDone) return;
     if (!pageDone) return;
-    const base = presetWps ? 1000 / (presetWps * TELEPROMPTER_LETTERS_PER_WORD) : 0;
-    const delay = presetWps ? Math.min(1800, Math.max(650, base * 10)) : 380;
+    // misma pausa que el cruce con Auto: el cambio de página nunca es brusco
+    const delay = TELEPROMPTER_PAGE_TURN_MS;
     const timer = window.setTimeout(() => {
       allowCrossRef.current = true;
       setPageDone(false);
     }, delay);
     return () => window.clearTimeout(timer);
-  }, [auto, playing, pageDone, bookDone, presetWps]);
+  }, [auto, playing, pageDone, bookDone]);
 
   // ---------- avance manual de una letra ----------
   /**
@@ -386,7 +400,8 @@ export function useTeleprompterPlayer({
     }
     litRef.current = to;
     setLit(to);
-    scrollToChar(Math.max(0, to - 1));
+    // rebobinado: cámara directa, sin la animación del avance (ver design.md)
+    scrollToChar(Math.max(0, to - 1), { instant: true });
   }, [stream, loadPreviousPage, scrollToChar, spansRef, winRef]);
 
   // ---------- avance ----------

@@ -545,16 +545,21 @@ html:not(.dark) .atena-hero .seal-glow {
   /* Apagado legible: AA+ para texto grande (≥3:1) en ambos temas; el encendido
      lo lleva a opacidad 1. Antes 0.18 quedaba en 1,4–1,6:1 (hallazgo del
      detector en la auditoría de este cambio). */
+  /* Apagado: quieto y sin transición. Apagar es lo CONTRARIO de encender, no
+     una animación inversa: al rebobinar el título se atenúa al instante y no
+     se desplaza (antes bajaba 0,3 em durante 900 ms). */
   opacity: 0.55;
-  /* Aparición suave: el título se asienta desde apenas más abajo mientras se
-     enciende, en vez de saltar de golpe al llegar la cámara. */
-  transform: translateY(0.3em);
-  transition: opacity 900ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    transform 900ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
+/* Aparición suave: una animación declarada SOLO en el estado encendido, así que
+   por construcción nunca corre al apagar. El título se asienta desde apenas más
+   abajo mientras se enciende, en vez de saltar de golpe al llegar la cámara. */
 .tp-block-h.on {
   opacity: 1;
-  transform: none;
+  animation: tp-heading-in 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes tp-heading-in {
+  from { opacity: 0.55; transform: translateY(0.3em); }
+  to { opacity: 1; transform: none; }
 }
 /* el título no se enciende letra a letra: lo revela el bloque entero */
 .tp-block-h .tp-ch {
@@ -566,11 +571,19 @@ html:not(.dark) .atena-hero .seal-glow {
      ENVUELVA en los espacios (lección del bug «línea infinita»: pre mataba
      los puntos de quiebre y la columna se desbordaba a lo ancho) */
   opacity: 0.55;
-  transition: opacity 130ms ease-out, color 130ms ease-out;
+  /* sin transición en el estado base: apagar (rebobinar) es instantáneo */
+  transition: none;
 }
 .tp-ch.on {
   opacity: 1;
   color: var(--reader-ink);
+  /* una transición toma la declaración del estado de DESTINO: el fundido de
+     130 ms vive aquí y por eso corre solo al encender, nunca al retroceder */
+  transition: opacity 130ms ease-out, color 130ms ease-out;
+}
+/* las letras de un título no se encienden una a una: el bloque entero aparece */
+.tp-block-h .tp-ch.on {
+  transition: none;
 }
 /* En pantallas estrechas la letra baja de 24px y el umbral AA sube a 4.5:1:
    el apagado se acerca un punto más para seguir siendo texto legible. */
@@ -594,12 +607,15 @@ html:not(.dark) .atena-hero .seal-glow {
   cursor: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .tp-block-h {
+  .tp-block-h,
+  .tp-block-h.on {
     opacity: 1;
     transform: none;
     transition: none;
+    animation: none;
   }
-  .tp-ch {
+  .tp-ch,
+  .tp-ch.on {
     opacity: 1 !important;
     transition: none;
   }
@@ -644,7 +660,24 @@ html:not(.dark) .atena-hero .seal-glow {
   box-shadow: 0 6px 24px -10px color-mix(in oklab, var(--reader-ink) 45%, transparent);
   backdrop-filter: blur(8px);
   pointer-events: none;
+  overflow: hidden;
   transform: translateX(-50%);
+}
+/* barra de cuenta de la pausa de 2 s antes del cruce de página */
+.tp-notice-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: currentColor;
+  opacity: 0.5;
+  transform-origin: left center;
+  animation: tp-notice-count 2000ms linear both;
+}
+@keyframes tp-notice-count {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
 /* anticipo: aparece y se queda hasta que la página cambia */
 .tp-notice-soon {
@@ -666,8 +699,12 @@ html:not(.dark) .atena-hero .seal-glow {
 }
 @media (prefers-reduced-motion: reduce) {
   .tp-notice-soon,
-  .tp-notice-flash {
+  .tp-notice-flash,
+  .tp-notice-bar {
     animation: none;
+  }
+  .tp-notice-bar {
+    transform: none;
   }
 }
 
