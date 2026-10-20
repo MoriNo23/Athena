@@ -623,6 +623,54 @@ html:not(.dark) .atena-hero .seal-glow {
   padding-top: 40vh;
 }
 
+/* ---------- Aviso de cambio de página del Auto ---------- */
+/* Píldora centrada bajo la barra: «Pasando a la página N…» al acercarse al fin
+   de la página y «Página N · hoy a/b» al llegar. Nunca captura el puntero. */
+.tp-notice {
+  position: absolute;
+  left: 50%;
+  top: 4.25rem;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 550;
+  color: var(--reader-ink);
+  background: color-mix(in oklab, var(--reader-bg) 82%, transparent);
+  border: 1px solid color-mix(in oklab, var(--reader-ink) 16%, transparent);
+  box-shadow: 0 6px 24px -10px color-mix(in oklab, var(--reader-ink) 45%, transparent);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+/* anticipo: aparece y se queda hasta que la página cambia */
+.tp-notice-soon {
+  animation: tp-notice-in 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+/* llegada: entra, se sostiene y sale sola */
+.tp-notice-flash {
+  animation: tp-notice-flash 2600ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes tp-notice-in {
+  from { opacity: 0; transform: translate(-50%, -8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes tp-notice-flash {
+  0% { opacity: 0; transform: translate(-50%, -8px); }
+  12% { opacity: 1; transform: translate(-50%, 0); }
+  80% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tp-notice-soon,
+  .tp-notice-flash {
+    animation: none;
+  }
+}
+
 /* ---------- Recordatorio de teclas fantasma (inmersiones) ---------- */
 /* Columna a la derecha, letras grandes y transparentes (marca de agua):
    cada tecla y qué hace cuando la interfaz se oculta o se muestra en los

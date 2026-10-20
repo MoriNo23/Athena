@@ -153,6 +153,7 @@ export function buildTeleprompterStream(
   const steps: TeleprompterStep[] = [];
   const out: TeleprompterStreamBlock[] = [];
   let pending = 0;
+  let prevHeading = false; // el bloque anterior fue un título
 
   for (const block of blocks) {
     const text = block.text.replace(/\s+/g, " ").trim();
@@ -166,8 +167,13 @@ export function buildTeleprompterStream(
       let delay = base + pending;
       pending = 0;
       if (heading) {
-        if (j === 0) delay += base * TELEPROMPTER_HEADING_PAUSE_LETTERS;
-        else delay = 0; // el título se enciende de golpe
+        // Un título que sigue a otro título (p. ej. portadilla de capítulo y
+        // luego el título de la sección) NO acumula dos respiros: el del título
+        // anterior ya se esperó (`pending`), así que se cuenta una sola vez.
+        if (j === 0) {
+          // `delay` ya incluye el respiro pendiente del título anterior
+          if (!prevHeading) delay += base * TELEPROMPTER_HEADING_PAUSE_LETTERS;
+        } else delay = 0; // el título se enciende de golpe
       }
       steps.push({ char, delay });
       if (heading) continue;
@@ -181,6 +187,7 @@ export function buildTeleprompterStream(
     if (heading) pending = Math.max(pending, base * TELEPROMPTER_HEADING_PAUSE_LETTERS);
 
     out.push({ kind: block.kind, text, start, length: chars.length, heading });
+    prevHeading = heading;
   }
 
   const totalMs = steps.reduce((acc, s) => acc + s.delay, 0);

@@ -60,3 +60,12 @@ Alcance: revisión estática desde un entorno sin navegador ni binarios de Prism
   `prefers-reduced-motion` y el preset Instantánea.
 
 Sin verificar en navegador (entorno sin Chromium ni binarios de Prisma).
+
+## Incidente: el Auto se quedaba trabado en los títulos (regresión propia)
+
+- **Síntoma** (EPUB «El mundo de Sofía», p. 180 «El helenismo», meta 4/10): el Auto se detenía en una página que solo contiene un título.
+- **Causa:** al hacer que el teleprompter contara páginas, `onGoToPage` pasó a ser una función creada en cada render de `ReaderView`. El lector se re-renderiza cada segundo (cronómetro), así que `slide` y el efecto del motor se reiniciaban cada ~1 s y el temporizador volvía a empezar. Una pausa de título más larga que eso (1042 ms a velocidad 4, 1389 ms a 3, 2083 ms a 2; dos títulos seguidos acumulaban dos respiros) no llegaba a cumplirse nunca.
+- **Arreglo (3 capas):** `tpGoToPage` con `useCallback`; el motor lee el callback por ref; y `lib/step-timer.ts` hace que un reinicio del efecto solo espere lo que faltaba. Prueba que reproduce el atasco: `scripts/test-step-timer.ts` (7/7).
+- **Fluidez:** título tras título ya no acumula dos respiros (1042 → 542 ms a velocidad 4); `test-teleprompter-engine.ts` sigue en «MOTOR SANA».
+- **Aviso UX:** `TeleprompterPageNotice` anticipa el cambio («Pasando a la página N…», últimas 48 letras) y confirma la llegada («Página N · hoy a/b», o «¡meta de hoy cumplida!»). Visible con la barra oculta, `aria-live`, respeta reduced-motion. `scripts/test-page-notice.tsx` (7/7).
+- Sin verificar en navegador (sin Chromium ni Prisma en este entorno).

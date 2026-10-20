@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { teleprompterRewind, teleprompterCharCount, type TeleprompterBlock } from "@/lib/teleprompter";
 import { TELEPROMPTER_LETTERS_PER_WORD } from "@/lib/teleprompter";
 import type { StreamWindow } from "@/hooks/use-teleprompter-window";
+import { stepWait, type PendingStep } from "@/lib/step-timer";
 
 interface UseTeleprompterPlayerOpts {
   /** página real pedida por el lector (1-based) */
@@ -77,6 +78,16 @@ export function useTeleprompterPlayer({
   const [bookDone, setBookDone] = useState(false);
   const litRef = useRef(0);
   const allowCrossRef = useRef(false);
+  // El callback del lector se lee por ref: su identidad nunca debe reiniciar
+  // el motor ni recrear `slide` (defensa ante un padre que no lo memoice).
+  const onGoToPageRef = useRef(onGoToPage);
+  useEffect(() => {
+    onGoToPageRef.current = onGoToPage;
+  }, [onGoToPage]);
+  // Próximo paso del motor: instante en que vence y a qué letra corresponde.
+  // Si el efecto se reinicia (cualquier dependencia que cambie) la espera ya
+  // transcurrida no se pierde: una pausa larga no puede quedar siempre a medias.
+  const dueRef = useRef<PendingStep<StreamWindow> | null>(null);
 
   // ---------- ventana: página actual + siguiente ----------
   useEffect(() => {
@@ -121,12 +132,12 @@ export function useTeleprompterPlayer({
       setPageDone(false);
       setBookDone(false);
       // alineación al abrir: no es lectura, no suma páginas
-      if (start !== pageNum) onGoToPage(start, { silent: true });
+      if (start !== pageNum) onGoToPageRef.current(start, { silent: true });
     })();
     return () => {
       alive = false;
     };
-  }, [pageNum, numPages, loadBlocks, onGoToPage, sourceKey, hasSource, setWin, winRef, winSourceRef]);
+  }, [pageNum, numPages, loadBlocks, sourceKey, hasSource, setWin, winRef, winSourceRef]);
 
   // ---------- deslizar la ventana al cruzar de página ----------
   // CRUCE ATÓMICO: la ventana nueva entra en el MISMO render que el rebase del
@@ -149,7 +160,7 @@ export function useTeleprompterPlayer({
       setLit(rebase);
       setPageDone(false);
       setBookDone(false);
-      onGoToPage(nextStart);
+      onGoToPageRef.current(nextStart);
       const opened: StreamWindow = { start: nextStart, pages: [first, null] };
       winRef.current = opened;
       setWin(opened);
@@ -162,7 +173,7 @@ export function useTeleprompterPlayer({
         if (nextStart + 2 <= numPages) void loadBlocks(nextStart + 2);
       })();
     },
-    [firstLen, loadBlocks, numPages, onGoToPage, setWin, stageViewAnchor, winRef]
+    [firstLen, loadBlocks, numPages, setWin, stageViewAnchor, winRef]
   );
 
   // ---------- motor de encendido ----------
@@ -263,10 +274,17 @@ export function useTeleprompterPlayer({
         setBookDone(true);
         return;
       }
-      timer = window.setTimeout(step, Math.max(8, stream.steps[i]?.delay ?? 40));
+      schedule(Math.max(8, stream.steps[i]?.delay ?? 40));
     };
 
-    timer = window.setTimeout(step, Math.max(8, stream.steps[i]?.delay ?? 40));
+    /** Programa el próximo paso y anota cuándo vence (ver `dueRef`) */
+    function schedule(delay: number) {
+      dueRef.current = { at: performance.now() + delay, lit: i, win };
+      timer = window.setTimeout(step, delay);
+    }
+    // arranque o reinicio del efecto: si el paso pendiente es el mismo, solo
+    // espera lo que le faltaba
+    schedule(stepWait(stream.steps[i]?.delay ?? 40, dueRef.current, i, win, performance.now()));
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
@@ -334,9 +352,9 @@ export function useTeleprompterPlayer({
       setLit(all);
       setPageDone(false);
       setBookDone(false);
-      onGoToPage(prev);
+      onGoToPageRef.current(prev);
     })();
-  }, [loadBlocks, onGoToPage, setWin, stageViewAnchor, winRef]);
+  }, [loadBlocks, setWin, stageViewAnchor, winRef]);
 
   /** `Shift+←`: salto a la página anterior (completa y encendida, lista para releer) */
   const goToPrevPage = useCallback(() => {
