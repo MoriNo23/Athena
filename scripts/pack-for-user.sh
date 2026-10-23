@@ -11,7 +11,6 @@ tar czf "$OUT" \
   --exclude='./node_modules' \
   --exclude='./.next' \
   --exclude='./.git' \
-  --exclude='./.venv-graphify' \
   --exclude='./skills' \
   --exclude='./tool-results' \
   --exclude='./.zscripts' \
@@ -28,7 +27,6 @@ tar czf "$OUT" \
   --exclude='./server.log' \
   --exclude='./scripts/*.png' \
   --exclude='./scripts/*.pdf' \
-  --exclude='./graphify-out/cache' \
   .
 cp -f "$ROOT/LEEME.md" "$ROOT/download/LEEME.md"
 

@@ -14,8 +14,8 @@ mkdir -p "$SIM"
 
 echo "=== 1. Copiar proyecto (sin node_modules/.next/.git/venv/tools) ==="
 rsync -a --exclude node_modules --exclude .next --exclude .git \
-  --exclude .venv-graphify --exclude tools --exclude skills \
-  --exclude graphify-out --exclude 'tool-results' --exclude 'scripts/*.png' \
+  --exclude tools --exclude skills \
+  --exclude 'tool-results' --exclude 'scripts/*.png' \
   --exclude 'scripts/*.pdf' --exclude dev.log --exclude server.log \
   --exclude tsconfig.tsbuildinfo --exclude '.metrics' \
   --exclude 'db/custom.db' --exclude 'scripts/clean-test-copy' \

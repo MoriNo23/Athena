@@ -24,6 +24,7 @@
 4. **graphify sale completo del repo** (2 scripts + mención en LEEME). La tool sigue siendo útil externamente; el repo no lleva el puente muerto.
 5. **Verificación de vuelo sano post-purga**: `bun run lint`, `bunx tsc --noEmit`, y las sondas canónicas vigentes (`probe-flechas-tp.js` 9/9 y la suite unitaria de `test-step-timer.ts`/`test-page-notice.tsx`) — la casa verde demuestra que las herramientas vivas no dependían de nada purgado.
 6. **Commit único** para toda la purga (revert directo).
+7. **README usa 4 capturas de `docs/screenshots/`** (library y teleprompter, dark/light): están **vivas** (doc de uso), no minutería. Decision: se mueven a `.github/assets/` (convención GitHub para assets de README) con los 2 links de README actualizados; las restantes 47 se purgan. Ajuste menor registrado por el flujo fluido.
 
 ## Risks / Trade-offs
 
