@@ -27,7 +27,7 @@ TU máquina, TU biblioteca es TUYA.
 ## Arranque en 4 comandos (clon limpio)
 
 ```bash
-cp .env.example .env    # una línea: DATABASE_URL=file:../db/custom.db
+cp .env.example .env    # una línea obligatoria (DATABASE_URL); ATENA_PASSWORD es opcional
 bun install             # instala todo y auto-genera el cliente de base de datos
 bunx prisma db push     # crea la BD vacía en db/custom.db (solo la primera vez)
 bun run dev             # arranca la app en http://localhost:3000
@@ -35,6 +35,16 @@ bun run dev             # arranca la app en http://localhost:3000
 
 Y abre **http://localhost:3000** en el navegador. Sube un PDF o EPUB con
 arrastrarlo a la biblioteca. Ya está. A leer.
+
+> **¿Poner contraseña a la biblioteca?** Añade `ATENA_PASSWORD=tu-contraseña`
+> al `.env` y reinicia: toda la API queda bloqueada y la biblioteca pide la
+> contraseña en pantalla. Sin esa línea, todo queda abierto como siempre.
+>
+> Es un candado ligero, pensado para mostrar la app en tu red local: quien
+> intente entrar sin la contraseña, no ve nada. No sustituye a HTTPS — la
+> cookie viaja sin cifrar bajo HTTP, así que si expones la app a internet,
+> ponla detrás de un reverse proxy con HTTPS (y opcionalmente con su propia
+> autenticación).
 
 > El `bun install` ejecuta automáticamente `prisma generate` (hay un gancho
 > `postinstall` que lo hace solo). Si algún día la biblioteca de libros

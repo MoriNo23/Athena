@@ -19,10 +19,10 @@
 
 ## 4. Sondas y documentación
 
-- [ ] 4.1 `scripts/with-dev.sh`: fuerza `ATENA_PASSWORD=""` en el servidor de sondas; las sondas existentes quedan verdes (regresión verificada con la matriz de 2.3).
-- [ ] 4.2 `.env.example` + LEEME: una línea de env con su riesgo LAN y la nota HTTPS/reverse proxy.
+- [x] 4.1 `scripts/with-dev.sh`: fuerza `ATENA_PASSWORD=""` en el servidor de sondas; las sondas existentes quedan verdes (regresión verificada con la matriz de 2.3).
+- [x] 4.2 `.env.example` + LEEME: una línea de env con su riesgo LAN y la nota HTTPS/reverse proxy.
 
 ## 5. Cierre
 
-- [ ] 5.1 `bun run lint` + `bunx tsc --noEmit` en verde.
-- [ ] 5.2 Commits por palanca con la matriz antes/después (curl base + matriz del candado) y push.
+- [x] 5.1 `bun run lint` + `bunx tsc --noEmit` en verde.
+- [x] 5.2 Commits por palanca con la matriz antes/después (curl base + matriz del candado) y push.
