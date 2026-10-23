@@ -28,8 +28,20 @@ BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = f"{BASE}/public/uploads"
 os.makedirs(OUT, exist_ok=True)
 
+# ruta base de una sans con glifos latinos; se resuelve al vuelo (Verificación
+# en contenedores sin dejavu: cae a la primera TTF instalada equivalente)
 DEJAVU = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 DEJAVU_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+
+def _ttf(ruta: str, tam: int):
+    """Primera variante disponible: DejaVu → Liberation Sans → FreeSans."""
+    for r in (ruta, ruta.replace("dejavu/DejaVuSans-", "liberation/LiberationSans-"), "/usr/share/fonts/truetype/freefont/FreeSans.ttf"):
+        if os.path.exists(r):
+            try:
+                return ImageFont.truetype(r, tam)
+            except OSError:
+                pass
+    raise OSError(f"Sin TTF instalada para las portadas (probadas dejavu/liberation/freefont)")
 
 # ---------------------------------------------------------------- textos ----
 QUIJOTE_CAPS = [
@@ -97,9 +109,9 @@ FONT_COVER_S = None
 
 def cover_fonts():
     global FONT_COVER_T, FONT_COVER_A, FONT_COVER_S
-    FONT_COVER_T = ImageFont.truetype(DEJAVU_B, 54)
-    FONT_COVER_A = ImageFont.truetype(DEJAVU, 30)
-    FONT_COVER_S = ImageFont.truetype(DEJAVU, 22)
+    FONT_COVER_T = _ttf(DEJAVU_B, 54)
+    FONT_COVER_A = _ttf(DEJAVU, 30)
+    FONT_COVER_S = _ttf(DEJAVU, 22)
 
 
 def meander_border(d, x0, y0, x1, y1, color, step=22, width=4):
@@ -292,9 +304,9 @@ def build_scanned():
             r = rng.randrange(20, 90)
             d.ellipse([cx, cy, cx + r, cy + r], fill=(226, 219, 203))
         margin = 110
-        f_title = ImageFont.truetype(DEJAVU_B, 54)
-        f_body = ImageFont.truetype(DEJAVU, 36)
-        f_page = ImageFont.truetype(DEJAVU, 30)
+        f_title = _ttf(DEJAVU_B, 54)
+        f_body = _ttf(DEJAVU, 36)
+        f_page = _ttf(DEJAVU, 30)
         d.text((margin, 120), title, font=f_title, fill=(48, 42, 38))
         d.line([margin, 200, W - margin, 200], fill=(120, 108, 96), width=3)
         y = 260
