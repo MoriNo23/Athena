@@ -55,6 +55,13 @@ interface ReaderViewProps {
   onBookChange?: (book: BookDTO) => void;
 }
 
+/** Pista única de inmersión (P0 #2): la primera vez POR DISPOSITIVO que el
+    chrome se esconde solo, una pastilla explica cómo vuelve y se retira
+    sola — una sola vez, con su propio reloj: el timing del auto-ocultado
+    (idleSeconds) queda intacto. */
+const IMMERSE_HINT_SEEN_KEY = "riel-immerse-hint-seen";
+const IMMERSE_HINT_HOLD_MS = 4000;
+
 /** Estado del lector según formato: EPUB nace del hook, PDF del visor. */
 function readerStatus(
   isEpub: boolean,
@@ -397,6 +404,23 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     }
   }, [setChromeHidden]);
 
+  // ---------- Pista única de inmersión (P0 #2) ----------
+  // Solo el auto-ocultado por inactividad la dispara: si la UI la escondió la
+  // tecla, el mouse NO la despierta y la pista de «mover el mouse» sería falsa.
+  const [immerseHint, setImmerseHint] = useState(false);
+  useEffect(() => {
+    if (!chromeHidden || hiddenByKeyRef.current) return;
+    if (localStorage.getItem(IMMERSE_HINT_SEEN_KEY)) return;
+    localStorage.setItem(IMMERSE_HINT_SEEN_KEY, "1");
+    setImmerseHint(true);
+  }, [chromeHidden]);
+  // se retira sola con su propio reloj; con el chrome despierto no se muestra
+  useEffect(() => {
+    if (!immerseHint) return;
+    const retire = window.setTimeout(() => setImmerseHint(false), IMMERSE_HINT_HOLD_MS);
+    return () => window.clearTimeout(retire);
+  }, [immerseHint]);
+
   // ---------- Salto vertical con ↑/↓ (fracción del visor configurable) ----------
   const scrollByStep = useScrollStep(scrollStepPct);
 
@@ -542,7 +566,6 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
         <div className="flex min-w-0 flex-1 flex-col">
           <ReaderHeader
             book={book}
-            pct={pct}
             numPages={numPages}
             pageNum={pageNum}
             goToPage={jumpOutsideText}
@@ -727,6 +750,17 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
           data-testid="kbd-focus-hint"
         >
           {t("rv.kbdHint")}
+        </div>
+      )}
+
+      {/* Pista única de inmersión: la primera vez que el chrome se esconde
+          solo, cómo vuelve (retirada a los ~4 s o al despertar) */}
+      {immerseHint && chromeHidden && (
+        <div
+          className="pointer-events-none fixed bottom-3 left-1/2 z-50 -translate-x-1/2 rounded-full border border-primary/40 bg-card/95 px-3 py-1 text-xs text-foreground shadow-lg backdrop-blur"
+          data-testid="immerse-hint"
+        >
+          {t("rv.immerseHint")}
         </div>
       )}
 
