@@ -13,9 +13,9 @@
 
 ## 3. (b) UX de desbloqueo en la biblioteca
 
-- [ ] 3.1 `useLibraryBooks.fetchBooks`: 401 → estado `locked: true` (no biblioteca vacía silenciosa); strings i18n `lib.lock*` (título/placeholder/botón) en el dictionary.
-- [ ] 3.2 Componente de lock mínimo en la vista de biblioteca (input + botón → `POST /api/auth/login` → éxito re-fetchea; fallo muestra el mensaje de error al usuario).
-- [ ] 3.3 Sonda de browser (dev con la env del candado seteada en un arranque aparte): el lock aparece al abrir, la contraseña desbloquea y las cards vuelven; 0 pageerror/console.
+- [x] 3.1 `useLibraryBooks.fetchBooks`: 401 → estado `locked: true` (no biblioteca vacía silenciosa); strings i18n `lib.lock*` (título/placeholder/botón) en el dictionary.
+- [x] 3.2 Componente de lock mínimo en la vista de biblioteca (input + botón → `POST /api/auth/login` → éxito re-fetchea; fallo muestra el mensaje de error al usuario).
+- [x] 3.3 Sonda de browser (dev con la env del candado seteada en un arranque aparte): el lock aparece al abrir, la contraseña desbloquea y las cards vuelven; 0 pageerror/console.
 
 ## 4. Sondas y documentación
 
