@@ -14,6 +14,9 @@ export const pt: Record<string, string> = {
   "lib.heroSubtitle":
     "A casa da sabedoria guarda sua biblioteca: trilho de progresso, marcos, ofensiva (streak) e um teleprompter que acende as páginas letra por letra.",
   "lib.resetAll": "Zerar todo o progresso",
+  "lib.moreAria": "Menu: idioma, noite/manhã e zerar o progresso",
+  "lib.themeNight": "Noite egeia",
+  "lib.themeMorning": "Manhã de mármore",
   "lib.addBook": "Adicionar livro",
   "lib.streak": "Ofensiva",
   "lib.day1": "dia",

@@ -16,8 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LanguageMenu } from "@/components/library/LanguageMenu";
+import { HeroMenu } from "@/components/library/HeroMenu";
 import { BadgeShelf } from "@/components/library/BadgeShelf";
 import { EditBookDialog } from "@/components/library/EditBookDialog";
 import { BookCard } from "@/components/library/BookCard";
@@ -32,7 +31,6 @@ import {
   Flame,
   Loader2,
   Plus,
-  RotateCcw,
   Target,
   Trophy,
   UploadCloud,
@@ -116,37 +114,26 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
   return (
     <div className="mx-auto w-full max-w-6xl px-8 py-8">
       {/* ---- Hero de Atenea ---- */}
-      <header className="atena-hero mb-8 flex items-center justify-between gap-6 px-8 py-7 animate-fade-up">
-        <div className="flex min-w-0 items-center gap-5">
-          <AtenaSeal className="seal-glow h-16 w-16 shrink-0 text-primary" />
-          <div className="min-w-0">
-            <h1 className="font-display text-4xl font-semibold tracking-tight">Atena</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              {t("lib.heroSubtitle")}
-            </p>
+      {/* Móvil: identidad a todo lo ancho (sello menor, subtítulo a 2 líneas)
+          y las acciones vuelan a su propia fila; en el hero ya no hay icono
+          destructivo a 24px de la CTA principal (vive en el menú «⋯»). */}
+      <header className="atena-hero mb-8 animate-fade-up px-5 py-6 sm:px-8 sm:py-7">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+          <div className="flex min-w-56 flex-1 items-center gap-4 sm:gap-5">
+            <AtenaSeal className="seal-glow h-12 w-12 shrink-0 text-primary sm:h-16 sm:w-16" />
+            <div className="min-w-0">
+              <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Atena</h1>
+              <p className="mt-1 max-w-xl text-sm text-muted-foreground line-clamp-2 sm:line-clamp-none">
+                {t("lib.heroSubtitle")}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <LanguageMenu compact />
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 text-muted-foreground hover:text-foreground"
-            onClick={() => setResetAllOpen(true)}
-            aria-label={t("lib.resetAll")}
-            title={t("lib.resetAll")}
-            data-testid="reset-all"
-          >
-            <RotateCcw className="h-4.5 w-4.5" />
-          </Button>
-          <Button
-            size="lg"
-            className="gap-2"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Plus className="h-5 w-5" /> {t("lib.addBook")}
-          </Button>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <Button size="lg" className="gap-2" onClick={() => fileInputRef.current?.click()}>
+              <Plus className="h-5 w-5" /> {t("lib.addBook")}
+            </Button>
+            <HeroMenu onResetAll={() => setResetAllOpen(true)} />
+          </div>
         </div>
         <input
           ref={fileInputRef}

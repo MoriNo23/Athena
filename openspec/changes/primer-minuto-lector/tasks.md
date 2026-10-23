@@ -31,4 +31,4 @@
 
 ## 6. Cierre
 
-- [ ] 6.1 Pase final `/impeccable polish` (advisory preexistente `text-[10px]` del peek + 2 hallazgos de lint en ReaderView) — ronda próxima, junto con los P1 de móvil.
+- [x] 6.1 Pase final `/impeccable polish` — 24-10-2026: advisory `text-[10px]` del peek → `text-xs` (la línea de las pastillas de la casa); los 2 hallazgos de lint en ReaderView (set-state-in-effect + complejidad 32>30) resueltos de estructura: pista de inmersión extraída a `use-immerse-hint` (7/7 de su probe intacto) y rieles retirados a `ReaderRail`; P1 móvil #4 (biblioteca: hero que se desarmaba a 390 — sello menor, subtítulo a 2 líneas, acciones fuera de la cara del texto; lector: cabecera de 8 filas → 2 filas fijas, ± del zoom cedido a la pinza, modo Página/Texto al menú «⋯», telemetría solo de escritorio, táctil a 44px con `.tap-44`) y P1 #5 (claves crudas `config.pos-*` → `config.posLeft…` que ya existían; acciones de card visibles en táctil y con foco de teclado); «Reiniciar todo el progreso» al menú ⋯ del hero (dueña). Fuera de alcance decidido por la dueña: sheet móvil del dock.

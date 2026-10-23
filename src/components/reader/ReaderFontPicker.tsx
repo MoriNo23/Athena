@@ -27,13 +27,13 @@ export function ReaderFontPicker({ font, onChange }: ReaderFontPickerProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-1.5 px-2 text-xs"
+          className="tap-44 h-8 gap-1.5 px-2 text-xs"
           title={t("reader.fontTip", { name: current.label })}
           aria-label={t("reader.fontAria")}
           data-testid="reader-font-picker"
         >
           <Type className="h-3.5 w-3.5" />
-          {current.label}
+          <span className="hidden sm:inline">{current.label}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="min-w-48">

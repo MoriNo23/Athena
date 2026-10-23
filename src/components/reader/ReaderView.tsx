@@ -11,6 +11,7 @@ import { useReadingSession } from "@/hooks/use-reading-session";
 import { useFinishBadge } from "@/hooks/use-finish-badge";
 import { useMilestoneCelebration } from "@/hooks/use-milestone-celebration";
 import { usePeekGesture } from "@/hooks/use-peek-gesture";
+import { useImmerseHint } from "@/hooks/use-immerse-hint";
 import { useFinishEta } from "@/hooks/use-finish-eta";
 import { useZoomPreset } from "@/hooks/use-zoom-preset";
 import { useFullscreen } from "@/hooks/use-fullscreen";
@@ -43,6 +44,7 @@ import { epubPageText, type EpubPage } from "@/lib/epub";
 import type { TeleprompterBlock } from "@/lib/teleprompter";
 import { clampTeleprompterFontScale, TELEPROMPTER_FONT_STEP } from "@/lib/types";
 import type { BookDTO } from "@/lib/types";
+import type { RailPosition } from "@/lib/types";
 import type { BookWithSessions } from "@/hooks/use-library-books";
 import { cn } from "@/lib/utils";
 import type { PDFDocumentProxy } from "pdfjs-dist";
@@ -54,13 +56,6 @@ interface ReaderViewProps {
   /** sincroniza el libro activo (p. ej. hitos individuales) con el estado raíz */
   onBookChange?: (book: BookDTO) => void;
 }
-
-/** Pista única de inmersión (P0 #2): la primera vez POR DISPOSITIVO que el
-    chrome se esconde solo, una pastilla explica cómo vuelve y se retira
-    sola — una sola vez, con su propio reloj: el timing del auto-ocultado
-    (idleSeconds) queda intacto. */
-const IMMERSE_HINT_SEEN_KEY = "riel-immerse-hint-seen";
-const IMMERSE_HINT_HOLD_MS = 4000;
 
 /** Estado del lector según formato: EPUB nace del hook, PDF del visor. */
 function readerStatus(
@@ -146,6 +141,52 @@ function ReaderShortcutGhost(props: {
 }) {
   if (!props.isFullscreen) return null;
   return <ShortcutGhost signal={props.chromeHidden} entries={props.entries} testId="reader-shortcut-ghost" />;
+}
+
+/** El riel donde lo pida el ajuste: lateral estrecho (64px + %) o franja
+    horizontal del borde. Se retira a null si su lado no es el activo — así
+    los cuatro condicionales del cuerpo del lector viven en un solo lugar. */
+function ReaderRail({
+  edge,
+  position,
+  pct,
+  children,
+}: {
+  edge: RailPosition;
+  position: RailPosition;
+  pct: number;
+  children: React.ReactNode;
+}) {
+  if (position !== edge) return null;
+  if (edge === "left")
+    return (
+      <aside data-chrome data-chrome-kind="aside" className="flex w-16 flex-col border-r border-border/60 bg-card/40 py-5">
+        <div className="min-h-0 flex-1">{children}</div>
+        <div className="mt-3 text-center text-xs tabular-nums text-muted-foreground">
+          {pct}%
+        </div>
+      </aside>
+    );
+  if (edge === "right")
+    return (
+      <aside data-chrome data-chrome-kind="aside" className="flex w-16 flex-col border-l border-border/60 bg-card/40 py-5">
+        <div className="min-h-0 flex-1">{children}</div>
+        <div className="mt-3 text-center text-xs tabular-nums text-muted-foreground">
+          {pct}%
+        </div>
+      </aside>
+    );
+  if (edge === "top")
+    return (
+      <div data-chrome data-chrome-kind="railbar" className="border-b border-border/60 bg-card/40 px-10 pb-4 pt-3">
+        {children}
+      </div>
+    );
+  return (
+    <div data-chrome data-chrome-kind="railbar" className="border-t border-border/60 bg-card/40 px-10 pb-4 pt-2">
+      {children}
+    </div>
+  );
 }
 
 export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
@@ -351,13 +392,17 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     [tpFontScale, setTeleprompter]
   );
 
+  // Dominio reflow (EPUB nativo o modo texto del PDF): en él «zoom» = tamaño
+  // de letra y los presets del visor de PDF no aplican.
+  const reflowMode = isEpub || textMode;
+
   // En EPUB o modo texto, «zoom» = tamaño de letra (teclas +/− y Ctrl+rueda)
   const hotkeyZoomBy = useCallback(
     (factor: number) => {
-      if (isEpub || textMode) fontDelta(factor > 1 ? 1 : -1);
+      if (reflowMode) fontDelta(factor > 1 ? 1 : -1);
       else zoomBy(factor);
     },
-    [isEpub, textMode, fontDelta, zoomBy]
+    [reflowMode, fontDelta, zoomBy]
   );
   const noopPreset = useCallback(() => {}, []);
   const noopZoomBy = useCallback(() => {}, []);
@@ -387,6 +432,12 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     rearmRef: wakeRearmRef,
   });
 
+  // ---------- Pista única de inmersión (P0 #2, extraída a hook): la primera
+  // vez POR DISPOSITIVO que el chrome se esconde solo, cómo vuelve. El encendido
+  // es solo por auto-ocultado de inactividad — el mensaje «mover el mouse»
+  // sería falso si la UI la escondió la tecla (ahí el mouse no despierta).
+  const immerseHint = useImmerseHint(chromeHidden, hiddenByKeyRef);
+
   // ---------- Inmersión manual: la tecla configurada oculta/muestra la UI al instante ----------
   const toggleHideUi = useCallback(() => {
     if (chromeHiddenRef.current) {
@@ -404,23 +455,6 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     }
   }, [setChromeHidden]);
 
-  // ---------- Pista única de inmersión (P0 #2) ----------
-  // Solo el auto-ocultado por inactividad la dispara: si la UI la escondió la
-  // tecla, el mouse NO la despierta y la pista de «mover el mouse» sería falsa.
-  const [immerseHint, setImmerseHint] = useState(false);
-  useEffect(() => {
-    if (!chromeHidden || hiddenByKeyRef.current) return;
-    if (localStorage.getItem(IMMERSE_HINT_SEEN_KEY)) return;
-    localStorage.setItem(IMMERSE_HINT_SEEN_KEY, "1");
-    setImmerseHint(true);
-  }, [chromeHidden]);
-  // se retira sola con su propio reloj; con el chrome despierto no se muestra
-  useEffect(() => {
-    if (!immerseHint) return;
-    const retire = window.setTimeout(() => setImmerseHint(false), IMMERSE_HINT_HOLD_MS);
-    return () => window.clearTimeout(retire);
-  }, [immerseHint]);
-
   // ---------- Salto vertical con ↑/↓ (fracción del visor configurable) ----------
   const scrollByStep = useScrollStep(scrollStepPct);
 
@@ -431,7 +465,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     pageNum: textMode ? textVirtual : pageNum,
     zoomBy: hotkeyZoomBy,
     toggleFullscreen,
-    applyZoomPreset: isEpub || textMode ? noopPreset : applyZoomPreset,
+    applyZoomPreset: reflowMode ? noopPreset : applyZoomPreset,
     peekOpenRef: peek.peekOpenRef,
     scrollByStep,
     toggleHideUi,
@@ -545,23 +579,12 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
         chromeHidden && "chrome-immersed"
       )}
     >
-      {/* --- Riel superior --- */}
-      {rail.position === "top" && (
-        <div data-chrome data-chrome-kind="railbar" className="border-b border-border/60 bg-card/40 px-10 pb-4 pt-3">
-          {railNode}
-        </div>
-      )}
+      {/* Riel superior (se retira a null si el ajuste lo pone en otro lado) */}
+      <ReaderRail edge="top" position={rail.position} pct={pct}>{railNode}</ReaderRail>
 
       <div className="flex min-h-0 flex-1">
-        {/* --- Riel lateral izquierdo --- */}
-        {rail.position === "left" && (
-          <aside data-chrome data-chrome-kind="aside" className="flex w-16 flex-col border-r border-border/60 bg-card/40 py-5">
-            <div className="min-h-0 flex-1">{railNode}</div>
-            <div className="mt-3 text-center text-xs tabular-nums text-muted-foreground">
-              {pct}%
-            </div>
-          </aside>
-        )}
+        {/* Riel lateral izquierdo */}
+        <ReaderRail edge="left" position={rail.position} pct={pct}>{railNode}</ReaderRail>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <ReaderHeader
@@ -640,23 +663,12 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
           </div>
         </div>
 
-        {/* --- Riel lateral derecho --- */}
-        {rail.position === "right" && (
-          <aside data-chrome data-chrome-kind="aside" className="flex w-16 flex-col border-l border-border/60 bg-card/40 py-5">
-            <div className="min-h-0 flex-1">{railNode}</div>
-            <div className="mt-3 text-center text-xs tabular-nums text-muted-foreground">
-              {pct}%
-            </div>
-          </aside>
-        )}
+        {/* Riel lateral derecho */}
+        <ReaderRail edge="right" position={rail.position} pct={pct}>{railNode}</ReaderRail>
       </div>
 
-      {/* --- Riel inferior --- */}
-      {rail.position === "bottom" && (
-        <div data-chrome data-chrome-kind="railbar" className="border-t border-border/60 bg-card/40 px-10 pb-4 pt-2">
-          {railNode}
-        </div>
-      )}
+      {/* Riel inferior */}
+      <ReaderRail edge="bottom" position={rail.position} pct={pct}>{railNode}</ReaderRail>
 
       {/* Zona caliente inferior: presionar + arrastrar hacia arriba = hojear páginas */}
       <div
@@ -667,7 +679,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
         onPointerCancel={peek.onPeekCancel}
         data-testid="peek-hotzone"
       >
-        <div className="peek-hint pointer-events-none absolute inset-x-0 bottom-0.5 mx-auto w-fit rounded-full border border-border/60 bg-card/90 px-3 py-0.5 text-[10px] text-muted-foreground opacity-0 shadow-lg backdrop-blur transition-opacity duration-300">
+        <div className="peek-hint pointer-events-none absolute inset-x-0 bottom-0.5 mx-auto w-fit rounded-full border border-border/60 bg-card/90 px-3 py-0.5 text-xs text-muted-foreground opacity-0 shadow-lg backdrop-blur transition-opacity duration-300">
           {t("rv.peekHint")}
         </div>
       </div>

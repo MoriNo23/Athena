@@ -14,6 +14,9 @@ export const en: Record<string, string> = {
   "lib.heroSubtitle":
     "The house of wisdom keeps your library: a progress rail, milestones, a streak, and a teleprompter that lights up the pages letter by letter.",
   "lib.resetAll": "Reset all progress",
+  "lib.moreAria": "Menu: language, night/morning and progress reset",
+  "lib.themeNight": "Aegean night",
+  "lib.themeMorning": "Marble morning",
   "lib.addBook": "Add book",
   "lib.streak": "Streak",
   "lib.day1": "day",

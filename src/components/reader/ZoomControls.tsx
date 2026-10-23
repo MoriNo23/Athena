@@ -30,8 +30,10 @@ export function ZoomControls({ effectiveScale, activeZoom, onZoomBy, onPreset }:
   const named = activeZoom === "optimal" || activeZoom === "page";
   return (
     <div className="flex items-center gap-0.5">
+        {/* ±: escritorio. En punto grueso la casa es la pinza del visor
+            (onZoomGesture): el disparador basta y los 44 px no separan filas. */}
         <Tip label={t("zoom.minusTip")}>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onZoomBy(1 / 1.12)} aria-label={t("zoom.minusAria")}>
+          <Button variant="ghost" size="icon" className="tap-44 hidden h-8 w-8 sm:inline-flex" onClick={() => onZoomBy(1 / 1.12)} aria-label={t("zoom.minusAria")}>
             <Minus className="h-4 w-4" />
           </Button>
         </Tip>
@@ -40,12 +42,12 @@ export function ZoomControls({ effectiveScale, activeZoom, onZoomBy, onPreset }:
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 px-2 text-xs"
+              className="tap-44 h-8 gap-1.5 px-2 text-xs"
               title={t("zoom.presetsTitle")}
               data-testid="zoom-menu"
             >
               <ZoomIn className="h-3.5 w-3.5" />
-              {(named && activeZoom) ? t(`zoom.${activeZoom}Short`) : <span className="tabular-nums">{Math.round(effectiveScale * 100)}%</span>}
+              {(named && activeZoom) ? <span className="hidden sm:inline">{t(`zoom.${activeZoom}Short`)}</span> : <span className="tabular-nums">{Math.round(effectiveScale * 100)}%</span>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-72">
@@ -73,7 +75,7 @@ export function ZoomControls({ effectiveScale, activeZoom, onZoomBy, onPreset }:
           </DropdownMenuContent>
         </DropdownMenu>
         <Tip label={t("zoom.plusTip")}>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onZoomBy(1.12)} aria-label={t("zoom.plusAria")}>
+          <Button variant="ghost" size="icon" className="tap-44 hidden h-8 w-8 sm:inline-flex" onClick={() => onZoomBy(1.12)} aria-label={t("zoom.plusAria")}>
             <Plus className="h-4 w-4" />
           </Button>
         </Tip>
