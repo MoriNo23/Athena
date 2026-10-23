@@ -2,15 +2,15 @@
 
 ## 1. Baseline de medición (antes de tocar nada)
 
-- [ ] 1.1 (a) Medir payload y conteo de filas de `GET /api/books` con la biblioteca del fixture (`/tmp/opencode`: script ad-hoc con `asegurarLibro` + sesiones inyectadas vía `use-reading-session` o BD) — número antes.
-- [ ] 1.2 (b) Contar renders/tick del overlay (React Profiler en un run de ~10 s con la sonda `probe-flechas-tp.js` en marcha o export de Profile via page.evaluate) — número antes.
-- [ ] 1.3 (c) `bunx next build` y registrar el peso del chunk del lector (route bundle del lector) — número antes.
+- [x] 1.1 (a) Medir payload y conteo de filas de `GET /api/books` con la biblioteca del fixture (`/tmp/opencode`: script ad-hoc con `asegurarLibro` + sesiones inyectadas vía `use-reading-session` o BD) — número antes.
+- [x] 1.2 (b) Contar renders/tick del overlay (React Profiler en un run de ~10 s con la sonda `probe-flechas-tp.js` en marcha o export de Profile via page.evaluate) — número antes.
+- [x] 1.3 (c) `bunx next build` y registrar el peso del chunk del lector (route bundle del lector) — número antes.
 
 ## 2. Lever (a): agregación por día en GET /api/books
 
-- [ ] 2.1 Grep maestro de compatibilidad: ningún consumidor usa sesiones a nivel unidad (solo `groupSessionsByDay`/sumas por día); si aparece un uso unit-sesión, parar la palanca y re-plantear con el usuario.
-- [ ] 2.2 Implementar el `groupBy` (`src/app/api/books/route.ts` GET): sumas por `(bookId, date)`, campo `sessions` como filas por día, badge intacto.
-- [ ] 2.3 Re-medir con el script de 1.1 (payload/filas después) y comprobar la UI de biblioteca (streak/rate/today) con el mismo numéro que antes (regresión cero).
+- [x] 2.1 Grep maestro de compatibilidad: ningún consumidor usa sesiones a nivel unidad (solo `groupSessionsByDay`/sumas por día); si aparece un uso unit-sesión, parar la palanca y re-plantear con el usuario.
+- [x] 2.2 Implementar el `groupBy` (`src/app/api/books/route.ts` GET): sumas por `(bookId, date)`, campo `sessions` como filas por día, badge intacto.
+- [x] 2.3 Re-medir con el script de 1.1 (payload/filas después) y comprobar la UI de biblioteca (streak/rate/today) con el mismo numéro que antes (regresión cero).
 
 ## 3. Lever (b): tick del teleprompter donde solo duele
 
