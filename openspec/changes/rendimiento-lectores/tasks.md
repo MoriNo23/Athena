@@ -14,9 +14,9 @@
 
 ## 3. Lever (b): tick del teleprompter donde solo duele
 
-- [ ] 3.1 Aplicar la opción (b-i) design §2: `React.memo` a los subárboles que no consumen `lit` (el stream ya se actualiza imperativo).
-- [ ] 3.2 Perfil de renders/tick (como 1.2). Si (b-i) deja renders en hijas que dependen del tick o congela algo vivo, caer a (b-ii: `lit` al componente mínimo con `litRef` + rAF).
-- [ ] 3.3 Verificar la conducta viva: `probe-camara-suave.js` 8/8 + `probe-flechas-tp.js` 9/9 + aviso de página (`tp-page-notice-bar` ≈2000 ms) — nada congelado ni tardío.
+- [x] 3.1 Aplicar la opción (b-i) design §2: `React.memo` a los subárboles que no consumen `lit` (el stream ya se actualiza imperativo).
+- [x] 3.2 Perfil de renders/tick (como 1.2). Si (b-i) deja renders en hijas que dependen del tick o congela algo vivo, caer a (b-ii: `lit` al componente mínimo con `litRef` + rAF).
+- [x] 3.3 Verificar la conducta viva: `probe-camara-suave.js` 8/8 + `probe-flechas-tp.js` 9/9 + aviso de página (`tp-page-notice-bar` ≈2000 ms) — nada congelado ni tardío.
 
 ## 4. Lever (c): stage perezoso
 
