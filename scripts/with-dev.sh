@@ -2,6 +2,8 @@
 # Arranca el dev server (puerto 3000), espera readiness y ejecuta el comando
 # recibido; al terminar, apaga el server. Uso: bash scripts/with-dev.sh <cmd...>
 cd "$(dirname "$0")/.." || exit 2
+# Sondas asumen API abierto: el candado opt-in (auth-api) queda fuera del server de sondas
+export ATENA_PASSWORD=""
 rm -f dev.log
 setsid nohup bun run dev </dev/null >/dev/null 2>&1 &
 cleanup() {
