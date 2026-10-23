@@ -80,4 +80,7 @@ tail -6 "$SIM/prod-3101.log" 2>/dev/null
 
 echo "=== 7. Limpieza total de la copia de prueba ==="
 pkill -f "clean-test-copy" 2>/dev/null; sleep 1
+# El install del ensayo enterra un node_modules de >1 GB dentro: hay que
+# borrar la copia entera, no solo matar procesos (regenera el ensayo en 1 cmd).
+rm -rf "$SIM"
 echo "RESULTADO FINAL: DEVOK=$DEVOK PRODOK=$PRODOK"
