@@ -26,4 +26,4 @@
 ## 5. Cierre
 
 - [x] 5.1 `bun run lint` + `bunx tsc --noEmit` en verde.
-- [ ] 5.2 Commits por palanca con la matriz antes/después en el mensaje y push.
+- [x] 5.2 Commits por palanca con la matriz antes/después en el mensaje y push.
