@@ -36,15 +36,21 @@ bun run dev             # arranca la app en http://localhost:3000
 Y abre **http://localhost:3000** en el navegador. Sube un PDF o EPUB con
 arrastrarlo a la biblioteca. Ya está. A leer.
 
-> **¿Poner contraseña a la biblioteca?** Añade `ATENA_PASSWORD=tu-contraseña`
-> al `.env` y reinicia: toda la API queda bloqueada y la biblioteca pide la
-> contraseña en pantalla. Sin esa línea, todo queda abierto como siempre.
+> **¿Cómo arranco? — normal vs lan**
 >
-> Es un candado ligero, pensado para mostrar la app en tu red local: quien
-> intente entrar sin la contraseña, no ve nada. No sustituye a HTTPS — la
-> cookie viaja sin cifrar bajo HTTP, así que si expones la app a internet,
-> ponla detrás de un reverse proxy con HTTPS (y opcionalmente con su propia
-> autenticación).
+> - `bun run dev` (o `bun run start` tras build) → **modo normal**: escucha
+>   solo en `127.0.0.1`; ningún otro equipo de la red puede conectar y la
+>   biblioteca abre sin candado.
+> - `bun run dev:lan` (o `bun run start:lan`) → **modo lan**: escucha en
+>   `0.0.0.0` (tablet, otro PC del WiFi) y **con candado**: usa la
+>   `ATENA_PASSWORD` del `.env` si la definiste; si no, Atena genera una al
+>   primer arranque, te la muestra por terminal y la guarda en `db/atena-lock`
+>   para que los reinicios no te la cambien (no se regenera en cada boot).
+>
+> Si defines `ATENA_PASSWORD`, el candado también actúa en modo normal. Es un
+> candado ligero y no sustituye a HTTPS: la cookie viaja sin cifrar bajo HTTP,
+> así que si expones la app a internet, ponla detrás de un reverse proxy con
+> HTTPS (y opcionalmente con su propia autenticación).
 
 > El `bun install` ejecuta automáticamente `prisma generate` (hay un gancho
 > `postinstall` que lo hace solo). Si algún día la biblioteca de libros

@@ -20,8 +20,8 @@
 
 ## 4. Sondas y documentación
 
-- [ ] 4.1 `scripts/with-dev.sh`: fuerza `ATENA_MODO=offline` (sustituye el forcing `ATENA_PASSWORD=""` del change anterior) y regresión de las sondas existentes en verde (matriz base + probe perf).
-- [ ] 4.2 `.env.example` (nota del candado y de los modos) + LEEME: bloque "¿Cómo arranco? — normal vs lan", contraseña generada al primer arranque lan, actualización de la nota HTTP/HTTPS/reverse proxy y del texto del candado opt-in que quedó desfasado.
+- [x] 4.1 `scripts/with-dev.sh`: fuerza `ATENA_MODO=offline` (sustituye el forcing `ATENA_PASSWORD=""` del change anterior) y regresión de las sondas existentes en verde (matriz base + probe perf).
+- [x] 4.2 `.env.example` (nota del candado y de los modos) + LEEME: bloque "¿Cómo arranco? — normal vs lan", contraseña generada al primer arranque lan, actualización de la nota HTTP/HTTPS/reverse proxy y del texto del candado opt-in que quedó desfasado.
 
 ## 5. Cierre
 
