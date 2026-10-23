@@ -119,7 +119,6 @@ public/uploads/       → tus PDFs y portadas
 prisma/schema.prisma  → estructura de la base de datos
 src/                  → el código de la app
 CRAPPER.md            → spec de calidad de código (presupuestos de complejidad)
-graphify-out/graph.html → grafo de conocimiento del código (ábrela en el navegador)
 worklog.md            → diario de caza de cada tarea hecha
 scripts/              → utilidades y pruebas (no hacen falta para usar la app)
 tools/crapper/        → herramienta de métricas (opcional, necesita Python)

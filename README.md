@@ -34,11 +34,11 @@ instrument, tuned for consistency.
 
 | The library at night — *egean* blue | The library by day — *marble* morning |
 |:---:|:---:|
-| ![Library, dark](docs/screenshots/library-dark.png) | ![Library, light](docs/screenshots/library-light.png) |
+| ![Library, dark](.github/assets/library-dark.png) | ![Library, light](.github/assets/library-light.png) |
 
 | Teleprompter — one stream, letter by letter | The same stream by day — the type is yours (A− / A+) |
 |:---:|:---:|
-| ![Teleprompter, dark](docs/screenshots/teleprompter-dark.png) | ![Teleprompter, light](docs/screenshots/teleprompter-light.png) |
+| ![Teleprompter, dark](.github/assets/teleprompter-dark.png) | ![Teleprompter, light](.github/assets/teleprompter-light.png) |
 
 ### House rules
 
