@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { COOKIE_SESION, cookieDe, igualEnTiempoConstante } from "@/lib/access";
+import { COOKIE_SESION, cookieDe, contraseñaEfectiva, igualEnTiempoConstante } from "@/lib/access";
 
 /** rate limit en memoria de proceso (design §3): 10 fallos/min por IP */
 const MAX = 10;
@@ -7,14 +7,15 @@ const VENTANA = 60_000;
 const fallos = new Map<string, { n: number; reset: number }>();
 
 /**
- * POST /api/auth/login (change auth-api): valida la contraseña contra
- * ATENA_PASSWORD y abre la sesión con la cookie derivada que el guard espera.
- * Sin env, responde 400: no hay candado que abrir.
+ * POST /api/auth/login (change auth-api): valida la contraseña efectiva del
+ * arranque (design §2 de modo-normal-lan) y abre la sesión con la cookie
+ * derivada que el guard espera. Sin contraseña efectiva (modo normal abierto)
+ * responde 400: no hay candado que abrir.
  */
 export async function POST(req: NextRequest) {
-  const password = process.env.ATENA_PASSWORD ?? "";
+  const password = contraseñaEfectiva();
   if (!password) {
-    return NextResponse.json({ error: "No hay candado configurado (ATENA_PASSWORD)" }, { status: 400 });
+    return NextResponse.json({ error: "Sin candado: este arranque solo es accesible desde este equipo" }, { status: 400 });
   }
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
