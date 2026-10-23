@@ -21,7 +21,7 @@ import { RESERVED_HOTKEYS } from "@/hooks/use-reader-hotkeys";
 import type { BookPatch } from "@/hooks/use-book-milestones";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageMenu } from "@/components/library/LanguageMenu";
-import { BookMarked, Check, Eye, EyeOff, Keyboard, LayoutPanelLeft, Moon, MoveVertical, Mouse, Palette, RotateCcw, Sparkles, Target } from "lucide-react";
+import { BookMarked, Check, Eye, EyeOff, Keyboard, LayoutPanelLeft, Moon, Palette, Sparkles, Target } from "lucide-react";
 
 interface ConfigPanelProps {
   open: boolean;
@@ -60,11 +60,8 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
   const rail = useSettings((s) => s.rail);
   const setRail = useSettings((s) => s.setRail);
   const filters = useSettings((s) => s.filters);
-  const setFilters = useSettings((s) => s.setFilters);
   const setPreset = useSettings((s) => s.setPreset);
   const dailyGoal = useSettings((s) => s.reading.dailyGoal);
-  const scrollStepPct = useSettings((s) => s.reading.scrollStepPct);
-  const wheelBoost = useSettings((s) => s.reading.wheelBoost);
   const setReading = useSettings((s) => s.setReading);
   const immersion = useSettings((s) => s.immersion);
   const setImmersion = useSettings((s) => s.setImmersion);
@@ -311,119 +308,6 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                 </p>
               </div>
 
-              <div className="grid gap-4 rounded-lg border border-border/50 bg-card/40 p-4">
-                <FilterSlider
-                  label={t("config.brightness")}
-                  value={filters.brightness}
-                  min={40}
-                  max={140}
-                  onChange={(v) => setFilters({ brightness: v })}
-                  format={(v) => `${v}%`}
-                />
-                <FilterSlider
-                  label={t("config.contrast")}
-                  value={filters.contrast}
-                  min={50}
-                  max={150}
-                  onChange={(v) => setFilters({ contrast: v })}
-                  format={(v) => `${v}%`}
-                />
-                <FilterSlider
-                  label={t("config.sepia")}
-                  value={filters.sepia}
-                  min={0}
-                  max={100}
-                  onChange={(v) => setFilters({ sepia: v })}
-                  format={(v) => `${v}%`}
-                />
-                <FilterSlider
-                  label={t("config.saturation")}
-                  value={filters.saturate}
-                  min={0}
-                  max={150}
-                  onChange={(v) => setFilters({ saturate: v })}
-                  format={(v) => `${v}%`}
-                />
-                <FilterSlider
-                  label={t("config.invert")}
-                  value={filters.invert ?? 0}
-                  min={0}
-                  max={100}
-                  onChange={(v) => setFilters({ invert: v })}
-                  format={(v) => `${v}%`}
-                />
-                <FilterSlider
-                  label={t("config.warmth")}
-                  value={filters.warmth}
-                  min={0}
-                  max={100}
-                  onChange={(v) => setFilters({ warmth: v })}
-                  format={(v) => `${v}%`}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start gap-2 text-muted-foreground"
-                  onClick={() => setPreset("normal")}
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> {t("config.resetFilters")}
-                </Button>
-              </div>
-
-              {/* Navegación: cuánto avanza cada flecha y cada giro de rueda */}
-              <div className="grid gap-4 rounded-lg border border-border/50 bg-card/40 p-4">
-                <div>
-                  <Label className="gap-1.5">
-                    <MoveVertical className="h-3.5 w-3.5 text-primary" /> {t("config.navigation")}
-                  </Label>
-                  <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-                    {t("config.navHint")}
-                  </p>
-                </div>
-                <div className="grid gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">{t("config.arrowStep")}</Label>
-                    <span className="tabular-nums text-xs text-muted-foreground" data-testid="scroll-step-value">
-                      {t("config.viewerPct", { n: scrollStepPct })}
-                    </span>
-                  </div>
-                  <Slider
-                    value={[scrollStepPct]}
-                    min={10}
-                    max={100}
-                    step={5}
-                    onValueChange={([v]) => setReading({ scrollStepPct: v })}
-                    aria-label={t("config.arrowStepAria")}
-                    data-testid="scroll-step-slider"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {t("config.arrowHint")}
-                  </p>
-                </div>
-                <div className="grid gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs gap-1.5">
-                      <Mouse className="h-3 w-3" /> {t("config.mouseWheel")}
-                    </Label>
-                    <span className="tabular-nums text-xs text-muted-foreground" data-testid="wheel-boost-value">
-                      {wheelBoost === 1 ? t("config.wheelNative") : `${wheelBoost}×`}
-                    </span>
-                  </div>
-                  <Slider
-                    value={[wheelBoost]}
-                    min={1}
-                    max={4}
-                    step={0.5}
-                    onValueChange={([v]) => setReading({ wheelBoost: v })}
-                    aria-label={t("config.wheelAria")}
-                    data-testid="wheel-boost-slider"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {t("config.wheelHint")}
-                  </p>
-                </div>
-              </div>
-
               {/* Modo inmersión: la UI se desvanece por inactividad del mouse */}
               <div className="grid gap-4 rounded-lg border border-border/50 bg-card/40 p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -442,25 +326,6 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                     data-testid="immersion-switch"
                   />
                 </div>
-                {immersion.enabled && (
-                  <div className="grid gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs">{t("config.waitHide")}</Label>
-                      <span className="tabular-nums text-xs text-muted-foreground" data-testid="immersion-seconds">
-                        {immersion.idleSeconds}s
-                      </span>
-                    </div>
-                    <Slider
-                      value={[immersion.idleSeconds]}
-                      min={2}
-                      max={12}
-                      step={1}
-                      onValueChange={([v]) => setImmersion({ idleSeconds: v })}
-                      aria-label={t("config.waitHideAria")}
-                      data-testid="immersion-slider"
-                    />
-                  </div>
-                )}
                 <div className="grid gap-1.5">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="toggle-key-button" className="text-xs gap-1.5">
@@ -525,39 +390,6 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
         </div>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function FilterSlider({
-  label,
-  value,
-  min,
-  max,
-  onChange,
-  format,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (v: number) => void;
-  format: (v: number) => string;
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <div className="flex items-center justify-between">
-        <Label className="text-xs">{label}</Label>
-        <span className="tabular-nums text-xs text-muted-foreground">{format(value)}</span>
-      </div>
-      <Slider
-        value={[value]}
-        min={min}
-        max={max}
-        step={1}
-        onValueChange={([v]) => onChange(v)}
-        aria-label={label}
-      />
-    </div>
   );
 }
 

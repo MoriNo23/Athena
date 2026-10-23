@@ -2,6 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SyncProgressPopover } from "@/components/reader/SyncProgressPopover";
 import { EpubFontControls } from "@/components/reader/EpubFontControls";
 import { ReaderFontPicker } from "@/components/reader/ReaderFontPicker";
@@ -19,20 +25,15 @@ import {
   Languages,
   Maximize,
   Minimize2,
+  MoreHorizontal,
   PanelRightOpen,
   Settings2,
   Target,
 } from "lucide-react";
 import type { RefObject } from "react";
 
-/** Regla vertical sutil que separa grupos funcionales de la cabecera */
-function VRule() {
-  return <div className="mx-1 h-5 w-px shrink-0 bg-border/50" aria-hidden />;
-}
-
 interface ReaderHeaderProps {
   book: BookDTO;
-  pct: number;
   numPages: number;
   pageNum: number;
   goToPage: (target: number, opts?: { silent?: boolean }) => void;
@@ -75,10 +76,10 @@ interface ReaderHeaderProps {
   onFlushSave: (page: number) => void;
 }
 
-/** Cabecera del lector: identidad, navegación, sync, fullscreen, zoom, paneles y hábito */
+/** Cabecera del lector: identidad, navegación, sync, fullscreen, zoom y hábito.
+    Lo de baja frecuencia (vocabulario, ajustes del riel) vive tras un solo menú. */
 export function ReaderHeader({
   book,
-  pct,
   numPages,
   pageNum,
   goToPage,
@@ -129,7 +130,7 @@ export function ReaderHeader({
           {book.title}
         </h2>
         <p className="truncate text-xs text-muted-foreground">
-          {book.author || "—"} · {t("reader.readPct", { pct })}
+          {book.author || "—"}
           {etaLabel && <span className="text-foreground/80"> · {etaLabel}</span>}
         </p>
       </div>
@@ -205,7 +206,6 @@ export function ReaderHeader({
           {isFullscreen ? t("reader.exitBtn") : t("reader.fullscreenBtn")}
         </Button>
       </Tip>
-      <VRule />
 
       {/* Modo de lectura del PDF: página tal cual o texto reflowable */}
       {pdfMode && (
@@ -244,9 +244,8 @@ export function ReaderHeader({
       ) : (
         <ZoomControls effectiveScale={effectiveScale} activeZoom={activeZoom} onZoomBy={onZoomBy} onPreset={onPreset} />
       )}
-      <VRule />
 
-      {/* Paneles: ajustes de lectura + vocabulario */}
+      {/* Paneles: ajustes de lectura + teleprompter */}
       <div className="flex items-center gap-1">
         <Button
           variant={dockVisible ? "secondary" : "ghost"}
@@ -270,29 +269,7 @@ export function ReaderHeader({
           <BookOpenText className="h-4 w-4" />
           {t("reader.teleprompter")}
         </Button>
-        <Tip label={t("reader.vocabTip")}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-8 w-8 shrink-0"
-            onClick={onOpenVocabulary}
-            aria-label={t("reader.vocabAria")}
-            data-testid="open-vocabulary"
-          >
-            <Languages className="h-4 w-4" />
-            {vocabularyCount > 0 && (
-              <span
-                className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground tabular-nums"
-                data-testid="vocab-count"
-              >
-                {vocabularyCount > 99 ? "99+" : vocabularyCount}
-              </span>
-            )}
-          </Button>
-        </Tip>
       </div>
-
-      <VRule />
 
       {/* Hábito: información pasiva, sin competir con las acciones */}
       <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
@@ -310,11 +287,29 @@ export function ReaderHeader({
         </span>
       </div>
 
-      <Tip label={t("reader.railSettingsTip")}>
-        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onOpenSettings} aria-label={t("reader.railSettingsAria")}>
-          <Settings2 className="h-4 w-4" />
-        </Button>
-      </Tip>
+      {/* Poco frecuente: vocabulario y ajustes del riel, tras una sola puerta */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={t("reader.moreAria")} data-testid="reader-more">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60">
+          <DropdownMenuItem onClick={onOpenVocabulary} className="gap-2" data-testid="open-vocabulary">
+            <Languages className="h-4 w-4" />
+            {t("vocab.title")}
+            {vocabularyCount > 0 && (
+              <span className="ml-auto tabular-nums text-muted-foreground" data-testid="vocab-count">
+                {vocabularyCount > 99 ? "99+" : vocabularyCount}
+              </span>
+            )}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onOpenSettings} className="gap-2" data-testid="open-rail-settings">
+            <Settings2 className="h-4 w-4" />
+            {t("reader.railSettingsTip")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
   );
 }
