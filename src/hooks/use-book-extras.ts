@@ -20,12 +20,13 @@ export function useBookExtras(opts: {
   const extrasRef = useRef<BookExtras>(extras);
   const bookRef = useRef(book);
 
-  // Recuerda si el usuario dejó el panel colapsado: se restaura tal cual en cualquier libro
+  // Recuerda si el usuario dejó el panel colapsado: se restaura tal cual en cualquier libro.
+  // Sin regla guardada = cerrado: la primera lectura es texto puro hasta que pides el dock.
   const [dockOpen, setDockOpen] = useState<boolean>(() => {
     try {
-      return localStorage.getItem("riel-dock-open") !== "0";
+      return localStorage.getItem("riel-dock-open") === "1";
     } catch {
-      return true;
+      return false;
     }
   });
 
