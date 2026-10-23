@@ -20,11 +20,11 @@
 
 ## 4. Lever (c): stage perezoso
 
-- [ ] 4.1 `ReaderView`: `next/dynamic` de `ReaderStage` con `ssr: false` (design §3).
-- [ ] 4.2 Re-medir bundle (como 1.3) y abrir PDF y EPUB en el browser — carga identica, sin FOC/hidración muerta.
+- [x] 4.1 `ReaderView`: `next/dynamic` de `ReaderStage` con `ssr: false` (design §3).
+- [x] 4.2 Re-medir bundle (como 1.3) y abrir PDF y EPUB en el browser — carga identica, sin FOC/hidración muerta.
 
 ## 5. Cierre
 
-- [ ] 5.1 `bun run lint` + `bunx tsc --noEmit` en verde
-- [ ] 5.2 Tabla final antes/después de las 3 métricas (payload, renders/tick, bundle) en el mensaje del último commit
-- [ ] 5.3 Commits por lever (design §4) y push
+- [x] 5.1 `bun run lint` + `bunx tsc --noEmit` en verde
+- [x] 5.2 Tabla final antes/después de las 3 métricas (payload, renders/tick, bundle) en el mensaje del último commit
+- [x] 5.3 Commits por lever (design §4) y push
