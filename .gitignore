@@ -63,6 +63,7 @@ server.log
 /.metrics/
 /worklog.md
 graphify-out/
+scripts/clean-test-copy/
 
 # your library lives on your machine, not in the repo
 /db/*
