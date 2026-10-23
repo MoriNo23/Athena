@@ -26,7 +26,7 @@ export function EpubFontControls({ fontScale, onDelta }: EpubFontControlsProps) 
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 font-display"
+          className="tap-44 h-8 w-8 font-display"
           onClick={() => onDelta(-1)}
           disabled={scale <= TELEPROMPTER_FONT_MIN}
           aria-label={t("epub.fontMinusAria")}
@@ -35,14 +35,14 @@ export function EpubFontControls({ fontScale, onDelta }: EpubFontControlsProps) 
           <span aria-hidden>A−</span>
         </Button>
       </Tip>
-      <span className="min-w-[3.25rem] px-1 text-center text-xs tabular-nums text-muted-foreground" data-testid="epub-font-scale">
+      <span className="hidden min-w-[3.25rem] px-1 text-center text-xs tabular-nums text-muted-foreground sm:inline" data-testid="epub-font-scale">
         {Math.round(scale * 100)}%
       </span>
       <Tip label={t("epub.fontPlusTip")}>
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 font-display"
+          className="tap-44 h-8 w-8 font-display"
           onClick={() => onDelta(1)}
           disabled={scale >= TELEPROMPTER_FONT_MAX}
           aria-label={t("epub.fontPlusAria")}

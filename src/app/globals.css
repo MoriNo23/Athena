@@ -829,6 +829,21 @@ html:not(.dark) .atena-hero .seal-glow {
   opacity: 1;
 }
 
+/* ---------- Zonas táctiles de 44px (P1 móvil) ---------- */
+/* La casa no encoge los controles (32–36px, spec de Components) y tampoco
+   los agranda en pantalla: para el dedo, solo amplia el área alcanzable.
+   Solo entra en punteros gruesos — el mouse no pierde precisión. */
+@media (pointer: coarse) {
+  .tap-44 {
+    position: relative;
+  }
+  .tap-44::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+  }
+}
+
 /* ---------- Insignias de colección (badges) ---------- */
 /* Medallón circular: la portada del libro enmarcada por el metal de su tier */
 .badge-frame {

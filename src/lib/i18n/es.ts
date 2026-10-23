@@ -14,6 +14,9 @@ export const es: Record<string, string> = {
   "lib.heroSubtitle":
     "La casa de la sabiduría custodia tu biblioteca: riel de progreso, hitos, racha y un teleprompter que enciende las páginas letra a letra.",
   "lib.resetAll": "Reiniciar todo el progreso",
+  "lib.moreAria": "Menú: idioma, noche/mañana y reinicio del progreso",
+  "lib.themeNight": "Noche egea",
+  "lib.themeMorning": "Mañana de mármol",
   "lib.addBook": "Añadir libro",
   "lib.streak": "Racha",
   "lib.day1": "día",

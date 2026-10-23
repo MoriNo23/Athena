@@ -68,7 +68,7 @@ export function SyncProgressPopover({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="tap-44 h-8 w-8"
               aria-label={t("sync.openAria")}
               data-testid="sync-open"
             >

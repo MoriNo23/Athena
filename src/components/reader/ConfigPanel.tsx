@@ -33,10 +33,10 @@ interface ConfigPanelProps {
 }
 
 const POSITIONS: { value: RailPosition; label: string }[] = [
-  { value: "left", label: "left" },
-  { value: "bottom", label: "bottom" },
-  { value: "top", label: "top" },
-  { value: "right", label: "right" },
+  { value: "left", label: "Left" },
+  { value: "bottom", label: "Bottom" },
+  { value: "top", label: "Top" },
+  { value: "right", label: "Right" },
 ];
 
 const PRESETS: { value: FilterPreset; label: string }[] = [
@@ -195,7 +195,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                           : "border-border/70 text-muted-foreground hover:border-primary/40 hover:text-foreground"
                       }`}
                     >
-                      {t(`config.pos-${p.label}`)}
+                      {t(`config.pos${p.label}`)}
                     </button>
                   ))}
                 </div>

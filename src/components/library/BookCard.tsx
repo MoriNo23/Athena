@@ -69,9 +69,12 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
       </button>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start justify-between gap-2">
+        {/* Título sin competencia: en punto grueso la fila de acciones cae
+            debajo del título (siempre visibles, 44px); en el escritorio
+            revela al volar y ENFOCA visible con teclado (crítica Sam). */}
+        <div className="flex flex-col items-stretch gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
           <div className="min-w-0">
-            <h3 className="truncate font-display text-lg font-semibold leading-snug">{book.title}</h3>
+            <h3 className="line-clamp-2 font-display text-lg font-semibold leading-snug">{book.title}</h3>
             <p className="truncate text-sm text-muted-foreground">{book.author || t("card.unknownAuthor")}</p>
             {book.badge && (
               <span className={`badge-chip tier-${tierKey} mt-1.5`} data-testid="card-badge-chip">
@@ -80,11 +83,11 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
               </span>
             )}
           </div>
-          <div className="flex shrink-0 items-center gap-0.5">
+          <div className="flex shrink-0 items-center justify-end gap-0.5 sm:order-last">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+              className="h-11 w-11 text-muted-foreground transition-opacity hover:text-foreground sm:h-8 sm:w-8 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
               onClick={onEdit}
               aria-label={t("card.edit", { title: book.title })}
               title={t("card.editTitle")}
@@ -95,7 +98,7 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+              className="h-11 w-11 text-muted-foreground transition-opacity hover:text-foreground sm:h-8 sm:w-8 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
               onClick={onReset}
               aria-label={t("card.reset", { title: book.title })}
               title={t("card.resetTitle")}
@@ -106,7 +109,7 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+              className="h-11 w-11 shrink-0 text-muted-foreground transition-opacity hover:text-destructive sm:h-8 sm:w-8 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
               onClick={onDelete}
               aria-label={t("card.delete", { title: book.title })}
             >
