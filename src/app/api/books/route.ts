@@ -11,12 +11,33 @@ export async function GET() {
     await sweepExpiredUndo(); // purga papelera vencida al ver la biblioteca
     const books = await db.book.findMany({
       orderBy: { lastReadAt: "desc" },
-      include: {
-        sessions: { select: { pagesRead: true, minutes: true, date: true } },
-        badge: true,
-      },
+      include: { badge: true },
     });
-    return NextResponse.json({ books });
+    // Las filas de sesión solo se consumen como sumas por día (BookCard,
+    // use-library-books, use-reading-session, use-finish-eta): la agregación
+    // se hace en SQL y viaja una fila por día, no una por sesión. El día es
+    // el de la máquina (self-host: mismo duelo navegador-servidor), y cada
+    // fila viaja como mediodía local para que la racha/today del cliente no
+    // se deslicen de día. Ver rendimiento-lectores design §1.
+    const dias = await db.$queryRaw<{ bookId: string; day: string; pages: number; minutes: number }[]>`
+      SELECT bookId, strftime('%Y-%m-%d', date / 1000, 'unixepoch', 'localtime') AS day,
+             SUM(pagesRead) AS pages, SUM(minutes) AS minutes
+      FROM ReadingSession
+      GROUP BY bookId, day
+    `;
+    const porLibro = new Map<string, { pagesRead: number; minutes: number; date: string }[]>();
+    for (const r of dias) {
+      let lista = porLibro.get(r.bookId);
+      if (!lista) porLibro.set(r.bookId, (lista = []));
+      lista.push({
+        pagesRead: Number(r.pages),
+        minutes: Number(r.minutes),
+        date: `${r.day}T12:00:00`,
+      });
+    }
+    return NextResponse.json({
+      books: books.map((b) => ({ ...b, sessions: porLibro.get(b.id) ?? [] })),
+    });
   } catch (e) {
     console.error("GET /api/books", e);
     return NextResponse.json({ error: "No se pudo listar la biblioteca" }, { status: 500 });
