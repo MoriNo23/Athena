@@ -24,4 +24,4 @@
 - [x] 4.1 Re-auditoría (repetir 1.1): cero scripts one-off ni orbitados; sin menciones graphify; LEEME sin apuntadores rotos
 - [x] 4.2 `bun run lint` y `bunx tsc --noEmit` en verde
 - [x] 4.3 Sondas canónicas vigentes en verde: `probe-flechas-tp.js` (9/9) + suite unitaria `test-step-timer.ts` + `test-page-notice.tsx` — evidencia de que nada vivo dependía de lo purgado
-- [ ] 4.4 Commit único de purga (diseño §6) con la tabla de evidencia de 1.1 en el mensaje
+- [x] 4.4 Commit único de purga (diseño §6) con la tabla de evidencia de 1.1 en el mensaje
