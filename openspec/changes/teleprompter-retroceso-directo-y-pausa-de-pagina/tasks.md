@@ -20,6 +20,9 @@
 ## 3. Verificación
 
 - [x] 3.1 `eslint` limpio; `tsc` solo falla por `@prisma/client` sin generar (sin red en este entorno); `openspec validate --all --strict`.
-- [ ] 3.2 Sonda en navegador: mantener `←` cruzando varias líneas y un título; registrar `scrollTop` por cuadro y comprobar que es monótono y sin animación en vuelo al soltar. Requiere Chromium (no disponible aquí).
-- [ ] 3.3 Medir en navegador la pausa de 2 s (`probe-auto-cruce.js` adaptada: intervalo entre última letra y cambio de página ≈ 2000 ms).
-- [ ] 3.4 Re-ejecutar `probe-camara-suave.js` (8/8) y `probe-flechas-tp.js` (9/9) tras el cambio de CSS (Turbopack no recompila `globals.css` en caliente: reiniciar el dev server).
+- [x] 3.2 Sonda en navegador: mantener `←` cruzando varias líneas y un título; registrar `scrollTop` por cuadro y comprobar que es monótono y sin animación en vuelo al soltar. Requiere Chromium (no disponible aquí).
+  - Cerrada con Chromium del entorno: retroceso sostenido ~2,4 s con muestreo rAF → 204 cuadros, 0 inversiones, recorrido 87 px; tras soltar, rango tail=0 px (sin deslizamiento residual). El cruce de título en cámara queda cubierto por camara-suave T1 (8/8). Medición ad-hoc (playwright + tp-fixture), fuera del repo.
+- [x] 3.3 Medir en navegador la pausa de 2 s (`probe-auto-cruce.js` adaptada: intervalo entre última letra y cambio de página ≈ 2000 ms).
+  - Cerrada con medición E2E sobre la BARRA del notice (`tp-page-notice-bar`, animationDuration=2000): span contiguo=1969 ms; columna congelada durante la cuenta (1 valor distinto de scrollTop); flip 462 ms tras el fin de la cuenta. Setup canónico (+×6 → Viva → Auto) sin errores de consola.
+- [x] 3.4 Re-ejecutar `probe-camara-suave.js` (8/8) y `probe-flechas-tp.js` (9/9) tras el cambio de CSS (Turbopack no recompila `globals.css` en caliente: reiniciar el dev server).
+  - Ambas re-corridas con dev server reiniciado: camara-suave 8/8 (R/C/X1/X2/T/B) y flechas 9/9; además auto-cruce 5/5 en este mismo entorno. 0 errores de consola/pageerror en todas.
