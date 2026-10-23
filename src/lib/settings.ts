@@ -35,7 +35,6 @@ interface SettingsStore extends AppSettings {
   lang: Lang;
   setLang: (lang: Lang) => void;
   setRail: (patch: Partial<RailSettings>) => void;
-  setFilters: (patch: Partial<FilterSettings>) => void;
   setPreset: (preset: FilterPreset) => void;
   setReading: (patch: Partial<ReadingSettings>) => void;
   setImmersion: (patch: Partial<ImmersionSettings>) => void;
@@ -108,8 +107,6 @@ export const useSettings = create<SettingsStore>()(
       setLang: (lang) => set({ lang }),
       setRail: (patch) =>
         set((s) => ({ rail: { ...s.rail, ...patch } })),
-      setFilters: (patch) =>
-        set((s) => ({ filters: { ...s.filters, ...patch, preset: "custom" as FilterPreset } })),
       setPreset: (preset) =>
         set((s) => ({ filters: { ...s.filters, ...patchOf(s.filters, preset) } })),
       setReading: (patch) =>
@@ -139,7 +136,7 @@ export const useSettings = create<SettingsStore>()(
     }),
     {
       name: "riel-settings-v1",
-      version: 11,
+      version: 12,
       migrate: migrateSettings,
     }
   )
@@ -214,6 +211,23 @@ export function migrateSettings(persisted: unknown, version: number) {
   // v5: modos de lectura + vocabulario (v9 los redefine sin presets)
   if (version < 5) {
     base.modes = { ...defaultModes };
+  }
+  // v12: destilado del lector — el preset `custom` se jubila (solo quedan los
+  // presets con nombre; `auto` sigue al tema) y los microajustes de la antigua
+  // navegación/inmersión vuelven a los defaults de la casa
+  if (version < 12) {
+    if (base.filters.preset === "custom") {
+      base.filters = { ...base.filters, preset: "auto" };
+    }
+    base.reading = {
+      ...base.reading,
+      scrollStepPct: defaultSettings.reading.scrollStepPct,
+      wheelBoost: defaultSettings.reading.wheelBoost,
+    };
+    base.immersion = {
+      ...base.immersion,
+      idleSeconds: defaultSettings.immersion.idleSeconds,
+    };
   }
   return base;
 }
