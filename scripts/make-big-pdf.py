@@ -33,6 +33,14 @@ W, H = A4
 RELLENO = ("El riel de la lectura avanza pagina a pagina y cada tramo completado "
            "es un pequeno triunfo que el cerebro celebra. ") * 40
 
+# la cuerda debe CABER en el ancho útil de A4 (Helvetica 9): si se pinta más
+# larga, la página PDF la recorta por sí misma y el visor parece «recortado»
+from reportlab.pdfbase.pdfmetrics import stringWidth
+ANCHO_UTIL = W - 2.5 * cm - 1 * cm
+N_MAX = int(len(RELLENO) / (stringWidth(RELLENO, "Helvetica", 9) / ANCHO_UTIL))
+ROTULAR = len("p: ") + len(str(PAGES)) + 1
+POR_LINEA = max(40, N_MAX - ROTULAR)
+
 for i in range(1, PAGES + 1):
     c.setFillColorRGB(1, 0.99, 0.96)
     c.rect(0, 0, W, H, fill=1, stroke=0)
@@ -43,7 +51,7 @@ for i in range(1, PAGES + 1):
     c.setFont("Helvetica", 9)
     y = H - 5 * cm
     for _ in range(LINES):
-        c.drawString(2.5 * cm, y, f"p{i}: {RELLENO[:120]}")
+        c.drawString(2.5 * cm, y, f"p{i}: {RELLENO[:POR_LINEA]}")
         y -= 0.55 * cm
         if y < 2 * cm:
             y = H - 5 * cm

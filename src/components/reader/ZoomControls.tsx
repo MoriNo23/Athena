@@ -21,9 +21,13 @@ interface ZoomControlsProps {
   onPreset: (id: ZoomPresetId) => void;
 }
 
-/** Zoom fino: − / % + menú de predefinidos, todos relativos al visor */
+/** Zoom fino: − / estado + menú de predefinidos, todos relativos al visor.
+    El disparador muestra el MODO activo («Óptima», «Página»): su % es derivada
+    del visor (cambia con el tamaño de ventana sin acción alguna) y ahí nunca
+    conectó con el preset puesto — P1 #3, «el texto manda». */
 export function ZoomControls({ effectiveScale, activeZoom, onZoomBy, onPreset }: ZoomControlsProps) {
   const { t } = useI18n();
+  const named = activeZoom === "optimal" || activeZoom === "page";
   return (
     <div className="flex items-center gap-0.5">
         <Tip label={t("zoom.minusTip")}>
@@ -36,12 +40,12 @@ export function ZoomControls({ effectiveScale, activeZoom, onZoomBy, onPreset }:
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 px-2 text-xs tabular-nums"
+              className="h-8 gap-1.5 px-2 text-xs"
               title={t("zoom.presetsTitle")}
               data-testid="zoom-menu"
             >
               <ZoomIn className="h-3.5 w-3.5" />
-              {Math.round(effectiveScale * 100)}%
+              {(named && activeZoom) ? t(`zoom.${activeZoom}Short`) : <span className="tabular-nums">{Math.round(effectiveScale * 100)}%</span>}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-72">
