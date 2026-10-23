@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useImmersiveWake } from "@/hooks/use-immersive-wake";
@@ -27,7 +28,11 @@ import { VocabularySheet } from "@/components/reader/VocabularySheet";
 import { PagePeek } from "@/components/reader/PagePeek";
 import { ModeDock } from "@/components/modes/ModeDock";
 import { ReaderHeader } from "@/components/reader/ReaderHeader";
-import { ReaderStage } from "@/components/reader/ReaderStage";
+// El stage pesa (pdf.js y el motor epub viven dentro): carga perezosa —
+// nada lo pide antes de abrir un libro. En dev self-host el boot de '/'
+// no descarga los motores (0 peticiones, ver perf-dev-net); en el build
+// prerenderizado de Turbopack siguen en el preload del HTML (design §3).
+const ReaderStage = dynamic(() => import("@/components/reader/ReaderStage").then((m) => m.ReaderStage), { ssr: false });
 import { PauseDialog } from "@/components/reader/PauseDialog";
 import { TeleprompterOverlay } from "@/components/reader/TeleprompterOverlay";
 import { ShortcutGhost, type ShortcutGhostEntry } from "@/components/reader/ShortcutGhost";
