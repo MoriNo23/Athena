@@ -40,34 +40,16 @@ instrument, tuned for consistency.
 |:---:|:---:|
 | ![Teleprompter, dark](.github/assets/teleprompter-dark.png) | ![Teleprompter, light](.github/assets/teleprompter-light.png) |
 
-### House rules
+### What you get
 
-The interface is a statement, not a decoration:
-
-- **Blue is focus.** Color psychology picked the hue: a deep *egean night* when dark,
-  a calm *marble morning* when light. Nothing screams; everything holds your attention.
-- **Neo-brutalism.** Zero corner radius. Hard 2px ink borders. Shadows that are offset,
-  not blurred. Buttons that physically press. What you see is what the UI is.
-- **The teleprompter obeys the text.** Pages are stitched into one continuous
-  stream: headings appear whole, letters light one at a time, and the active
-  letter is held at a comfortable line while the page advances under it — no
-  border, no chrome between you and the sentence. Font size scales from 0.8× to
-  1.6× with `A−` / `A+` (or the `−` / `=` keys); `←` rewinds letter by letter.
-- **Immersion goes all the way.** Hide the UI (idle or the `H` key) or go fullscreen and
-  the page opens up: no side gutters, a wider measure, just the book. The teleprompter
-  hides its own controls after a few quiet seconds and wakes on any movement — Tab
-  included, so keyboard readers are never stranded.
-- **EPUBs become paperback pages.** Reflowable text is paginated into virtual
-  pages of ~320 words, so the rail, streaks, ETA and the teleprompter work
-  exactly the same as with PDFs.
-- **PDFs reflow too.** A text mode paginates the extracted PDF text into virtual
-  pages with real reading faces — Literata, EB Garamond, Atkinson Hyperlegible —
-  while the rail and the header keep counting the PDF's real pages.
-- **Three languages, one house.** Español, English and Português from the language
-  switcher — the whole interface follows, dates included.
-- **A literature dock, not a toolbox.** Reading settings are seven literature-minded
-  toggles — X-ray, outline, dictionary, natural pauses, argument skeleton, locked notes,
-  dual read — no preset theater.
+- **Rail + streak + ETA** under every book — honest progress, not a percentage.
+- **Teleprompter** — one continuous stream, letter by letter, font `0.8×–1.6×`, rewind with `←`.
+- **Immersion** — UI hides on idle (`H`), fullscreen with wider measure, teleprompter controls fade out.
+- **EPUBs & PDFs** paginated the same way (~320 words/virtual page); rail and header track real pages.
+- **Literature settings** — X-ray, outline, dictionary, natural pauses, argument skeleton, locked notes, dual read.
+- **ES / EN / PT** — interface, dates, everything switches.
+- **Neo-brutalist UI** — zero radius, hard 2px borders, offset shadows, buttons that press.
+- **Offline-first** — your library (`db/custom.db` + `public/uploads/`) never leaves your machine.
 
 ## RUN IT
 
