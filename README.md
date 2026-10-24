@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/brand/atena-wordmark.svg" alt="ATENA" height="76" />
+<img src="public/brand/athena-wordmark.svg" alt="ATHENA" height="76" />
 
 ### FINISH YOUR BOOKS.
 
@@ -20,7 +20,7 @@ One missed day becomes three. Three becomes "I'll restart next month." Meanwhile
 e-reader on earth shows you the same sterile thing: a percentage. A number that shames
 you instead of moving you.
 
-**Atena is built on a different contract:**
+**Athena is built on a different contract:**
 
 > Your library lives on your machine, and the app's only job
 > is to get you back on the rail today.
@@ -77,7 +77,7 @@ Internet is only needed for the install and the first OCR language download —
 
 ```bash
 git clone https://github.com/MoriNo23/atena.git
-cd atena
+cd Athena
 
 cp .env.example .env     # one line: DATABASE_URL=file:../db/custom.db
 bun install              # also runs prisma generate (postinstall)
@@ -125,6 +125,6 @@ bun run build            # production build compiles
 
 <div align="center">
 
-**ATENA** — *the rail takes you to the last page.*
+**ATHENA** — *the rail takes you to the last page.*
 
 </div>

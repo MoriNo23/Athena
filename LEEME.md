@@ -27,7 +27,7 @@ TU máquina, TU biblioteca es TUYA.
 ## Arranque en 4 comandos (clon limpio)
 
 ```bash
-cp .env.example .env    # una línea obligatoria (DATABASE_URL); ATENA_PASSWORD es opcional
+cp .env.example .env    # una línea obligatoria (DATABASE_URL); ATHENA_PASSWORD es opcional
 bun install             # instala todo y auto-genera el cliente de base de datos
 bunx prisma db push     # crea la BD vacía en db/custom.db (solo la primera vez)
 bun run dev             # arranca la app en http://localhost:3000
@@ -42,15 +42,24 @@ arrastrarlo a la biblioteca. Ya está. A leer.
 >   solo en `127.0.0.1`; ningún otro equipo de la red puede conectar y la
 >   biblioteca abre sin candado.
 > - `bun run dev:lan` (o `bun run start:lan`) → **modo lan**: escucha en
->   `0.0.0.0` (tablet, otro PC del WiFi) y **con candado**: usa la
->   `ATENA_PASSWORD` del `.env` si la definiste; si no, Atena genera una al
->   primer arranque, te la muestra por terminal y la guarda en `db/atena-lock`
->   para que los reinicios no te la cambien (no se regenera en cada boot).
+>   `0.0.0.0` (tablet, otro PC del WiFi). Con candado: usa la
+>   `ATHENA_PASSWORD` del `.env` si la definiste; si no, Athena genera una al
+>   primer arranque, te la muestra por terminal y la guarda en
+>   `db/athena-lock` para que los reinicios no te la cambien (no se regenera
+>   en cada boot).
+> - **¿Lan abierta sin candado?** Añade `ATHENA_ABIERTO=1` al `.env`: la
+>   biblioteca queda accesible para cualquiera que llegue a la dirección. Si
+>   defines una contraseña explícita (`ATHENA_PASSWORD` manda), el valor de
+>   apertura no hace nada.
 >
-> Si defines `ATENA_PASSWORD`, el candado también actúa en modo normal. Es un
-> candado ligero y no sustituye a HTTPS: la cookie viaja sin cifrar bajo HTTP,
-> así que si expones la app a internet, ponla detrás de un reverse proxy con
-> HTTPS (y opcionalmente con su propia autenticación).
+> Si defines `ATHENA_PASSWORD`, el candado también actúa en modo normal: toda
+> la interfaz (no solo los libros) espera el login en `/login`, y el navegador
+> recuerda la sesión durante 30 días. Nombres viejos: si tu `.env` trae
+> `ATENA_PASSWORD` o si existe un `db/atena-lock` de una instalación
+> anterior, Athena los sigue leyendo. Es un candado ligero y no sustituye a
+> HTTPS: la cookie viaja sin cifrar bajo HTTP, así que si expones la app a
+> internet, ponla detrás de un reverse proxy con HTTPS (y opcionalmente con
+> su propia autenticación).
 
 > El `bun install` ejecuta automáticamente `prisma generate` (hay un gancho
 > `postinstall` que lo hace solo). Si algún día la biblioteca de libros

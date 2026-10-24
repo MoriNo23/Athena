@@ -6,7 +6,7 @@
  * Los tests de fichero usan un sandbox en tests/.sandbox (jamás el db/ real).
  */
 import { afterEach, beforeEach, expect, test } from "bun:test";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import {
   ARCHIVO_CONTRASEÑA,
   COOKIE_SESION,
@@ -91,7 +91,7 @@ test("ABIERTO y MODO por nombres legados también cuentan", () => {
 test("modo normal sin contraseña → abierto y sin fichero", () => {
   sandbox();
   expect(contraseñaEfectiva()).toBe("");
-  expect(require("node:fs").existsSync("db/athena-lock")).toBe(false);
+  expect(existsSync("db/athena-lock")).toBe(false);
 });
 
 test("modo lan sin elección → autogenerada persistida en athena-lock", () => {

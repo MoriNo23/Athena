@@ -1,13 +1,13 @@
 # Roadmap — para que otros puedan montar su casa
 
-Backlog vivo y ordenado de Atena, decidido con la dueña. El README queda como
+Backlog vivo y ordenado de Athena, decidido con la dueña. El README queda como
 puerta de entrada; este fichero es la lista de pendientes. Cada fase entra al
 taller como un change de openspec cuando empieza.
 
 ## Norte (ya escrito en docs/PRODUCT.md)
 
 Éxito = libros terminados. Nada que exija nube, nada de adorno. Dirección
-elegida el 24-10-2026: **preparar Atena para que otros monten la suya**.
+elegida el 24-10-2026: **preparar Athena para que otros monten la suya**.
 
 ## Fase 0 — El candado cómodo (aquí y ahora)
 

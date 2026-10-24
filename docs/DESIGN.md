@@ -1,5 +1,5 @@
 ---
-name: Atena
+name: Athena
 description: Casa de lectura local-first que termina libros — neobrutalismo de tinta y azul egeo
 colors:
   ink: "oklch(0.07 0.028 258)"
@@ -95,13 +95,13 @@ components:
     padding: "16px"
 ---
 
-# Design System: Atena
+# Design System: Athena
 
 ## Overview
 
 **Creative North Star: "La Casa de Tinta y Azul"**
 
-Atena es una casa de lectura brutalista: tinta sólida, azul de enfoque y cero
+Athena es una casa de lectura brutalista: tinta sólida, azul de enfoque y cero
 curvas. La letra manda — Fraunces para los títulos, Literata para el libro — y
 todo lo demás se aparta: sin degradados decorativos, sin sombras de humo, sin
 esquinas que invitan a descansar. La calma no viene de la blandura sino del
@@ -111,7 +111,7 @@ El mundo es editorial, no de aplicación: los botones y las tarjetas se comporta
 como piezas de un cartel bien impreso — borde de tinta de 2px, sombra offset
 dura, tipografía con voz — y el libro vive encima de una superficie propia
 (`--reader-*`), separada del ruido de la interfaz. La piedra de Atenas
-(fachada y busto en `public/atena-capa2-*`) existe como capa ambiental fija,
+(fachada y busto en `public/athena-capa2-*`) existe como capa ambiental fija,
 casi fantasma, nunca como motivo decorativo de componentes.
 
 **Key Characteristics:**
@@ -190,7 +190,7 @@ interfaz callada y precisa. El libro se tipografía aparte, con serif de lectura
 real y línea generosa.
 
 ### Hierarchy
-- **Display** (600, 2.25rem, 1.15, tracking -0.02em): el título «Atena» y
+- **Display** (600, 2.25rem, 1.15, tracking -0.02em): el título «Athena» y
   momentos solemnes de la biblioteca.
 - **Headline** (500, 1.5rem, 1.3): títulos de sección y paneles.
 - **Title** (600, 1.25rem): valores de estadísticas y títulos de tarjetas.
