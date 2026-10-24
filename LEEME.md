@@ -78,13 +78,14 @@ bun run start    # sirve la versión compilada en http://localhost:3000
 
 ## Tu biblioteca viaja contigo
 
-Estos dos sitios guardan TODO tu estado — si vienen en tu descarga, tus
+Estos tres sitios guardan TODO tu estado — si vienen en tu descarga, tus
 libros, progreso, insignias y ajustes aparecen solos:
 
 | Ruta | Qué guarda |
 |------|------------|
-| `db/custom.db` | La base de datos: libros, progreso, sesiones, insignias |
-| `public/uploads/` | Los PDFs/EPUBs, portadas y PDFs compañeros |
+| `db/custom.db` | La base de datos: libros, progreso, sesiones, insignias, vocabulario |
+| `db/config.json` | Tus ajustes, en un fichero legible y editable a mano (más abajo) |
+| `public/uploads/` | Los PDFs/EPUBs subidos, portadas y PDFs compañeros |
 
 Situaciones especiales:
 
@@ -101,6 +102,89 @@ Situaciones especiales:
 - **Copia de seguridad**: con copiar esas dos rutas a otro sitio lo tienes
   todo. Devolverlas = estado restaurado.
 
+## Tus ajustes en `db/config.json` (legible y a mano)
+
+Tus ajustes de lectura (idioma, riel, filtros, lectura, inmersión,
+teleprompter, modos del lector) viven en **`db/config.json`**, junto a la base
+de datos. Es un JSON normal: puedes editarlo con cualquier editor, incluso con
+la app cerrada.
+
+- **El panel de ajustes sigue siendo el de siempre**: lo que toques ahí se
+  escribe en el fichero (con un pequeño retraso, para no escribir 40 veces
+  mientras arrastras un control).
+- **Comentarios**: JSON no tiene comentarios, pero el fichero trae una clave
+  `_doc` que explica cada bloque en castellano. La app la ignora al leer y la
+  **conserva al escribir** — tus anotaciones sobreviven a cada cambio del
+  panel. Puedes editarla a mano también.
+- **Un valor inválido no te tumba la app**: si te inventas una opción que no
+  existe, al arrancar vuelve a su valor por defecto; si te pasas de rango con
+  un número (p. ej. 999 tramos), se queda en su límite razonable.
+- **Instalación vieja**: si venías de una versión que guardaba los ajustes en
+  el navegador (localStorage), el primer arranque los sube al fichero y a
+  partir de ahí manda el fichero.
+- **Qué NO vive aquí**: el vocabulario (tus palabras) y todo el progreso son
+  datos: están en `db/custom.db`, protegidos con el resto.
+
+Esquema (bloques de primer nivel; cada uno es un objeto con los mismos
+nombres que ves en el panel):
+
+```json
+{
+  "_doc": { "lang": "Idioma de la interfaz: \"es\", \"en\" o \"pt\"." },
+  "lang": "es",
+  "rail": { "position": "left", "segments": 10, "theme": "egeo", "showLabels": true, "celebrate": true },
+  "filters": { "preset": "auto", "brightness": 100, "contrast": 100, "sepia": 0, "saturate": 100, "warmth": 0, "invert": 0 },
+  "reading": { "dailyGoal": 20, "scrollStepPct": 40, "wheelBoost": 1, "font": "literata" },
+  "immersion": { "enabled": true, "idleSeconds": 4, "toggleKey": "h" },
+  "teleprompter": { "speedPreset": "1-5", "sound": true, "auto": false, "fontScale": 1 },
+  "modes": {
+    "toggles": {
+      "xray": true, "naturalPauses": false, "argumentSkeleton": false,
+      "lockedNotes": false, "dualRead": false, "outline": true, "dictionary": true
+    },
+    "pauseMinutes": 25
+  },
+  "biblioteca": { "carpeta": "" }
+}
+```
+
+## Biblioteca por carpeta (los libros en su sitio, sin copias)
+
+Puede que subir libros uno a uno te canse. Si tienes una carpeta con tus PDFs
+y EPUBs, **señálala una vez** y la app la registra entera:
+
+1. En la biblioteca, pulsa **«Carpeta»**.
+2. Escribe la **ruta absoluta** de la carpeta en la máquina que sirve la app
+   (p. ej. `/home/maria/Biblioteca`) y pulsa **«Escanear»**.
+3. Los libros aparecen solos, sin subir nada. **Nada se copia ni se mueve**:
+   la app solo lee los ficheros donde ya estaban.
+4. Cuando añadas o muevas libros, vuelve a pulsar **«Carpeta» → «Re-escanear»**:
+   los nuevos entran, los que ya conocías no se duplican.
+
+Garantías y detalles que conviene saber:
+
+- **La app jamás escribe dentro de tus PDF/EPUB** ni los renombra, mueve o
+  borra: son tuyos. «Quitar de la biblioteca» borra solo su fila (progreso,
+  hitos, insignia incluidas); el fichero sigue intacto en su carpeta.
+- **Progreso y data siempre en la base de datos** (`db/custom.db`), nunca
+  junto a los ficheros.
+- **Si mueves un libro** con el explorador de ficheros: al re-escanear, la app
+  lo reconoce por su contenido (hash) si el destino está dentro de la carpeta
+  y lo re-vincula solo; si se fue fuera, la tarjeta queda marcada
+  **«sin fichero»** y te ofrece **re-vincularlo** escribiendo la ruta nueva —
+  tu progreso no se pierde en ningún caso.
+- **Título y autor** salen del nombre del fichero (`Mi libro favorito.pdf` →
+  «Mi libro favorito»). Si prefieres ficha propia, pon al lado un fichero
+  `<nombre>.ficha.txt` con el título en la primera línea y el autor en la
+  segunda. Siempre puedes corregirlo desde la app («Editar ficha»).
+- **Páginas totales**: los PDF se cuentan al escanear; los EPUB (y algún PDF
+  raro de formato opaco) se cuentan al **primer abrir** — abre el libro una
+  vez y ya queda registrado (en la base de datos, no en el fichero).
+- **Subcarpetas**: el escaneo es recursivo; las carpetas ocultas (que empiezan
+  por `.`) se ignoran.
+- **En modo LAN / túnel**: la ruta es de la máquina que sirve la app. Si
+  entras desde otro dispositivo, la app lee la carpeta del servidor.
+
 ## Problemas frecuentes
 
 | Síntoma | Remedio |
@@ -110,6 +194,8 @@ Situaciones especiales:
 | Error de base de datos al arrancar | Revisa que `.env` tiene `DATABASE_URL=file:../db/custom.db` y que `db/custom.db` existe (si no: `bunx prisma db push`) |
 | El OCR no carga el idioma | Necesita internet la primera vez; comprueba conexión y reintenta |
 | Subo un PDF y dice «Ya está en tu biblioteca» | Anti-duplicados: mismo archivo y mismas páginas ya están subidos. Es aviso, no error |
+| Ajuste un valor raro en `db/config.json` y «no pasa nada» | Es lo previsto: la app ignora valores inválidos y vuelve al default al arrancar |
+| Un libro de la carpeta sale como «sin fichero» | Lo moviste fuera de la carpeta: muévelo de vuelta y re-escanea, o pulsa su botón de re-vincular y escribe la ruta nueva |
 | Cambios en `prisma/schema.prisma` | `bun run db:push` para aplicarlos a la BD |
 
 ## Scripts de la mesa
@@ -128,8 +214,8 @@ Situaciones especiales:
 
 ## Mapa del tesoro (dónde vive cada cosa)
 
-```
-db/custom.db          → la base de datos (tu progreso)
+db/custom.db          → la base de datos (tu progreso, vocabulario)
+db/config.json        → tus ajustes (legible/editable a mano)
 public/uploads/       → tus PDFs y portadas
 .env                  → configuración (1 línea, ya viene lista)
 prisma/schema.prisma  → estructura de la base de datos
