@@ -19,7 +19,7 @@ export function useLibraryBooks() {
   const fetchBooks = useCallback(async () => {
     try {
       const res = await fetch("/api/books", { cache: "no-store" });
-      // candado: la puerta real es /login (el middleware redirige páginas). En
+      // candado: la puerta real es /login (el proxy redirige páginas). En
       // cliente, una sesión vencida a mitad de camino vuelve a la puerta.
       if (res.status === 401) {
         const destino = encodeURIComponent(window.location.pathname);
