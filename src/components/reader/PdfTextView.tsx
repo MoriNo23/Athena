@@ -57,6 +57,20 @@ export function PdfTextView({
   }, [index, waitingReal]);
 
   // ---- Cambio de página virtual: volver al inicio del texto ----
+
+  // ---- Cambio de página virtual: fundido corto (mismo contrato que EPUB) ----
+  const pageRef = useRef<HTMLDivElement>(null);
+  const primeraPaginaRef = useRef(false);
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el) return;
+    if (!primeraPaginaRef.current) {
+      primeraPaginaRef.current = true;
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+  }, [virtualPage]);
   const prevPageRef = useRef<number | null>(null);
   useEffect(() => {
     const el = containerRef.current;
@@ -119,6 +133,7 @@ export function PdfTextView({
         <div className="relative h-full w-full">
           {/* misma superficie de lectura que el EPUB: filtros + tinte cálido */}
           <div
+            ref={pageRef}
             className="epub-page relative"
             style={{
               filter: cssFilter === "none" ? undefined : cssFilter,

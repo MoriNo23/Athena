@@ -42,6 +42,15 @@ rozaduras concretas:
 - `PagePeek` (ojeada de páginas) y esquema del PDF navegable.
 - Paginación virtual del EPUB (`paginateEpub`) ya calcula páginas por palabras.
 
+## Decisión de la dueña al aplicar (24-10)
+
+Bajado del backlog por petición directa: «que la página se sienta fluida al
+cambiar». Decisiones: **fundido** de 180 ms en los tres visores (PDF imagen,
+PDF texto, EPUB), la página anterior se mantiene visible hasta que la nueva
+está pintada (el giro normal ya no parpadea), anti-huérfano de encabezados en
+la paginación del EPUB y aire extra para los capítulos. Reduced-motion
+respeta. Queda diferido el aviso de capítulo en PDF.
+
 ## Open questions (se cierran antes del apply)
 
 1. ¿Movimiento: **fundido**, deslizamiento (pasar hoja) o ambos a elegir?

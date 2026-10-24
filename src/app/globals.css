@@ -958,6 +958,7 @@ blockquote + .epub-p {
   color: var(--reader-title);
   line-height: 1.22;
   margin: 1.9em 0 0.7em;
+  /* aire de capítulo: los h1 respiran más que un h3 de sección */
   text-wrap: balance;
 }
 .epub-h:first-child {
@@ -966,6 +967,7 @@ blockquote + .epub-p {
 .epub-h1 {
   font-size: 1.62em;
   letter-spacing: 0.005em;
+  margin: 2.6em 0 0.9em;
   padding-bottom: 0.28em;
   border-bottom: 2px solid var(--reader-rule);
 }
