@@ -114,12 +114,8 @@ the repo root, in this order:
 bunx tsc --noEmit        # 0 type errors
 bun run lint             # 0 errors, 0 warnings
 bun run build            # production build compiles
-scripts/clean-install-test.sh   # full clean-clone rehearsal (dev + prod boot)
 ```
 
-`scripts/clean-install-test.sh` simulates a fresh download (no `node_modules`,
-no `.next`), installs, boots dev **and** the standalone production server, and
-checks `/api/books` answers on both — the exact path a newcomer walks.
 
 ## LICENSE
 
