@@ -1,7 +1,7 @@
 {
   "name": "atena",
   "version": "1.0.0",
-  "description": "Finish your books. Local-first reading app with a progress rail, streaks, finish badges and a visual-novel mode.",
+  "description": "Finish your books. Local-first reading app with a progress rail, streaks, finish badges and a letter-by-letter teleprompter mode.",
   "private": true,
   "scripts": {
     "dev": "ATENA_MODO=offline next dev -p 3000 -H 127.0.0.1 2>&1 | tee dev.log",
