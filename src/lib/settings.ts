@@ -20,8 +20,10 @@ import {
   TELEPROMPTER_DEFAULT_PRESET,
 } from "@/lib/types";
 
-/** Ajustes de lectura: sin presets — la casa es literatura y cada lector
-    arma su propia configuración con los interruptores del panel. */
+/**
+ * Ajustes de lectura: sin presets — la casa es literatura y cada lector
+ * arma su propia configuración con los interruptores del panel.
+ */
 export interface ModesSettings {
   toggles: ModeToggles;
   /** minutos de sesión para la sugerencia de pausa en cortes naturales */
@@ -98,49 +100,246 @@ const defaultModes: ModesSettings = {
   pauseMinutes: 25,
 };
 
+/** --- escritura al fichero `db/config.json` vía API (fuente única) ---
+    La UI manda su cambio al fichero con un PUT diferido: arrastrar un slider
+    no escribe 40 veces, escribe al asentarse. `hidratado` evita escribir
+    defaults por encima del fichero antes de leerlo. */
+let putTimer: ReturnType<typeof setTimeout> | null = null;
+let hidratado = false;
+let listenerArrancado = false;
+let docActual: Record<string, string> = {};
+
+/** Config pura (sin setters ni vocabulario: eso no va al fichero). */
+function snapshotAjustes(s: {
+  lang: Lang;
+  rail: RailSettings;
+  filters: FilterSettings;
+  reading: ReadingSettings;
+  immersion: ImmersionSettings;
+  teleprompter: TeleprompterSettings;
+  modes: ModesSettings;
+}): AppSettings & { modes: ModesSettings } {
+  return {
+    lang: s.lang,
+    rail: s.rail,
+    filters: s.filters,
+    reading: s.reading,
+    immersion: s.immersion,
+    teleprompter: s.teleprompter,
+    modes: s.modes,
+  };
+}
+
+function putAjustes() {
+  if (!hidratado) return;
+  if (putTimer) clearTimeout(putTimer);
+  putTimer = setTimeout(() => {
+    putTimer = null;
+    escribirAhorra(useSettings.getState());
+  }, 1000);
+}
+
+/** SET directo (sin debounce): se usa en flush de pestaña oculta y migración. */
+function escribirAhorra(state: SettingsStore) {
+  void fetch("/api/settings", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ settings: snapshotAjustes(state), _doc: docActual }),
+  }).catch(() => {
+    /* sin red: el fichero queda como estaba; el próximo cambio reintenta */
+  });
+}
+
+/** Si la pestaña se esconde con un PUT pendiente, lo escribe ya (una vez). */
+if (typeof document !== "undefined" && !listenerArrancado) {
+  listenerArrancado = true;
+  document.addEventListener("visibilitychange", () => {
+    if (putTimer && document.visibilityState === "hidden") {
+      clearTimeout(putTimer);
+      putTimer = null;
+      escribirAhorra(useSettings.getState());
+    }
+  });
+}
+
 export const useSettings = create<SettingsStore>()(
   persist(
-    (set) => ({
-      ...defaultSettings,
-      modes: defaultModes,
-      vocabulary: [],
-      setLang: (lang) => set({ lang }),
-      setRail: (patch) =>
-        set((s) => ({ rail: { ...s.rail, ...patch } })),
-      setPreset: (preset) =>
-        set((s) => ({ filters: { ...s.filters, ...patchOf(s.filters, preset) } })),
-      setReading: (patch) =>
-        set((s) => ({ reading: { ...s.reading, ...patch } })),
-      setImmersion: (patch) =>
-        set((s) => ({ immersion: { ...s.immersion, ...patch } })),
-      toggleMode: (key) =>
-        set((s) => ({
-          modes: {
-            ...s.modes,
-            toggles: { ...s.modes.toggles, [key]: !s.modes.toggles[key] },
-          },
-        })),
-      setPauseMinutes: (minutes) =>
-        set((s) => ({ modes: { ...s.modes, pauseMinutes: Math.min(120, Math.max(5, Math.round(minutes))) } })),
-      setTeleprompter: (patch) =>
-        set((s) => ({ teleprompter: { ...s.teleprompter, ...patch } })),
-      addVocab: (entry) =>
-        set((s) => ({
-          // sin duplicados por palabra+idioma
-          vocabulary: s.vocabulary.some((v) => v.word.toLowerCase() === entry.word.toLowerCase() && v.lang === entry.lang)
-            ? s.vocabulary
-            : [entry, ...s.vocabulary].slice(0, 500),
-        })),
-      removeVocab: (id) => set((s) => ({ vocabulary: s.vocabulary.filter((v) => v.id !== id) })),
-      reset: () => set((s) => ({ ...defaultSettings, modes: defaultModes, lang: s.lang, vocabulary: s.vocabulary })),
-    }),
+    (set, get) => {
+      const escribe = () => putAjustes();
+      return {
+        ...defaultSettings,
+        modes: defaultModes,
+        vocabulary: [],
+        setLang: (lang) => {
+          set({ lang });
+          escribe();
+        },
+        setRail: (patch) => {
+          set((s) => ({ rail: { ...s.rail, ...patch } }));
+          escribe();
+        },
+        setPreset: (preset) => {
+          set((s) => ({ filters: { ...s.filters, ...patchOf(s.filters, preset) } }));
+          escribe();
+        },
+        setReading: (patch) => {
+          set((s) => ({ reading: { ...s.reading, ...patch } }));
+          escribe();
+        },
+        setImmersion: (patch) => {
+          set((s) => ({ immersion: { ...s.immersion, ...patch } }));
+          escribe();
+        },
+        toggleMode: (key) => {
+          set((s) => ({
+            modes: {
+              ...s.modes,
+              toggles: { ...s.modes.toggles, [key]: !s.modes.toggles[key] },
+            },
+          }));
+          escribe();
+        },
+        setPauseMinutes: (minutes) => {
+          set((s) => ({ modes: { ...s.modes, pauseMinutes: Math.min(120, Math.max(5, Math.round(minutes))) } }));
+          escribe();
+        },
+        setTeleprompter: (patch) => {
+          set((s) => ({ teleprompter: { ...s.teleprompter, ...patch } }));
+          escribe();
+        },
+        addVocab: (entry) => {
+          // data aparte: la palabra vive en la BD; el store es solo su eco
+          const dup = get().vocabulary.some(
+            (v) => v.word.toLowerCase() === entry.word.toLowerCase() && v.lang === entry.lang
+          );
+          if (dup) return;
+          set((s) => ({ vocabulary: [entry, ...s.vocabulary].slice(0, 500) }));
+          void fetch("/api/vocab", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(entry),
+          })
+            .then(async (res) => {
+              if (res.ok) {
+                const data = (await res.json()) as { entry?: VocabEntry };
+                if (data.entry) {
+                  // el id canónico es el de la BD (cuida re-quitar la misma palabra)
+                  set((s) => ({
+                    vocabulary: s.vocabulary.map((v) => (v.id === entry.id ? { ...v, id: data.entry!.id } : v)),
+                  }));
+                }
+              } else {
+                set((s) => ({ vocabulary: s.vocabulary.filter((v) => v.id !== entry.id) }));
+              }
+            })
+            .catch(() => {
+              set((s) => ({ vocabulary: s.vocabulary.filter((v) => v.id !== entry.id) }));
+            });
+        },
+        removeVocab: (id) => {
+          const prev = get().vocabulary;
+          set((s) => ({ vocabulary: s.vocabulary.filter((v) => v.id !== id) }));
+          void fetch(`/api/vocab/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {
+            set({ vocabulary: prev });
+          });
+        },
+        reset: () => {
+          set((s) => ({ ...defaultSettings, modes: defaultModes, lang: s.lang, vocabulary: s.vocabulary }));
+          escribe();
+        },
+      };
+    },
     {
       name: "riel-settings-v1",
       version: 12,
       migrate: migrateSettings,
+      // el vocabulario no persiste aquí: es data, vive en la BD (change
+      // cfg-y-biblioteca-por-carpeta); el localStorage queda como caché de
+      // arranque de la CONFIG, nunca como fuente.
+      partialize: (state) => {
+        const { vocabulary: _vocabulary, ...rest } = state as SettingsStore;
+        return rest as SettingsStore;
+      },
     }
   )
 );
+
+/** Hidratación desde el fichero (se llama una vez al montar la app):
+    1) GET /api/settings → el fichero manda (si no existe, el servidor acaba de
+       crearlo con defaults y avisa `created`).
+    2) `created` + ajustes locales ≠ defaults ⇒ instalación vieja: se SUBE el
+       localStorage al fichero (migración one-shot).
+    3) igual para el vocabulario: si la BD está vacía y había palabras en el
+       eco local, viajan a /api/vocab/import.
+    4) vocabulary queda poblado desde la BD. */
+export async function hidratarAjustes(): Promise<void> {
+  try {
+    const res = await fetch("/api/settings");
+    if (!res.ok) return;
+    const data = (await res.json()) as {
+      settings: AppSettings & { modes: ModesSettings };
+      biblioteca?: { carpeta: string };
+      _doc?: Record<string, string>;
+      created?: boolean;
+    };
+    docActual = data._doc ?? {};
+
+    const store = useSettings.getState();
+    const localSnapshot = snapshotAjustes(store);
+    const esInstalacionVieja = Boolean(data.created) && !esDefaults(localSnapshot);
+
+    let finales = data.settings;
+    if (esInstalacionVieja) {
+      // migración one-shot: lo aprendido en el localStorage sube al fichero
+      const put = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: localSnapshot, biblioteca: data.biblioteca, _doc: docActual }),
+      });
+      if (put.ok) {
+        const respuesta = (await put.json()) as { settings: AppSettings & { modes: ModesSettings } };
+        finales = respuesta.settings;
+      }
+    }
+
+    // vocabulario: BD primero; instalación vieja con eco local → migra
+    try {
+      const vRes = await fetch("/api/vocab");
+      const vData = (await vRes.json()) as { vocabulary: VocabEntry[] };
+      let vocab = vData.vocabulary ?? [];
+      if (esInstalacionVieja && store.vocabulary.length > 0 && vocab.length === 0) {
+        await fetch("/api/vocab/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entries: store.vocabulary }),
+        });
+        const vRes2 = await fetch("/api/vocab");
+        vocab = ((await vRes2.json()) as { vocabulary: VocabEntry[] }).vocabulary ?? [];
+      }
+      useSettings.setState({ ...finales, vocabulary: vocab });
+    } catch {
+      useSettings.setState(finales);
+    }
+    hidratado = true;
+  } catch {
+    /* sin red: toca vivir con el localStorage; se reintenta en el próximo boot */
+  }
+}
+
+/** ¿snapshot local idéntico a los defaults de la casa? (migración solo si no) */
+function esDefaults(snapshot: AppSettings & { modes: ModesSettings }): boolean {
+  const middles = {
+    ...defaultSettings,
+    modes: defaultModes,
+    lang: defaultSettings.lang,
+  } as AppSettings & { modes: ModesSettings };
+  const trivial = ["rail", "filters", "reading", "immersion", "teleprompter", "modes"] as const;
+  if (snapshot.lang !== middles.lang) return false;
+  for (const bloque of trivial) {
+    if (JSON.stringify(snapshot[bloque]) !== JSON.stringify(middles[bloque])) return false;
+  }
+  return true;
+}
 
 /** Migración de `riel-settings-v1` (exportada para los tests del motor). */
 export function migrateSettings(persisted: unknown, version: number) {
