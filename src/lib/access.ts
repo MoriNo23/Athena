@@ -10,7 +10,7 @@
  *   cookie atena_session sigue vidiendo, y db/atena-lock se transcribe una vez.
  */
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { existsSync, mkdirSync, openSync, readFileSync, writeSync, closeSync } from "node:fs";
+import { mkdirSync, openSync, readFileSync, writeSync, closeSync } from "node:fs";
 
 export const COOKIE_SESION = "athena_session";
 export const ARCHIVO_CONTRASEÑA = "db/athena-lock";

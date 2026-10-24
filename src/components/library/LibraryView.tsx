@@ -22,7 +22,6 @@ import { BadgeShelf } from "@/components/library/BadgeShelf";
 import { EditBookDialog } from "@/components/library/EditBookDialog";
 import { BookCard } from "@/components/library/BookCard";
 import { LibraryConfirmDialogs } from "@/components/library/LibraryConfirmDialogs";
-import { LockGate } from "@/components/library/LockGate";
 import { useLibraryBooks } from "@/hooks/use-library-books";
 import { useBookUpload } from "@/hooks/use-book-upload";
 import { useBookActions } from "@/hooks/use-book-actions";
@@ -74,7 +73,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
   const dailyGoal = useSettings((s) => s.reading.dailyGoal);
   const { t } = useI18n();
 
-  const { books, fetchBooks, updateBook, stats, locked } = useLibraryBooks();
+  const { books, fetchBooks, updateBook, stats } = useLibraryBooks();
 
   // Carga inicial de la biblioteca
   useEffect(() => {
@@ -316,9 +315,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
 
       {/* ---- Biblioteca ---- */}
       <section>
-        {locked ? (
-          <LockGate onUnlocked={fetchBooks} />
-        ) : books === null ? (
+        {books === null ? (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-36 rounded-xl" />
