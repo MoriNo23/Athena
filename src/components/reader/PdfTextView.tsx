@@ -6,6 +6,8 @@ import { reflowFilterCss, useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import type { PdfTextIndex } from "@/lib/pdf-text";
 import { TextBlocks } from "@/components/reader/TextBlocks";
+import { useTheme } from "next-themes";
+import { animarGiroPagina } from "@/lib/utils";
 
 interface PdfTextViewProps {
   /** índice del texto ya extraído (null mientras no hay nada paginable) */
@@ -47,6 +49,8 @@ export function PdfTextView({
   const { t } = useI18n();
   const cssFilter = reflowFilterCss(filters);
   const warmth = filters.warmth;
+  const { resolvedTheme } = useTheme();
+  const oscuro = resolvedTheme !== "light";
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ---- Foco inicial del visor (mismo contrato que PdfViewport/EpubViewport) ----
@@ -61,16 +65,19 @@ export function PdfTextView({
   // ---- Cambio de página virtual: fundido corto (mismo contrato que EPUB) ----
   const pageRef = useRef<HTMLDivElement>(null);
   const primeraPaginaRef = useRef(false);
+  const giroPrevioRef = useRef<number | null>(null);
   useEffect(() => {
     const el = pageRef.current;
     if (!el) return;
+    const previo = giroPrevioRef.current;
+    giroPrevioRef.current = virtualPage;
     if (!primeraPaginaRef.current) {
       primeraPaginaRef.current = true;
       return;
     }
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
-  }, [virtualPage]);
+    const direccion: 1 | -1 = previo !== null && virtualPage < previo ? -1 : 1;
+    animarGiroPagina(el, oscuro, direccion);
+  }, [virtualPage, oscuro]);
   const prevPageRef = useRef<number | null>(null);
   useEffect(() => {
     const el = containerRef.current;

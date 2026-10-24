@@ -90,3 +90,4 @@ __pycache__/
 scripts/impeccable-*.txt
 scripts/impeccable-*.json
 scripts/verify-*.txt
+/evidencia/

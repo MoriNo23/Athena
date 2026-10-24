@@ -6,6 +6,8 @@ import { reflowFilterCss, useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import type { EpubPage } from "@/lib/epub";
 import { TextBlocks } from "@/components/reader/TextBlocks";
+import { useTheme } from "next-themes";
+import { animarGiroPagina } from "@/lib/utils";
 
 interface EpubViewportProps {
   /** páginas virtuales ya parseadas (null = cargando) */
@@ -29,6 +31,8 @@ export function EpubViewport({ pages, pageNum, fontScale, onFontDelta }: EpubVie
   const { t } = useI18n();
   const cssFilter = reflowFilterCss(filters);
   const warmth = filters.warmth;
+  const { resolvedTheme } = useTheme();
+  const oscuro = resolvedTheme !== "light";
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ---- Foco inicial del visor (mismo contrato que PdfViewport) ----
@@ -54,17 +58,20 @@ export function EpubViewport({ pages, pageNum, fontScale, onFontDelta }: EpubVie
   // `prefers-reduced-motion`, el cambio es directo, como antes.
   const pageRef = useRef<HTMLDivElement>(null);
   const primeraRef = useRef(false);
+  const giroPrevioRef = useRef<number | null>(null);
   useEffect(() => {
     if (!pages) return;
     const el = pageRef.current;
     if (!el) return;
+    const previo = giroPrevioRef.current;
+    giroPrevioRef.current = pageNum;
     if (!primeraRef.current) {
       primeraRef.current = true;
       return;
     }
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
-  }, [pageNum, pages]);
+    const direccion: 1 | -1 = previo !== null && pageNum < previo ? -1 : 1;
+    animarGiroPagina(el, oscuro, direccion);
+  }, [pageNum, pages, oscuro]);
 
   // ---- Rueda: Ctrl = tamaño de letra; boost configurable para el resto ----
   useEffect(() => {

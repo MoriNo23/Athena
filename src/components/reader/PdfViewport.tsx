@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { filterCss, useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import { loadPdfLib, PDFJS_ASSETS } from "@/lib/pdf-client";
-import { cn } from "@/lib/utils";
+import { animarGiroPagina, cn } from "@/lib/utils";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Loader2 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -205,17 +205,20 @@ export function PdfViewport({
   // parpadeo de spinner. `prefers-reduced-motion` apaga el movimiento.
   const frameRef = useRef<HTMLDivElement>(null);
   const pintadaRef = useRef(false);
+  const giroPrevioRef = useRef<number | null>(null);
   useEffect(() => {
     if (renderingPage) return;
     const el = frameRef.current;
     if (!el) return;
+    const previo = giroPrevioRef.current;
+    giroPrevioRef.current = pageNum;
     if (!pintadaRef.current) {
       pintadaRef.current = true;
       return;
     }
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
-  }, [pageNum, renderingPage]);
+    const direccion: 1 | -1 = previo !== null && pageNum < previo ? -1 : 1;
+    animarGiroPagina(el, resolvedTheme !== "light", direccion);
+  }, [pageNum, renderingPage, resolvedTheme]);
 
   return (
     <div
