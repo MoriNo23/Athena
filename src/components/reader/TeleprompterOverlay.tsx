@@ -143,7 +143,7 @@ export function TeleprompterOverlay({
   // fondo del escenario: portada del libro o imagen propia, siempre filtrada
   const fondoImg =
     tpSet.fondo === "portada"
-      ? book.coverPath ?? null
+      ? book.coverUrl ?? null
       : tpSet.fondo === "imagen"
         ? tpSet.fondoRuta || null
         : null;

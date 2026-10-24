@@ -53,7 +53,7 @@ export function ReaderStage({
           <div className="h-full min-w-0 flex-1">{viewport}</div>
           <div className="h-full min-w-0 flex-1">
             <DualViewport
-              companionPath={book.companionPath!}
+              companionPath={`/api/books/${book.id}/file?cual=companion`}
               mainPage={pageNum}
               mainTotal={numPages}
               companionTotal={book.companionPages!}

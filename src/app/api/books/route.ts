@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { db } from "@/lib/db";
+import { archivoUrlDe } from "@/lib/types";
 import { sweepExpiredUndo } from "@/lib/undo-store";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
@@ -36,7 +37,15 @@ export async function GET() {
       });
     }
     return NextResponse.json({
-      books: books.map((b) => ({ ...b, sessions: porLibro.get(b.id) ?? [] })),
+      books: books.map((b) => ({
+        ...b,
+        sessions: porLibro.get(b.id) ?? [],
+        // URLs servidas por la app (nunca estáticos de public/): un fichero
+        // creado tras el arranque del servidor no existía en el momento de
+        // enumerar public/ y daría 404 hasta reiniciar.
+        archivoUrl: archivoUrlDe(b),
+        coverUrl: b.coverPath && b.coverPath.startsWith("/uploads/") ? `/api/books/${b.id}/cover` : b.coverPath,
+      })),
     });
   } catch (e) {
     console.error("GET /api/books", e);

@@ -38,17 +38,17 @@ export interface BookDTO {
   fileMissingAt?: string | null;
   /** URL por la que el lector obtiene el fichero (uploads directo o stream API) */
   archivoUrl?: string;
+  /** URL de la portada servida por la app; null = sin portada */
+  coverUrl?: string | null;
 }
 
 /**
- * URL por la que el lector obtiene el fichero del libro:
- *  - subidos: `filePath` ya es URL (`/uploads/<f>`) — sirve Next estático.
- *  - carpeta: ruta real del disco de la dueña — la sirve el stream de
- *    `/api/books/<id>/file`; en USB/otra máquina el bloqueo de ficheros
- *    locales no existe, pero el stream siempre es mismo origen.
+ * URL por la que el lector obtiene el fichero del libro: SIEMPRE el stream de
+ * la app (change ficheros-servidos-por-la-app). Antes los subidos iban por el
+ * estático de public/, pero un fichero creado tras el arranque del servidor no
+ * existía al enumerarlo y daba 404 hasta reiniciar. La app lo sirve siempre.
  */
 export function archivoUrlDe(book: { id: string; filePath: string; origin?: string }): string {
-  if (!book.origin || book.origin === "subido") return book.filePath;
   return `/api/books/${book.id}/file`;
 }
 
