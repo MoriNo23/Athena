@@ -658,8 +658,9 @@ export function TeleprompterOverlay({
         )}
       </div>
 
-      {/* Controles inferiores (auto-ocultables) */}
-      <div className="tp-chrome absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-2 px-5 pb-4">
+      {/* Controles inferiores (auto-ocultables). Con la misma banda que la
+          cabecera (peticion de la duena: armonia arriba y abajo) */}
+      <div className="tp-chrome tp-footer absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-2 px-5 pb-4">
         <Button
           variant="outline"
           size="icon"

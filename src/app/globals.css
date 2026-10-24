@@ -615,6 +615,19 @@ html:not(.dark) .atena-hero .seal-glow {
   border-bottom: 1px solid color-mix(in oklab, var(--reader-ink) 12%, transparent);
   box-shadow: 0 10px 26px -20px color-mix(in oklab, var(--reader-ink) 55%, transparent);
 }
+/* Misma banda abajo (peticion de la duena: armonia arriba y abajo): el
+   gradiente sube desde el borde y el filete corona la barra de controles. */
+.tp-footer {
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--reader-bg) 96%, transparent) 0%,
+    color-mix(in oklab, var(--reader-bg) 84%, transparent) 62%,
+    transparent 100%
+  );
+  backdrop-filter: blur(4px);
+  border-top: 1px solid color-mix(in oklab, var(--reader-ink) 12%, transparent);
+  box-shadow: 0 -10px 26px -20px color-mix(in oklab, var(--reader-ink) 55%, transparent);
+}
 .tp-immersed .tp-chrome {
   opacity: 0;
   visibility: hidden;
