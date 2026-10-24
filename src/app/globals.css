@@ -740,31 +740,10 @@ html:not(.dark) .athena-hero .seal-glow {
 
 /* ---------- Recordatorio de teclas fantasma (inmersiones) ---------- */
 /* Columna a la derecha, letras grandes y transparentes (marca de agua):
-   cada tecla y qué hace cuando la interfaz se oculta o se muestra en los
-   modos de pantalla completa. Decorativo y sin puntero: nunca bloquea la
+   cada tecla y qué hace. Aparece UNA vez al volver a la pestaña y se retira
+   sola; no vigila el mouse. Decorativo y sin puntero: nunca bloquea la
    lectura ni captura el mouse. Solo transiciona opacidad — con movimiento
    reducido no hay desplazamiento (y no lo hay en ningún modo). */
-/* Capa que oscurece el visor mientras la interfaz duerme (peticion de la
-   duena: «que la pantalla se oscurezca para que sea mas legible»). Cubre la
-   lectura por debajo del recordatorio (z-30) y de la UI viva; jamas captura el
-   puntero — el mouse que despierta pasa por dentro. */
-.shortcut-ghost-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 25;
-  background: rgb(2 6 20 / 62%);
-  opacity: 0;
-  transition: opacity 0.45s ease;
-  pointer-events: none;
-}
-.shortcut-ghost-scrim-on {
-  opacity: 1;
-}
-@media (prefers-reduced-motion: reduce) {
-  .shortcut-ghost-scrim {
-    transition: none;
-  }
-}
 .shortcut-ghost {
   position: fixed;
   right: clamp(18px, 4vw, 64px);

@@ -132,15 +132,14 @@ function readerGhostEntriesFor(
   ];
 }
 
-/** Recordatorio de teclas del lector: cada transición del chrome en pantalla
-    completa (tecla o inactividad); fuera de ella no existe. */
+/** Recordatorio de teclas del lector: solo existe en pantalla completa;
+    aparece una vez al volver a la pestaña (ver ShortcutGhost). */
 function ReaderShortcutGhost(props: {
   isFullscreen: boolean;
-  chromeHidden: boolean;
   entries: ShortcutGhostEntry[];
 }) {
   if (!props.isFullscreen) return null;
-  return <ShortcutGhost signal={props.chromeHidden} entries={props.entries} testId="reader-shortcut-ghost" />;
+  return <ShortcutGhost entries={props.entries} testId="reader-shortcut-ghost" />;
 }
 
 /** El riel donde lo pida el ajuste: lateral estrecho (64px + %) o franja
@@ -801,7 +800,6 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
       {/* Recordatorio de teclas del lector: solo existe en pantalla completa */}
       <ReaderShortcutGhost
         isFullscreen={isFullscreen}
-        chromeHidden={chromeHidden}
         entries={readerGhostEntries}
       />
 

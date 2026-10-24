@@ -422,9 +422,9 @@ export function TeleprompterOverlay({
         </div>
       )}
 
-      {/* Recordatorio de teclas de la inmersión: cada transición de visibilidad
-          de la interfaz (ocultarse por quietud o despertar) lo despliega */}
-      <ShortcutGhost signal={uiHidden} entries={tpGhostEntries} testId="tp-shortcut-ghost" />
+      {/* Recordatorio de teclas del teleprompter: aparece una vez al volver a
+          la pestaña (ya no vigila el mouse, ver ShortcutGhost) */}
+      <ShortcutGhost entries={tpGhostEntries} testId="tp-shortcut-ghost" />
 
       {/* Aviso de cambio de página del Auto (no depende de la barra auto-oculta) */}
       <TeleprompterPageNotice
