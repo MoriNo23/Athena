@@ -187,15 +187,16 @@ export function PdfViewport({
     return () => el.removeEventListener("wheel", handler);
   }, [wheelBoost]);
 
-  // ---- Cambio de página: desplazamiento suave hacia el inicio de la página ----
+  // ---- Cambio de página: hacia el inicio de la página ----
   // Sin animación en la carga/restauración inicial (el componente ya nace en la página guardada).
+  // Reset INSTANTÁNEO: el fundido de la página nueva es el único movimiento del giro.
   const prevPageRef = useRef<number | null>(null);
   useEffect(() => {
     const el = containerRef.current;
     const prev = prevPageRef.current;
     prevPageRef.current = pageNum;
     if (!el || prev === null || prev === pageNum) return;
-    el.scrollTo({ top: 0, behavior: "smooth" });
+    el.scrollTop = 0;
   }, [pageNum]);
 
   // ---- Cambio de página: fundido corto de la página recién pintada ----

@@ -258,8 +258,8 @@ export function pdfPageText(blocks: PdfTextBlock[] | undefined): string {
 
 /**
  * Páginas virtuales (~320 palabras) a partir de las páginas reales extraídas.
- * Reglas de `paginateEpub`: el título estrena página, un bloque nunca se parte
- * y una cola corta se funde con la anterior (dentro de la misma página real).
+ * Reglas de `paginateEpub`: un bloque nunca se parte y una cola corta se
+ * funde con la anterior (dentro de la misma página real).
  */
 export function paginatePdfText(realPages: PdfTextBlock[][]): PdfTextIndex {
   const raw: EpubPage[] = paginateEpub(realPages);

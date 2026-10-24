@@ -84,7 +84,9 @@ export function PdfTextView({
     const prev = prevPageRef.current;
     prevPageRef.current = virtualPage;
     if (!el || prev === null || prev === virtualPage) return;
-    el.scrollTo({ top: 0, behavior: "smooth" });
+    // Reset INSTANTÁNEO: el desliz de entrada es el único movimiento del giro;
+    // la subida suave competía con él (dos movimientos a la vez).
+    el.scrollTop = 0;
   }, [virtualPage]);
 
   // ---- Rueda: Ctrl = tamaño de letra; boost configurable para el resto ----

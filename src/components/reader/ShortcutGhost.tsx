@@ -34,7 +34,8 @@ interface ShortcutGhostProps {
  * en primer plano eso es ruido, no ayuda. Ahora: la pestaña pasa a visible
  * (visibilitychange) → aparece UNA vez, se retira sola (~2,5 s) y respeta un
  * mínimo entre apariciones (~8 s) para que el vaivén de pestañas no lo repita
- * sin parar. Ningún temporizador vigila el mouse.
+ * sin parar. Ningún temporizador vigila el mouse. Un velo opaco cubre el texto
+ * detrás mientras está en pantalla: las teclas se LEEN, no se adivinan.
  */
 export function ShortcutGhost({ entries, testId }: ShortcutGhostProps) {
   const [shown, setShown] = useState(false);
@@ -62,18 +63,29 @@ export function ShortcutGhost({ entries, testId }: ShortcutGhostProps) {
   }, []);
 
   return (
-    <div
-      className={cn("shortcut-ghost", shown && "shortcut-ghost-on")}
-      aria-hidden="true"
-      data-testid={testId}
-      data-shown={shown ? "true" : "false"}
-    >
-      {entries.map((e) => (
-        <div key={e.keys} className="shortcut-ghost-row">
-          <span className="shortcut-ghost-action">{e.action}</span>
-          <kbd className="shortcut-ghost-key">{e.keys}</kbd>
-        </div>
-      ))}
-    </div>
+    <>
+      {/*
+        Velo bajo el recordatorio: la columna vive sobre el texto del libro y
+        ahí las teclas se mezclaban — la dueña pidió que opaque lo de atrás.
+        Decorativo y sin puntero, igual que la columna que cubre.
+      */}
+      <div
+        className={cn("shortcut-ghost-scrim", shown && "shortcut-ghost-scrim-on")}
+        aria-hidden="true"
+      />
+      <div
+        className={cn("shortcut-ghost", shown && "shortcut-ghost-on")}
+        aria-hidden="true"
+        data-testid={testId}
+        data-shown={shown ? "true" : "false"}
+      >
+        {entries.map((e) => (
+          <div key={e.keys} className="shortcut-ghost-row">
+            <span className="shortcut-ghost-action">{e.action}</span>
+            <kbd className="shortcut-ghost-key">{e.keys}</kbd>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

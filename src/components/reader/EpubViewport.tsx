@@ -43,13 +43,15 @@ export function EpubViewport({ pages, pageNum, fontScale, onFontDelta }: EpubVie
   }, [pages]);
 
   // ---- Cambio de página: volver al inicio del texto ----
+  // Reset INSTANTÁNEO: el giro ya tiene su movimiento (el desliz de entrada);
+  // una subida suave compitiendo con ese desliz era dos movimientos a la vez.
   const prevPageRef = useRef<number | null>(null);
   useEffect(() => {
     const el = containerRef.current;
     const prev = prevPageRef.current;
     prevPageRef.current = pageNum;
     if (!el || prev === null || prev === pageNum) return;
-    el.scrollTo({ top: 0, behavior: "smooth" });
+    el.scrollTop = 0;
   }, [pageNum]);
 
   // ---- Cambio de página: fundido corto del texto nuevo ----
