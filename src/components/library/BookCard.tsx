@@ -57,8 +57,8 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
         onClick={onOpen}
         aria-label={t("card.open", { title: book.title })}
       >
-        {book.coverPath ? (
-          <img src={book.coverPath} alt={t("card.coverAlt", { title: book.title })} className="h-full w-full object-cover" />
+        {book.coverUrl ? (
+          <img src={book.coverUrl} alt={t("card.coverAlt", { title: book.title })} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-secondary">
             <BookOpen className="h-8 w-8 text-muted-foreground" />

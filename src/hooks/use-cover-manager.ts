@@ -31,10 +31,15 @@ export function useCoverManager(opts: {
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  /** La portada la sirve la app (change ficheros-servidos-por-la-app): el
+      estático de public/ no existe para ficheros creados tras el arranque. */
+  const urlPortada = (coverPath: string | null): string | null =>
+    coverPath && coverPath.startsWith("/uploads/") ? `/api/books/${book?.id ?? ""}/cover` : coverPath;
+
   // al abrir el diálogo, la portada parte de la actual del libro
   useEffect(() => {
     if (!open || !book) return;
-    setCover(book.coverPath);
+    setCover(urlPortada(book.coverPath));
     setSearching(false);
     setImporting(false);
   }, [open, book]);
@@ -52,7 +57,7 @@ export function useCoverManager(opts: {
         });
         return false;
       }
-      setCover(up.coverPath);
+      setCover(urlPortada(up.coverPath ?? null));
       onSaved({ id: book.id, title: meta.title, author: meta.author || null, coverPath: up.coverPath });
       const src = sourceLabel(hit.source);
       toast({
@@ -123,7 +128,7 @@ export function useCoverManager(opts: {
         const res = await fetch(`/api/books/${book.id}/cover`, { method: "POST", body: fd });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error ?? t("cover.uploadError"));
-        setCover(data.book.coverPath);
+        setCover(urlPortada(data.book.coverPath ?? null));
         onSaved({ id: book.id, title: title.trim() || book.title, author: author.trim() || null, coverPath: data.book.coverPath });
         toast({ title: t("cover.appliedTitle"), description: t("cover.appliedBody") });
       } catch (e) {
