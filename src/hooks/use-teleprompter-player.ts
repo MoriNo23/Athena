@@ -166,6 +166,7 @@ export function useTeleprompterPlayer({
       setWin(opened);
       void (async () => {
         const nextBlocks = nextStart + 1 <= numPages ? await loadBlocks(nextStart + 1) : null;
+        if (winRef.current !== opened) return; // el lector ya rebobinó: no clobbers con la ventana vieja
         const filled: StreamWindow = { start: nextStart, pages: [first, nextBlocks] };
         winRef.current = filled;
         setWin(filled);

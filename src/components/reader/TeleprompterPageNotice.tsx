@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { TELEPROMPTER_PAGE_TURN_MS } from "@/lib/teleprompter";
 
 /** Letras antes del fin de la página a partir de las cuales el Auto avisa del cambio (≈2 s) */
-export const PAGE_SOON_CHARS = 48;
+const PAGE_SOON_CHARS = 48;
 /** Cuánto permanece el aviso de llegada (ms): coincide con la animación `tp-notice-flash` */
 const ARRIVAL_MS = 2600;
 

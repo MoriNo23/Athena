@@ -33,8 +33,10 @@ export function useCoverManager(opts: {
 
   /** La portada la sirve la app (change ficheros-servidos-por-la-app): el
       estático de public/ no existe para ficheros creados tras el arranque. */
-  const urlPortada = (coverPath: string | null): string | null =>
-    coverPath && coverPath.startsWith("/uploads/") ? `/api/books/${book?.id ?? ""}/cover` : coverPath;
+  const urlPortada = (coverPath: string | null, bust = false): string | null =>
+    coverPath && coverPath.startsWith("/uploads/")
+      ? `/api/books/${book?.id ?? ""}/cover${bust ? `?v=${Date.now()}` : ""}`
+      : coverPath;
 
   // al abrir el diálogo, la portada parte de la actual del libro
   useEffect(() => {
@@ -57,7 +59,8 @@ export function useCoverManager(opts: {
         });
         return false;
       }
-      setCover(urlPortada(up.coverPath ?? null));
+      // bust: la URL /api/books/[id]/cover es la misma pero la imagen cambió
+      setCover(urlPortada(up.coverPath ?? null, true));
       onSaved({ id: book.id, title: meta.title, author: meta.author || null, coverPath: up.coverPath });
       const src = sourceLabel(hit.source);
       toast({

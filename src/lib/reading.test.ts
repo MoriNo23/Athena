@@ -3,7 +3,7 @@
  * y porcentaje de progreso. Correr con `bun test src/lib/reading.test.ts`.
  */
 import { expect, test } from "bun:test";
-import { milestonePages, progressPct } from "@/lib/reading";
+import { estimateFinishDate, milestonePages, progressPct } from "@/lib/reading";
 import type { BookDTO } from "@/lib/types";
 
 /** libro mínimo para progressPct: solo importan totalPages y currentPage */
@@ -54,4 +54,19 @@ test("progressPct: puntos intermedios", () => {
 test("progressPct: totalPages inválido es 0 %", () => {
   expect(progressPct(libro(0, 5))).toBe(0);
   expect(progressPct(libro(-10, 1))).toBe(0);
+});
+
+test("estimateFinishDate: libro terminado o en la última página no estima", () => {
+  expect(estimateFinishDate({ totalPages: 300, currentPage: 300 }, 2)).toBeNull();
+  expect(estimateFinishDate({ totalPages: 300, currentPage: 299 }, 2)).not.toBeNull(); // 299 queda 2 páginas
+  expect(estimateFinishDate({ totalPages: 300, currentPage: 150 }, 0)).toBeNull(); // ritmo 0 no estima
+});
+
+test("estimateFinishDate: días = ceil(restante / rate), mañana si cabe hoy", () => {
+  const hoy = new Date();
+  const d1 = estimateFinishDate({ totalPages: 300, currentPage: 100 }, 2); // quedan 201 → 101 días
+  expect(d1).not.toBeNull();
+  expect((d1!.getTime() - hoy.getTime()) / 86_400_000).toBeGreaterThan(99);
+  const d2 = estimateFinishDate({ totalPages: 300, currentPage: 299 }, 2); // 1 página → 1 día
+  expect((d2!.getTime() - hoy.getTime()) / 86_400_000).toBeGreaterThan(0);
 });

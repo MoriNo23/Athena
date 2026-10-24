@@ -14,7 +14,7 @@ import JSZip from "jszip";
  *
  * Las funciones puras (paginación, división de bloques largos, texto de página)
  * viven separadas de las que necesitan DOM (parseo de OPF/XHTML) para poder
- * auditarlas con bun (scripts/test-epub-engine.ts) sin navegador.
+ * auditarlas con bun (src/lib/epub.test.ts) sin navegador.
  */
 
 // ---------- Modelo ----------
@@ -69,7 +69,7 @@ export interface EpubProbe {
   author: string | null;
 }
 
-// ---------- Constantes de paginación (espejo en scripts/test-epub-engine.ts) ----------
+// ---------- Constantes de paginación (espejo en src/lib/epub.test.ts) ----------
 
 /** Palabras por página virtual: una página de tapa blanda (~320 palabras). */
 export const EPUB_WORDS_PER_PAGE = 320;
@@ -375,8 +375,17 @@ async function readCoverDataUrl(zip: JSZip, bundle: OpfBundle): Promise<string |
   }
 }
 
+/** Presupuesto acumulativo de imágenes del libro: cada dataURL ocupa ~1.4×
+    el fichero; sin tope común, un EPUB con cientos de imágenes materiales
+    cientos de MB y tumba la pestaña (probe/parse). Compartido por capítulo. */
+export const EPUB_IMG_BUDGET_BYTES = 32 * 1024 * 1024;
+
 /** Bloques de un item del spine (null si no aporta contenido). */
-async function extractChapter(zip: JSZip, item: ManifestItem): Promise<{ blocks: EpubBlock[]; docTitle: string | null } | null> {
+async function extractChapter(
+  zip: JSZip,
+  item: ManifestItem,
+  presupuesto?: { restante: number },
+): Promise<{ blocks: EpubBlock[]; docTitle: string | null } | null> {
   const raw = await zip.file(item.href)?.async("string");
   if (!raw) return null;
   const doc = new DOMParser().parseFromString(raw, "text/html");
@@ -402,8 +411,14 @@ async function extractChapter(zip: JSZip, item: ManifestItem): Promise<{ blocks:
     let viable = !!entry;
     if (entry) {
       const bytes = await entry.async("uint8array");
-      viable = bytes.length > 0 && bytes.length <= EPUB_MAX_IMAGE_BYTES;
-      if (viable) b.src = bytesToDataUrl(bytes, mimeOf(entry.name));
+      viable =
+        bytes.length > 0 &&
+        bytes.length <= EPUB_MAX_IMAGE_BYTES &&
+        (!presupuesto || bytes.length <= presupuesto.restante);
+      if (viable) {
+        b.src = bytesToDataUrl(bytes, mimeOf(entry.name));
+        if (presupuesto) presupuesto.restante -= bytes.length;
+      }
     }
     if (!viable) {
       io.blocks.splice(i, 1);
@@ -461,8 +476,9 @@ export async function parseEpub(data: ArrayBuffer): Promise<EpubBook> {
   // ---- bloques por capítulo ----
   const chaptersBlocks: EpubBlock[][] = [];
   const chaptersDocTitles: (string | null)[] = [];
+  const presupuesto = { restante: EPUB_IMG_BUDGET_BYTES };
   for (const item of bundle.spineItems) {
-    const chapter = await extractChapter(zip, item);
+    const chapter = await extractChapter(zip, item, presupuesto);
     if (!chapter) continue;
     chaptersBlocks.push(chapter.blocks);
     chaptersDocTitles.push(chapter.docTitle);

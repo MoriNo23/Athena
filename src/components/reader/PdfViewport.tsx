@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { filterCss, useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
-import { loadPdfLib, PDFJS_ASSETS } from "@/lib/pdf-client";
+import { destruirPdfDoc, loadPdfLib, PDFJS_ASSETS } from "@/lib/pdf-client";
 import { animarGiroPagina, cn } from "@/lib/utils";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Loader2 } from "lucide-react";
@@ -60,6 +60,7 @@ export function PdfViewport({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textLayerRef = useRef<HTMLDivElement>(null);
   const docReadyFired = useRef(false);
+  const docCargadoRef = useRef<PDFDocumentProxy | null>(null);
 
   const { renderingPage, pageHasText, pageHasTextRef } = usePdfPageRender({
     doc,
@@ -92,6 +93,7 @@ export function PdfViewport({
           onDocReady(loaded.numPages, base.width, base.height);
         }
         onDoc?.(loaded);
+        docCargadoRef.current = loaded;
         setDoc(loaded);
         setLoading(false);
       } catch (e) {
@@ -106,6 +108,12 @@ export function PdfViewport({
     return () => {
       cancelled = true;
       onDoc?.(null);
+      // el worker de pdf.js retiene el documento parseado: sin destroy, cada
+      // libro abierto en la sesión se queda vivo hasta recargar la página
+      if (docCargadoRef.current) {
+        destruirPdfDoc(docCargadoRef.current);
+        docCargadoRef.current = null;
+      }
     };
   }, [filePath]);
 

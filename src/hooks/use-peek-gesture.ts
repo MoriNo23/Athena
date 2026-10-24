@@ -31,7 +31,10 @@ export function usePeekGesture(opts: {
     pid: number | null;
   }>({ startY: null, anchorX: 0, anchorSel: 1, opened: false, el: null, pid: null });
 
-  const setPeek = (open: boolean) => {
+  // useCallback: el consumidor (PagePeek.onSelect) lo pasa como dependencia;
+  // con identidad nueva por render el carrusel reengancha su listener a cada
+  // tick del cronómetro de la sesión (hallazgo: re-render cada segundo).
+  const setPeek = useCallback((open: boolean) => {
     peekOpenRef.current = open;
     setPeekOpen(open);
     // síncrono e idempotente: el gesto nunca compite con la selección de texto
@@ -41,7 +44,7 @@ export function usePeekGesture(opts: {
     } catch {
       /* noop */
     }
-  };
+  }, []);
 
   const releaseCapture = (g: { el: HTMLDivElement | null; pid: number | null }) => {
     try {
@@ -75,6 +78,7 @@ export function usePeekGesture(opts: {
   };
 
   const onPeekMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (numPages < 1) return; // libro sin contar (motor aún cargando): nada que hojear
     const g = peekGesture.current;
     if (g.startY == null) return;
     if (!g.opened) {

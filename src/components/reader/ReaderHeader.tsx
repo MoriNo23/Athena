@@ -33,7 +33,7 @@ import {
   Settings2,
   Target,
 } from "lucide-react";
-import type { RefObject } from "react";
+import { useState, type RefObject } from "react";
 
 interface ReaderHeaderProps {
   book: BookDTO;
@@ -124,6 +124,8 @@ export function ReaderHeader({
   onFlushSave,
 }: ReaderHeaderProps) {
   const { t } = useI18n();
+  /** borrador de "ir a página": solo comitea en Enter/blur, no por tecla */
+  const [draftPagina, setDraftPagina] = useState<string | null>(null);
   return (
     <header data-chrome data-chrome-kind="header" className="flex min-h-14 shrink-0 flex-col border-b border-border/60 bg-card/40 px-3 py-1.5">
       {/* Fila 1 — identidad: volver, título, (escritorio: telemetría), vista y «⋯» */}
@@ -266,16 +268,23 @@ export function ReaderHeader({
               type="number"
               min={1}
               max={numPages}
-              value={pageNum}
-              onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
+              // borrador local: mientras se teclea SOLO se edita el texto; el
+              // salto se comitea en Enter/blur (teclear "152" no pasa por 1 y 15)
+              value={draftPagina ?? pageNum}
+              onChange={(e) => setDraftPagina(e.target.value)}
+              onBlur={() => {
+                const v = parseInt(draftPagina ?? "", 10);
                 if (Number.isFinite(v)) goToPage(v, { silent: true });
+                setDraftPagina(null);
               }}
               // Enter/Escape devuelven el foco al libro: si se queda aquí dentro,
               // los atajos (flechas, zoom, H) quedan «muertos» hasta click en la página
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "Escape") {
                   e.preventDefault();
+                  const v = parseInt(draftPagina ?? "", 10);
+                  if (Number.isFinite(v)) goToPage(v, { silent: true });
+                  setDraftPagina(null);
                   e.currentTarget.blur();
                   document.querySelector<HTMLElement>('[data-viewport="pdf"]')?.focus({ preventScroll: true });
                 }

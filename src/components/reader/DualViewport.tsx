@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { filterCss, useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
-import { loadPdfLib, PDFJS_ASSETS } from "@/lib/pdf-client";
+import { destruirPdfDoc, loadPdfLib, PDFJS_ASSETS } from "@/lib/pdf-client";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { Loader2 } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -30,6 +30,7 @@ export function DualViewport({ companionPath, mainPage, mainTotal, companionTota
   const warmth = filters.warmth;
 
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
+  const docCargadoRef = useRef<PDFDocumentProxy | null>(null);
   const [containerW, setContainerW] = useState(0);
   const [baseW, setBaseW] = useState(0);
   const [rendering, setRendering] = useState(false);
@@ -56,6 +57,7 @@ export function DualViewport({ companionPath, mainPage, mainTotal, companionTota
         const p1 = await loaded.getPage(1);
         const base = p1.getViewport({ scale: 1 });
         setBaseW(base.width);
+        docCargadoRef.current = loaded;
         setDoc(loaded);
       } catch (e) {
         console.error("Error cargando PDF compañero", e);
@@ -63,6 +65,11 @@ export function DualViewport({ companionPath, mainPage, mainTotal, companionTota
     })();
     return () => {
       cancelled = true;
+      // al visor dual le faltaba devolver el documento al worker (hallazgo 8)
+      if (docCargadoRef.current) {
+        destruirPdfDoc(docCargadoRef.current);
+        docCargadoRef.current = null;
+      }
     };
   }, [companionPath]);
 
