@@ -439,8 +439,10 @@ export function TeleprompterOverlay({
         todayGoal={todayGoal}
       />
 
-      {/* Barra superior: identidad + progreso + controles (auto-ocultable) */}
-      <div className="tp-chrome absolute inset-x-0 top-0 z-20 flex items-center gap-2 px-5 py-3">
+      {/* Barra superior: identidad + progreso + controles (auto-ocultable).
+          Con fondo (peticion de la duena): la banda .tp-header da armonia con
+          la lectura y el texto no compite con el libro. */}
+      <div className="tp-chrome tp-header absolute inset-x-0 top-0 z-20 flex items-center gap-2 px-5 py-3">
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-sm font-semibold text-foreground/90">{book.title}</p>
           <p className="text-xs text-muted-foreground">
