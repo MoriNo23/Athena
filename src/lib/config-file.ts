@@ -11,10 +11,13 @@ import {
   ReadingFont,
   ReadingSettings,
   TeleprompterSettings,
-  TELEPROMPTER_DEFAULT_PRESET,
+  TELEPROMPTER_WPS_DEFAULT,
   TELEPROMPTER_FONT_MAX,
   TELEPROMPTER_FONT_MIN,
-  TELEPROMPTER_SPEED_PRESETS,
+  TELEPROMPTER_WPS_MAX,
+  TELEPROMPTER_WPS_MIN,
+  TeleprompterFondo,
+  wpsDePresetAntiguo,
 } from "@/lib/types";
 
 /**
@@ -57,7 +60,17 @@ const DEFAULT_SETTINGS: AppSettings = {
   filters: { preset: "auto", brightness: 100, contrast: 100, sepia: 0, saturate: 100, warmth: 0, invert: 0 },
   reading: { dailyGoal: 20, scrollStepPct: 40, wheelBoost: 1, font: "literata" },
   immersion: { enabled: true, idleSeconds: 4, toggleKey: "h" },
-  teleprompter: { speedPreset: TELEPROMPTER_DEFAULT_PRESET, sound: true, auto: false, fontScale: 1 },
+  teleprompter: {
+    wps: TELEPROMPTER_WPS_DEFAULT,
+    instante: false,
+    sound: true,
+    auto: false,
+    fontScale: 1,
+    fondo: "tema",
+    fondoRuta: "",
+    fondoFiltro: 55,
+    tarjetasPorFrase: true,
+  },
 };
 
 const DEFAULT_MODES: ModesFichero = {
@@ -78,7 +91,7 @@ const RAIL_THEMES: RailTheme[] = ["egeo", "dynamic", "amber", "emerald", "rose",
 const FILTER_PRESETS_ID: FilterPreset[] = ["auto", "normal", "papel", "sepia", "noche", "calido", "custom"];
 const FONTS: ReadingFont[] = ["literata", "garamond", "atkinson"];
 const LANGS: Lang[] = ["es", "en", "pt"];
-const SPEED_IDS = new Set(TELEPROMPTER_SPEED_PRESETS.map((p) => p.id));
+const FONDOS: TeleprompterFondo[] = ["tema", "portada", "imagen"];
 
 /** _doc por defecto: explicaciones en cristiano para quien abre el fichero a mano. */
 export function docPorDefecto(): Record<string, string> {
@@ -97,9 +110,7 @@ export function docPorDefecto(): Record<string, string> {
     immersion:
       'Inmersión: "enabled" esconde la UI si el mouse queda quieto · "idleSeconds" 2-12 · "toggleKey" la tecla que la muestra al instante.',
     teleprompter:
-      'Teleprompter: "speedPreset" uno de [' +
-      Array.from(SPEED_IDS).join(", ") +
-      '] · "sound" tic de tipeo · "auto" avanza solo · "fontScale" 0.8-1.6.',
+      'Teleprompter: "wps" palabras por segundo (0.8-4, control directo sin presets) · "instante" todo de golpe · "sound" tic de tipeo · "auto" avanza solo al acabar la tarjeta · "fontScale" 0.8-1.6 · "fondo" tema|portada|imagen · "fondoRuta" ruta en /uploads/ de la imagen propia · "fondoFiltro" 0-100 (filtro de legibilidad sobre la imagen: a más alto, más oscura y desaturada) · "tarjetasPorFrase" parte los bloques largos en frases.',
     modes:
       'Modos de lectura: interruptores xray (fichas), naturalPauses, argumentSkeleton, lockedNotes, dualRead, outline, dictionary · "pauseMinutes" minutos de la pausa sugerida (5-120).',
     biblioteca:
@@ -176,10 +187,17 @@ export function saneaAjustes(raw: unknown): AppSettings & { modes: ModesFichero 
         base.immersion.toggleKey,
     },
     teleprompter: {
-      speedPreset:
-        typeof T.speedPreset === "string" && SPEED_IDS.has(T.speedPreset)
-          ? T.speedPreset
-          : base.teleprompter.speedPreset,
+      // migración tolerante: un fichero viejo con speedPreset se traduce a wps
+      wps:
+        typeof T.wps === "number" && Number.isFinite(T.wps)
+          ? numIn(T.wps, base.teleprompter.wps, TELEPROMPTER_WPS_MIN, TELEPROMPTER_WPS_MAX, false)
+          : typeof T.speedPreset === "string"
+            ? wpsDePresetAntiguo(T.speedPreset)
+            : base.teleprompter.wps,
+      instante:
+        typeof T.instante === "boolean"
+          ? T.instante
+          : T.speedPreset === "instant",
       sound: boolIn(T.sound, base.teleprompter.sound),
       auto: boolIn(T.auto, base.teleprompter.auto),
       fontScale: numIn(
@@ -189,6 +207,13 @@ export function saneaAjustes(raw: unknown): AppSettings & { modes: ModesFichero 
         TELEPROMPTER_FONT_MAX,
         false
       ),
+      fondo: listIn<TeleprompterFondo>(T.fondo, FONDOS, base.teleprompter.fondo),
+      fondoRuta:
+        typeof T.fondoRuta === "string" && T.fondoRuta.startsWith("/uploads/")
+          ? T.fondoRuta.slice(0, 200)
+          : "",
+      fondoFiltro: numIn(T.fondoFiltro, base.teleprompter.fondoFiltro, 0, 100),
+      tarjetasPorFrase: boolIn(T.tarjetasPorFrase, base.teleprompter.tarjetasPorFrase),
     },
     modes: {
       toggles: {

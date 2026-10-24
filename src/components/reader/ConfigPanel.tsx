@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -16,12 +16,26 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
-import { BookDTO, FilterPreset, RailPosition, RailTheme, RAIL_THEMES } from "@/lib/types";
+import {
+  BookDTO,
+  FilterPreset,
+  RailPosition,
+  RailTheme,
+  RAIL_THEMES,
+  clampTeleprompterFontScale,
+  clampTeleprompterWps,
+  TELEPROMPTER_FONT_MAX,
+  TELEPROMPTER_FONT_MIN,
+  TELEPROMPTER_FONT_STEP,
+  TELEPROMPTER_WPS_MAX,
+  TELEPROMPTER_WPS_MIN,
+  TELEPROMPTER_WPS_STEP,
+} from "@/lib/types";
 import { RESERVED_HOTKEYS } from "@/hooks/use-reader-hotkeys";
 import type { BookPatch } from "@/hooks/use-book-milestones";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageMenu } from "@/components/library/LanguageMenu";
-import { BookMarked, Check, Eye, EyeOff, Keyboard, LayoutPanelLeft, Moon, Palette, Sparkles, Target } from "lucide-react";
+import { BookMarked, Check, Eye, EyeOff, Keyboard, LayoutPanelLeft, MonitorPlay, Moon, Palette, Sparkles, Target } from "lucide-react";
 
 interface ConfigPanelProps {
   open: boolean;
@@ -65,6 +79,31 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
   const setReading = useSettings((s) => s.setReading);
   const immersion = useSettings((s) => s.immersion);
   const setImmersion = useSettings((s) => s.setImmersion);
+  const tpSet = useSettings((s) => s.teleprompter);
+  const setTeleprompter = useSettings((s) => s.setTeleprompter);
+  const tpFontScale = clampTeleprompterFontScale(tpSet.fontScale);
+  const fondoInputRef = useRef<HTMLInputElement | null>(null);
+  const [subiendoFondo, setSubiendoFondo] = useState(false);
+  const [errorFondo, setErrorFondo] = useState<string | null>(null);
+  const subirFondo = async (file: File) => {
+    setSubiendoFondo(true);
+    setErrorFondo(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/teleprompter/fondo", { method: "POST", body: fd });
+      const data = (await res.json()) as { ruta?: string; error?: string };
+      if (!res.ok || !data.ruta) {
+        setErrorFondo(data.error ?? t("config.tpBgErrorBody"));
+        return;
+      }
+      setTeleprompter({ fondo: "imagen", fondoRuta: data.ruta });
+    } catch {
+      setErrorFondo(t("config.tpBgErrorBody"));
+    } finally {
+      setSubiendoFondo(false);
+    }
+  };
 
   // Captura de la tecla de inmersión manual: la próxima tecla libre queda asignada
   const [capturing, setCapturing] = useState(false);
@@ -385,6 +424,193 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
               <p className="text-xs text-muted-foreground">
                 {t("config.dailyGoalHint")}
               </p>
+            </div>
+          </section>
+
+          <Separator />
+
+          {/* ---------- Teleprompter ---------- */}
+          <section aria-label={t("config.teleprompterAria")}>
+            <div className="mb-3 flex items-center gap-2">
+              <MonitorPlay className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold uppercase tracking-wide">{t("config.teleprompter")}</h3>
+            </div>
+
+            <div className="grid gap-5">
+              {/* velocidad DIRECTA: sin presets, la dueña manda (24-10) */}
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>{t("config.tpSpeed")}</Label>
+                  <span className="text-xs font-medium tabular-nums text-foreground">
+                    {tpSet.instante
+                      ? t("tp.instantLabel")
+                      : t("tp.wpsLabel", { wps: String(tpSet.wps).replace(".", ",") })}
+                  </span>
+                </div>
+                <Slider
+                  min={TELEPROMPTER_WPS_MIN}
+                  max={TELEPROMPTER_WPS_MAX}
+                  step={TELEPROMPTER_WPS_STEP}
+                  value={[clampTeleprompterWps(tpSet.wps)]}
+                  onValueChange={([v]) => setTeleprompter({ wps: clampTeleprompterWps(v) })}
+                  disabled={tpSet.instante}
+                  aria-label={t("config.tpSpeed")}
+                  data-testid="config-tp-wps"
+                />
+                <p className="text-xs text-muted-foreground">{t("config.tpSpeedHint")}</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="tp-instant-switch">{t("config.tpInstant")}</Label>
+                    <p className="text-xs text-muted-foreground">{t("config.tpInstantHint")}</p>
+                  </div>
+                  <Switch
+                    id="tp-instant-switch"
+                    checked={tpSet.instante}
+                    onCheckedChange={(v) => setTeleprompter({ instante: v })}
+                    data-testid="config-tp-instant"
+                  />
+                </div>
+              </div>
+
+              {/* tamaño de letra */}
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>{t("config.tpFont")}</Label>
+                  <span className="text-xs font-medium tabular-nums text-foreground">
+                    {Math.round(tpFontScale * 100)}%
+                  </span>
+                </div>
+                <Slider
+                  min={TELEPROMPTER_FONT_MIN}
+                  max={TELEPROMPTER_FONT_MAX}
+                  step={TELEPROMPTER_FONT_STEP}
+                  value={[tpFontScale]}
+                  onValueChange={([v]) => setTeleprompter({ fontScale: clampTeleprompterFontScale(v) })}
+                  aria-label={t("config.tpFont")}
+                  data-testid="config-tp-font"
+                />
+                <p className="text-xs text-muted-foreground">{t("config.tpFontHint")}</p>
+              </div>
+
+              {/* sonido y auto */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="tp-sound-switch">{t("config.tpSound")}</Label>
+                  <p className="text-xs text-muted-foreground">{t("config.tpSoundHint")}</p>
+                </div>
+                <Switch
+                  id="tp-sound-switch"
+                  checked={tpSet.sound}
+                  onCheckedChange={(v) => setTeleprompter({ sound: v })}
+                  data-testid="config-tp-sound"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="tp-auto-switch">{t("config.tpAuto")}</Label>
+                  <p className="text-xs text-muted-foreground">{t("config.tpAutoHint")}</p>
+                </div>
+                <Switch
+                  id="tp-auto-switch"
+                  checked={tpSet.auto}
+                  onCheckedChange={(v) => setTeleprompter({ auto: v })}
+                  data-testid="config-tp-auto"
+                />
+              </div>
+
+              {/* tarjetas por frase: leer en voz alto sin párrafos enteros */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="tp-cards-switch">{t("config.tpCards")}</Label>
+                  <p className="text-xs text-muted-foreground">{t("config.tpCardsHint")}</p>
+                </div>
+                <Switch
+                  id="tp-cards-switch"
+                  checked={tpSet.tarjetasPorFrase}
+                  onCheckedChange={(v) => setTeleprompter({ tarjetasPorFrase: v })}
+                  data-testid="config-tp-cards"
+                />
+              </div>
+
+              {/* fondo: tema, portada o imagen propia — siempre filtrada */}
+              <div className="grid gap-2">
+                <Label>{t("config.tpBg")}</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {(["tema", "portada", "imagen"] as const).map((modo) => (
+                    <button
+                      key={modo}
+                      onClick={() => setTeleprompter({ fondo: modo })}
+                      data-testid={`config-tp-bg-${modo}`}
+                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                        tpSet.fondo === modo
+                          ? "border-primary bg-primary/15 font-medium text-primary-on-tint"
+                          : "border-border/70 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                      }`}
+                    >
+                      {t(`config.tpBg${modo[0].toUpperCase()}${modo.slice(1)}`)}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">{t("config.tpBgHint")}</p>
+                {tpSet.fondo === "portada" && !book?.coverPath && (
+                  <p className="text-xs text-muted-foreground">{t("config.tpBgNoCover")}</p>
+                )}
+                {tpSet.fondo === "imagen" && (
+                  <div className="grid gap-2">
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7"
+                        onClick={() => fondoInputRef.current?.click()}
+                        data-testid="config-tp-bg-upload"
+                      >
+                        {t("config.tpBgUpload")}
+                      </Button>
+                      <input
+                        ref={fondoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/avif"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void subirFondo(f);
+                          e.target.value = "";
+                        }}
+                      />
+                      {tpSet.fondoRuta && (
+                        <img
+                          src={tpSet.fondoRuta}
+                          alt=""
+                          className="h-10 w-16 rounded border border-border object-cover"
+                        />
+                      )}
+                    </div>
+                    {subiendoFondo && <p className="text-xs text-muted-foreground">{t("common.loading")}</p>}
+                    {errorFondo && <p className="text-xs font-medium text-destructive">{errorFondo}</p>}
+                  </div>
+                )}
+                {tpSet.fondo !== "tema" && (
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label>{t("config.tpBgFilter")}</Label>
+                      <span className="text-xs font-medium tabular-nums text-foreground">
+                        {tpSet.fondoFiltro}%
+                      </span>
+                    </div>
+                    <Slider
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={[tpSet.fondoFiltro]}
+                      onValueChange={([v]) => setTeleprompter({ fondoFiltro: v })}
+                      aria-label={t("config.tpBgFilter")}
+                      data-testid="config-tp-bg-filter"
+                    />
+                    <p className="text-xs text-muted-foreground">{t("config.tpBgFilterHint")}</p>
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         </div>

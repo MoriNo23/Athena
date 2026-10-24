@@ -37,7 +37,9 @@ interface UseTeleprompterWindowOpts {
   getPageBlocks?: (page: number) => Promise<TeleprompterBlock[]>;
   numPages: number;
   /** wps del preset activo: tempo del flujo encendido */
-  presetWps: number | null;
+  wps: number | null;
+  /** tarjetas por frase: los bloques largos se parten en frases legibles */
+  porFrase: boolean;
 }
 
 /** ease-out cúbico: arranca rápido y asienta suave (sin cola visible) */
@@ -59,7 +61,7 @@ function viewAnimDuration(deltaPx: number): number {
  * seguimiento de scroll que deja el carácter activo a ~40 % del alto visible.
  * El control de reproducción vive en `use-teleprompter-player`.
  */
-export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps }: UseTeleprompterWindowOpts) {
+export function useTeleprompterWindow({ doc, getPageBlocks, numPages, wps, porFrase = true }: UseTeleprompterWindowOpts) {
   const [win, setWin] = useState<StreamWindow | null>(null);
   const winRef = useRef<StreamWindow | null>(null);
   const winSourceRef = useRef<string | null>(null);
@@ -78,8 +80,8 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps 
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    viewInstantRef.current = presetWps == null || reduced;
-  }, [presetWps]);
+    viewInstantRef.current = wps == null || reduced;
+  }, [wps]);
 
   /** Cancela la transición en curso: el desplazamiento manual manda sobre el
       seguimiento (rueda, ↑) y el objetivo se recalcula contra el DOM real. */
@@ -211,7 +213,7 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps 
     () => (win ? [...(win.pages[0] ?? []), ...(win.pages[1] ?? [])] : []),
     [win]
   );
-  const stream = useMemo(() => buildTeleprompterStream(windowBlocks, presetWps), [windowBlocks, presetWps]);
+  const stream = useMemo(() => buildTeleprompterStream(windowBlocks, wps, porFrase), [windowBlocks, wps, porFrase]);
   const firstLen = useMemo(() => teleprompterCharCount(win?.pages[0] ?? []), [win]);
   const totalChars = stream.steps.length;
 

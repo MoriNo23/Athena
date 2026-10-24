@@ -34,8 +34,21 @@ export const TELEPROMPTER_COMMA_PAUSE_LETTERS = 4;
 /** Pausa tras punto / interrogación / exclamación / suspensivos, en múltiplos del retardo base. */
 export const TELEPROMPTER_PERIOD_PAUSE_LETTERS = 9;
 
+/** Pausa tras raya (— o –): el guion largo se lee como una coma ancha. */
+export const TELEPROMPTER_DASH_PAUSE_LETTERS = 3;
+
+/** Pausa leve al abrir/cerrar paréntesis: el inciso respira. */
+export const TELEPROMPTER_PAREN_PAUSE_LETTERS = 2;
+
+/** Pausa leve al abrir/cerrar comillas de cita: la voz cambia de registro. */
+export const TELEPROMPTER_QUOTE_PAUSE_LETTERS = 2;
+
 const PUNCT_STRONG = new Set([".", "!", "?", "…"]);
 const PUNCT_WEAK = new Set([",", ";", ":"]);
+const PUNCT_DASH = new Set(["—", "–"]);
+const PUNCT_PAREN = new Set(["(", ")"]);
+/** comillas de cita (NO el apóstrofo: partiría «don't» en dos trozos) */
+const PUNCT_QUOTE = new Set(["«", "»", "“", "”", '"']);
 
 // ---------- Timeline ----------
 
@@ -89,6 +102,12 @@ export function buildTeleprompterTimeline(text: string, wps: number | null): Tel
     } else if (PUNCT_WEAK.has(char)) {
       commas += 1;
       pendingPause = Math.max(pendingPause, base * TELEPROMPTER_COMMA_PAUSE_LETTERS);
+    } else if (PUNCT_DASH.has(char)) {
+      pendingPause = Math.max(pendingPause, base * TELEPROMPTER_DASH_PAUSE_LETTERS);
+    } else if (PUNCT_PAREN.has(char)) {
+      pendingPause = Math.max(pendingPause, base * TELEPROMPTER_PAREN_PAUSE_LETTERS);
+    } else if (PUNCT_QUOTE.has(char)) {
+      pendingPause = Math.max(pendingPause, base * TELEPROMPTER_QUOTE_PAUSE_LETTERS);
     }
   }
   // pendingPause final se descarta solo: no hay más pasos que lo consuman.
@@ -148,9 +167,63 @@ const isHeadingKind = (kind: TeleprompterBlockKind) =>
  * (más la que traiga la puntuación anterior) y el resto no añade retardo; el
  * primer carácter del cuerpo tras un título paga otra pausa.
  */
+/** Tope de palabras por tarjeta al partir por frases: la frase natural manda,
+    pero una retahíla de comas no debe volverse lectura interminable. */
+export const TELEPROMPTER_SENTENCE_CARD_WORDS = 45;
+
+/** Tope de caracteres por tarjeta (por si una "frase" no encuentra su punto). */
+export const TELEPROMPTER_SENTENCE_CARD_CHARS = 360;
+
+/** Parte un bloque de cuerpo en frases leídas en voz alta: el corte va tras
+    . ! ? … y sus cierres (» ” ') — nunca dentro de una palabra ni entre un
+    número y su coma decimal. Las frases se agrupan hasta los topes: una
+    tarjeta no es una frase suelta si el grupo aún se lee cómodo. */
+function partirEnFrases(text: string): string[] {
+  const frases: string[] = [];
+  let actual = "";
+  const chars = Array.from(text);
+  for (let i = 0; i < chars.length; i++) {
+    const ch = chars[i];
+    actual += ch;
+    const esCierre = /[.!?…]/.test(ch);
+    if (!esCierre) continue;
+    // consumir cola de cierre: párrafos pueden traer .» o ." o ...
+    let j = i + 1;
+    while (j < chars.length && /[»”"')]/.test(chars[j])) {
+      actual += chars[j];
+      j++;
+    }
+    i = j - 1;
+    frases.push(actual.trim());
+    actual = "";
+  }
+  if (actual.trim()) frases.push(actual.trim());
+  return frases.filter(Boolean);
+}
+
+/** Agrupa frases en tarjetas hasta los topes (palabras o caracteres). */
+function tarjetasDeFrases(text: string): string[] {
+  const frases = partirEnFrases(text);
+  if (frases.length <= 1) return frases.length === 1 ? frases : [text];
+  const tarjetas: string[] = [];
+  let card = "";
+  for (const frase of frases) {
+    const palabras = (card + " " + frase).trim().split(/\s+/).filter(Boolean).length;
+    if (card && (palabras > TELEPROMPTER_SENTENCE_CARD_WORDS || (card + " " + frase).length > TELEPROMPTER_SENTENCE_CARD_CHARS)) {
+      tarjetas.push(card.trim());
+      card = frase;
+    } else {
+      card = card ? card + " " + frase : frase;
+    }
+  }
+  if (card.trim()) tarjetas.push(card.trim());
+  return tarjetas;
+}
+
 export function buildTeleprompterStream(
   blocks: readonly TeleprompterBlock[],
-  wps: number | null
+  wps: number | null,
+  porFrase = true
 ): TeleprompterStream {
   const base = wps == null ? 0 : 1000 / (wps * TELEPROMPTER_LETTERS_PER_WORD);
   const steps: TeleprompterStep[] = [];
@@ -161,8 +234,13 @@ export function buildTeleprompterStream(
   for (const block of blocks) {
     const text = block.text.replace(/\s+/g, " ").trim();
     if (!text) continue;
-    const chars = Array.from(text);
     const heading = isHeadingKind(block.kind);
+    // el bloque largo se parte en tarjetas por frase (lectura en voz alta);
+    // los títulos se presentan enteros, como una sola tarjeta
+    const tarjetas = heading || !porFrase ? [text] : tarjetasDeFrases(text);
+
+    for (const tarjeta of tarjetas) {
+    const chars = Array.from(tarjeta);
     const start = steps.length;
 
     for (let j = 0; j < chars.length; j++) {
@@ -184,13 +262,20 @@ export function buildTeleprompterStream(
         pending = Math.max(pending, base * TELEPROMPTER_PERIOD_PAUSE_LETTERS);
       } else if (PUNCT_WEAK.has(char)) {
         pending = Math.max(pending, base * TELEPROMPTER_COMMA_PAUSE_LETTERS);
+      } else if (PUNCT_DASH.has(char)) {
+        pending = Math.max(pending, base * TELEPROMPTER_DASH_PAUSE_LETTERS);
+      } else if (PUNCT_PAREN.has(char)) {
+        pending = Math.max(pending, base * TELEPROMPTER_PAREN_PAUSE_LETTERS);
+      } else if (PUNCT_QUOTE.has(char)) {
+        pending = Math.max(pending, base * TELEPROMPTER_QUOTE_PAUSE_LETTERS);
       }
     }
     // el cuerpo no arranca hasta pasado el respiro del título
     if (heading) pending = Math.max(pending, base * TELEPROMPTER_HEADING_PAUSE_LETTERS);
 
-    out.push({ kind: block.kind, text, start, length: chars.length, heading });
+    out.push({ kind: block.kind, text: tarjeta, start, length: chars.length, heading });
     prevHeading = heading;
+    }
   }
 
   const totalMs = steps.reduce((acc, s) => acc + s.delay, 0);

@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Tip } from "@/components/reader/ZoomControls";
 import { TeleprompterPageNotice } from "@/components/reader/TeleprompterPageNotice";
 import { ShortcutGhost, type ShortcutGhostEntry } from "@/components/reader/ShortcutGhost";
@@ -29,12 +32,14 @@ import {
 } from "@/hooks/use-teleprompter-window";
 import { useTeleprompterPlayer } from "@/hooks/use-teleprompter-player";
 import {
-  TELEPROMPTER_SPEED_PRESETS,
-  teleprompterPresetById,
   clampTeleprompterFontScale,
+  clampTeleprompterWps,
   TELEPROMPTER_FONT_MAX,
   TELEPROMPTER_FONT_MIN,
   TELEPROMPTER_FONT_STEP,
+  TELEPROMPTER_WPS_MAX,
+  TELEPROMPTER_WPS_MIN,
+  TELEPROMPTER_WPS_STEP,
 } from "@/lib/types";
 import type { BookDTO } from "@/lib/types";
 import type { PDFDocumentProxy } from "pdfjs-dist";
@@ -123,10 +128,25 @@ export function TeleprompterOverlay({
   const tpSet = useSettings((s) => s.teleprompter);
   const setTeleprompter = useSettings((s) => s.setTeleprompter);
   const { t } = useI18n();
-  const preset = teleprompterPresetById(tpSet.speedPreset);
+  // control DIRECTO de velocidad: sin presets (la dueña manda, 24-10)
+  const wps = clampTeleprompterWps(tpSet.wps);
+  const instante = tpSet.instante;
+  const wpsActivo = instante ? null : wps;
   const auto = tpSet.auto;
   const fontScale = clampTeleprompterFontScale(tpSet.fontScale);
-  const speedLabel = t(`speed.${preset.id}`);
+  const speedLabel = instante
+    ? t("tp.instantLabel")
+    : t("tp.wpsLabel", {
+        wps: wps.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+      });
+  // fondo del escenario: portada del libro o imagen propia, siempre filtrada
+  const fondoImg =
+    tpSet.fondo === "portada"
+      ? book.coverPath ?? null
+      : tpSet.fondo === "imagen"
+        ? tpSet.fondoRuta || null
+        : null;
+  const fondoFiltro = Math.round(tpSet.fondoFiltro);
 
   const changeFont = useCallback(
     (delta: number) => {
@@ -178,7 +198,7 @@ export function TeleprompterOverlay({
     }
   }, [tpSet.sound]);
 
-  const tpWin = useTeleprompterWindow({ doc, getPageBlocks, numPages, presetWps: preset.wps });
+  const tpWin = useTeleprompterWindow({ doc, getPageBlocks, numPages, wps: wpsActivo, porFrase: tpSet.tarjetasPorFrase });
   const {
     win,
     setWin,
@@ -207,13 +227,13 @@ export function TeleprompterOverlay({
     // apertura o retroceso: sin fundido (la animación de página es solo hacia delante)
     if (prev == null || curStart <= prev) return;
     const el = streamRef.current;
-    if (!el || preset.wps == null) return; // preset Instantánea: salta
+    if (!el || instante) return; // Instantánea: salta
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     el.animate(
       [{ opacity: 0.25 }, { opacity: 1 }],
       { duration: 700, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)" }
     );
-  }, [curStart, preset.wps]);
+  }, [curStart, instante]);
 
   const player = useTeleprompterPlayer({
     pageNum,
@@ -234,7 +254,7 @@ export function TeleprompterOverlay({
     scrollToChar: tpWin.scrollToChar,
     stageViewAnchor,
     auto,
-    presetWps: preset.wps,
+    wps: wps,
     tick: tpTick,
   });
 
@@ -379,6 +399,27 @@ export function TeleprompterOverlay({
       data-testid="tp-overlay"
       style={{ "--tp-font-scale": fontScale } as React.CSSProperties}
     >
+      {/* Fondo del escenario: portada del libro o imagen propia, SIEMPRE con
+          filtro en runtime (oscurecer + desaturar + contraste) para que las
+          letras se lean. «tema» no pinta nada: el color de la casa manda.
+          La imagen NUNCA se modifica: el filtro es de la app. */}
+      {fondoImg && (
+        <div className="pointer-events-none absolute inset-0 z-0" aria-hidden data-testid="tp-background">
+          <img
+            src={fondoImg}
+            alt=""
+            className="h-full w-full object-cover"
+            style={{
+              filter: `saturate(${100 - 0.8 * fondoFiltro}%) contrast(${100 + 0.25 * fondoFiltro}%) brightness(${100 - 0.45 * fondoFiltro}%)`,
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: `rgb(4 8 20 / ${Math.min(88, 22 + 0.62 * fondoFiltro)}%)` }}
+          />
+        </div>
+      )}
+
       {/* Recordatorio de teclas de la inmersión: cada transición de visibilidad
           de la interfaz (ocultarse por quietud o despertar) lo despliega */}
       <ShortcutGhost signal={uiHidden} entries={tpGhostEntries} testId="tp-shortcut-ghost" />
@@ -489,31 +530,40 @@ export function TeleprompterOverlay({
               aria-label={t("tp.speedAria")}
               data-testid="tp-speed"
             >
-              <Gauge className="h-4 w-4" /> {speedLabel.split(" · ")[0]}
+              <Gauge className="h-4 w-4" /> {speedLabel}
             </Button>
           </PopoverTrigger>
-          <PopoverContent side="bottom" align="end" className="z-[80] w-64 p-2" data-testid="tp-speed-menu">
-            <p className="px-2 pb-1.5 text-[11px] font-medium text-muted-foreground">
+          <PopoverContent side="bottom" align="end" className="z-[80] w-72 p-3" data-testid="tp-speed-menu">
+            <p className="pb-2 text-[11px] font-medium text-muted-foreground">
               {t("tp.speedTitle")}
             </p>
-            {TELEPROMPTER_SPEED_PRESETS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setTeleprompter({ speedPreset: p.id })}
-                data-testid={`tp-speed-preset-${p.id}`}
-                className={cn(
-                  "flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition-colors",
-                  p.id === tpSet.speedPreset
-                    ? "bg-primary/15 font-medium text-primary-on-tint"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                )}
-              >
-                <span>{t(`speed.${p.id}`)}</span>
-                {p.id === tpSet.speedPreset && (
-                  <span className="text-[10px] font-bold uppercase">{t("tp.activeTag")}</span>
-                )}
-              </button>
-            ))}
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs">{t("tp.instant")}</Label>
+                <Switch
+                  checked={instante}
+                  onCheckedChange={(v) => setTeleprompter({ instante: v })}
+                  aria-label={t("tp.instantAria")}
+                  data-testid="tp-instant-switch"
+                />
+              </div>
+              <div className={cn("grid gap-1.5", instante && "pointer-events-none opacity-40")}>
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">{t("tp.wps")}</Label>
+                  <span className="text-xs font-medium tabular-nums text-foreground">{speedLabel}</span>
+                </div>
+                <Slider
+                  min={TELEPROMPTER_WPS_MIN}
+                  max={TELEPROMPTER_WPS_MAX}
+                  step={TELEPROMPTER_WPS_STEP}
+                  value={[wps]}
+                  onValueChange={([v]) => setTeleprompter({ wps: clampTeleprompterWps(v) })}
+                  aria-label={t("tp.wpsAria")}
+                  data-testid="tp-wps-slider"
+                />
+                <p className="text-[11px] text-muted-foreground">{t("tp.wpsHint")}</p>
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
         <Tip label={playing ? t("tp.pauseTip") : t("tp.playTip")}>

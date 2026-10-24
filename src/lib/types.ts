@@ -241,15 +241,28 @@ export interface ImmersionSettings {
 
 /** Modo teleprompter: la página se enciende letra a letra a pantalla completa */
 export interface TeleprompterSettings {
-  /** id del preset de velocidad (TELEPROMPTER_SPEED_PRESETS en src/lib/teleprompter.ts) */
-  speedPreset: string;
+  /** palabras por segundo (0.8–4.0); el ritmo real respira con la puntuación */
+  wps: number;
+  /** Instantánea: todo de golpe, sin espera entre letras */
+  instante: boolean;
   /** tic de tipeo por letra */
   sound: boolean;
   /** modo auto: al terminar una tarjeta avanza solo (y gira la página al acabar) */
   auto: boolean;
   /** multiplicador del tamaño de letra de las tarjetas (TELEPROMPTER_FONT_MIN..TELEPROMPTER_FONT_MAX) */
   fontScale: number;
+  /** fondo del escenario: color del tema, portada del libro o imagen propia */
+  fondo: TeleprompterFondo;
+  /** ruta (en /uploads/) de la imagen propia; vacío = ninguna puesta */
+  fondoRuta: string;
+  /** intensidad del filtro de legibilidad sobre la imagen (0-100) */
+  fondoFiltro: number;
+  /** tarjetas por frase: los bloques largos se parten en frases legibles */
+  tarjetasPorFrase: boolean;
 }
+
+/** De dónde sale el fondo del escenario del teleprompter */
+export type TeleprompterFondo = "tema" | "portada" | "imagen";
 
 export const TELEPROMPTER_FONT_MIN = 0.8;
 export const TELEPROMPTER_FONT_MAX = 1.6;
@@ -272,25 +285,33 @@ export interface AppSettings {
 
 // ---------- Teleprompter: velocidades ----------
 
-export interface TeleprompterSpeedPreset {
-  id: string;
-  label: string;
-  /** palabras por segundo; null = Instantánea (todo de golpe) */
-  wps: number | null;
+/** Control DIRECTO de velocidad: sin presets — la dueña manda (24-10) */
+export const TELEPROMPTER_WPS_MIN = 0.8;
+export const TELEPROMPTER_WPS_MAX = 4;
+export const TELEPROMPTER_WPS_STEP = 0.1;
+export const TELEPROMPTER_WPS_DEFAULT = 2.5;
+/** intensidad por defecto del filtro de legibilidad del fondo (0-100) */
+export const TELEPROMPTER_FONDO_FILTRO_DEFAULT = 55;
+
+export function clampTeleprompterWps(v: number): number {
+  const r = Math.round(v * 10) / 10;
+  return Math.min(TELEPROMPTER_WPS_MAX, Math.max(TELEPROMPTER_WPS_MIN, r));
 }
 
-export const TELEPROMPTER_SPEED_PRESETS: TeleprompterSpeedPreset[] = [
-  { id: "0-8", label: "Contemplativa · 0,8 pal/s", wps: 0.8 },
-  { id: "1-5", label: "Lenta · 1,5 pal/s", wps: 1.5 },
-  { id: "2-5", label: "Natural · 2,5 pal/s", wps: 2.5 },
-  { id: "4", label: "Viva · 4 pal/s", wps: 4 },
-  { id: "instant", label: "Instantánea", wps: null },
-];
-
-export const TELEPROMPTER_DEFAULT_PRESET = "1-5";
-
-export function teleprompterPresetById(id: string): TeleprompterSpeedPreset {
-  return TELEPROMPTER_SPEED_PRESETS.find((p) => p.id === id) ?? TELEPROMPTER_SPEED_PRESETS[1];
+/** Migración de instalaciones viejas: id de preset → palabras por segundo */
+export function wpsDePresetAntiguo(id: string): number {
+  switch (id) {
+    case "0-8":
+      return 0.8;
+    case "1-5":
+      return 1.5;
+    case "2-5":
+      return 2.5;
+    case "4":
+      return 4;
+    default:
+      return TELEPROMPTER_WPS_DEFAULT;
+  }
 }
 
 export const RAIL_THEMES: Record<
