@@ -52,6 +52,14 @@ letra a pantalla completa — pero le faltan tres cosas que la dueña pidió el
   tamaño de letra 0,8–1,6 — todos ya persistidos en `db/config.json`
   (bloque `teleprompter`).
 
+## Decisión de la dueña (24-10, al aplicar)
+
+**Fuera los presets de velocidad**: control DIRECTO de palabras por segundo
+(0,8–4, paso 0,1) más el interruptor de Instantánea. La dueña lo pidió explícito
+(«no necesito presets») y encajó con el objetivo: que el teleprompter sea un
+sistema que sirva para *leer mejor, retener mejor y terminar*, no un menú de
+velocidades con nombre.
+
 ## Open questions (se cierran antes del apply)
 
 1. ¿Dónde viven los ajustes nuevos: sección del panel de Ajustes del lector,
