@@ -25,7 +25,8 @@ export const config = {
  */
 export function middleware(req: NextRequest) {
   const password = contraseñaEfectiva();
-  const ruta = req.nextUrl.pathname;
+  // barra final no crea rutas distintas: /api/auth/login/ ES el login
+  const ruta = req.nextUrl.pathname.replace(/\/+$/, "") || "/";
   if (!password || ruta === "/api" || ruta === "/api/auth/login") return NextResponse.next();
 
   const recibida = req.cookies.get(COOKIE_SESION)?.value ?? "";
