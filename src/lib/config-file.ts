@@ -36,7 +36,9 @@ import {
  *    absoluta de la máquina que sirve; del fichero de un libro solo se LEE).
  */
 
-const DATA_DIR = path.join(process.cwd(), "db");
+// rutas relativas a propósito: se resuelven contra el cwd EN CADA LLAMADA (no
+// al importar), lo que deja que los tests apunten a sandbox con chdir.
+const DATA_DIR = "db";
 const CONFIG_PATH = path.join(DATA_DIR, "config.json");
 const MAX_SIZE = 256 * 1024; // un config a mano no pasa de esto; es guardia, no regla
 
