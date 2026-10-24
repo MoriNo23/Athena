@@ -30,6 +30,38 @@ model Book {
   createdAt   DateTime  @default(now())
   lastReadAt  DateTime?
   sessions    ReadingSession[]
+  // Procedencia del fichero (change cfg-y-biblioteca-por-carpeta):
+  //  "subido"  → copia viva en public/uploads/ (la papelera SÍ la mueve)
+  //  "carpeta" → registrado en su sitio desde la carpeta escaneada; el fichero
+  //              es de la dueña y la app JAMÁS lo mueve, renombra ni escribe.
+  origin        String    @default("subido")
+  /** sha256 del fichero (desempate ante rutas distintas + detección de reemplazo) */
+  fileHash      String?
+  /** tamaño y mtime de la última huella guardada: si no cambiaron, no se re-hash
+   */
+  fileBytes     Int?
+  fileMtime     Float?
+  /** null = fichero presente; fecha en que el escáner dejó de encontrarlo */
+  fileMissingAt DateTime?
+}
+
+/**
+ * Vocabulario global (change cfg-y-biblioteca-por-carpeta): es DATA de la
+ * dueña, no configuración — vive SOLO en la BD, nunca en db/config.json ni
+ * en el localStorage (eso solo era caché hasta migrar).
+ */
+model Vocab {
+  id        String   @id @default(cuid())
+  word      String
+  lang      String   // "es" | "en"
+  short     String   // definición recortada
+  bookId    String?
+  bookTitle String
+  page      Int      @default(1)
+  createdAt DateTime @default(now())
+
+  @@unique([word, lang])
+  @@index([createdAt])
 }
 
 /**

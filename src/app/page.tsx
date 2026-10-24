@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LibraryView } from "@/components/library/LibraryView";
 import { ReaderView } from "@/components/reader/ReaderView";
+import { hidratarAjustes } from "@/lib/settings";
 import type { BookDTO } from "@/lib/types";
 import type { BookWithSessions } from "@/hooks/use-library-books";
 
 export default function Home() {
   const [activeBook, setActiveBook] = useState<BookWithSessions | null>(null);
+
+  // Fuente única de ajustes: arranca la hidratación desde db/config.json
+  // (el localStorage solo cruzó la migración de la instalación vieja).
+  useEffect(() => {
+    void hidratarAjustes();
+  }, []);
 
   /**
    * El lector abre el libro CON sesiones (payload de la biblioteca). Los
