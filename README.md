@@ -121,19 +121,6 @@ bun run build            # production build compiles
 
 [MIT](LICENSE) — clone it, modify it, self-host it. Your library stays yours.
 
-## ROADMAP
-
-- [x] **EPUB support** — virtual pages, chapter outline, metadata covers.
-- [x] **Interface in three languages** — español, English, Português.
-- [x] **Teleprompter mode** — one continuous stream, letter-by-letter lighting,
-  headings revealed whole, idle-hiding controls, fullscreen, cut-to-typing sound
-  on skip.
-- [x] **Reflowed PDF text mode** — virtual pages, reading fonts, teleprompter fed
-  by the reflow.
-- [ ] **Per-book font scale** — the reading type size is currently global.
-- [ ] **Bolder light-theme shadows** — the dark house wears its ink more proudly.
-- [ ] **Touch refinements** — desktop-first by design; phones deserve intent, not leftovers.
-
 ---
 
 <div align="center">
