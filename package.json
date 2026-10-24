@@ -10,8 +10,6 @@
     "start": "ATENA_MODO=offline next start -p 3000 -H 127.0.0.1 2>&1 | tee server.log",
     "start:lan": "ATENA_MODO=lan next start -p 3000 -H 0.0.0.0 2>&1 | tee server.log",
     "lint": "eslint .",
-    "crap": "tools/crapper/crapper src --no-coverage",
-    "crap:changed": "tools/crapper/crapper src --changed --no-coverage",
     "postinstall": "prisma generate",
     "db:push": "prisma db push --accept-data-loss",
     "db:generate": "prisma generate",

@@ -42,7 +42,7 @@ nuevo. **Mata lo que haya en el puerto 3000.**
 | `bash scripts/with-dev.sh node scripts/test-vn-stress.js` | completa |
 | `bash scripts/with-dev.sh node scripts/test-hotkeys-e2e.js` | completa |
 
-Estáticas: `bunx tsc --noEmit`, `bun run lint`, `bun run crap:changed`,
+Estáticas: `bunx tsc --noEmit`, `bun run lint`,
 `openspec validate --all --strict`.
 
 ## 4. Si C1 sigue fallando
