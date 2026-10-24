@@ -3,10 +3,12 @@
  * renombrado ATHENA_* con fallback legado en candado-completo-y-athena).
  * Informativo: el candado no depende de él — si instrumentation no corre,
  * el helper garantiza el archivo bajo demanda en request.
+ * El import es dinámico y guardado por runtime: instrumentation también se
+ * compila para Edge, donde access.ts (node:crypto/fs) no existe.
  */
-import { contraseñaEfectiva } from "@/lib/access";
-
 export async function register() {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  const { contraseñaEfectiva } = await import("@/lib/access");
   const modo = (process.env.ATHENA_MODO ?? process.env.ATENA_MODO) ?? "offline";
   const fija = ((process.env.ATHENA_PASSWORD ?? process.env.ATENA_PASSWORD) ?? "").trim();
   if (modo === "lan") {

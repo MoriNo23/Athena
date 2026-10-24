@@ -8,7 +8,7 @@ import {
 } from "@/lib/access";
 
 export const config = {
-  runtime: "nodejs",
+  // proxy corre siempre en Node.js (runtime no configurable en Next 16)
   // api por matcher propio; páginas el resto (lo estático y /favicon se
   // filtran en código con esRecursoEstático)
   matcher: ["/api/:path*", "/((?!_next/static|_next/image|api).*)"],
@@ -23,7 +23,7 @@ export const config = {
  *   /login?next=…; con cookie, /login devuelve al inicio.
  * Sin contraseña efectiva: todo pasa, igual que hoy (localhost y abierto).
  */
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const password = contraseñaEfectiva();
   // barra final no crea rutas distintas: /api/auth/login/ ES el login
   const ruta = req.nextUrl.pathname.replace(/\/+$/, "") || "/";
