@@ -68,8 +68,12 @@ export function BadgeShelf({ books, onOpen }: BadgeShelfProps) {
                 data-testid="badge-item"
               >
                 <div className={`badge-frame tier-${meta.key} h-20 w-20 transition-transform group-hover:scale-105`}>
-                  {b.coverPath ? (
-                    <img src={b.coverPath} alt={t("shelf.badgeAlt", { title: b.title })} className="h-full w-full" />
+                  {b.coverUrl ?? b.coverPath ? (
+                    <img
+                      src={b.coverUrl ?? b.coverPath!}
+                      alt={t("shelf.badgeAlt", { title: b.title })}
+                      className="h-full w-full"
+                    />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center rounded-full bg-secondary">
                       <Medal className="h-7 w-7 text-muted-foreground" />

@@ -308,7 +308,8 @@ export async function escribirAjustes(
     ...extraKeys,
   };
   const txt = JSON.stringify(cuerpo, null, 2) + "\n";
-  const tmp = CONFIG_PATH + ".tmp-" + process.pid;
+  // pid + hora: dos escrituras concurrentes no pisan el mismo tmp
+  const tmp = CONFIG_PATH + `.tmp-${process.pid}-${Date.now()}`;
   await writeFile(tmp, txt, "utf8");
   await rename(tmp, CONFIG_PATH);
 }

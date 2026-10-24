@@ -30,6 +30,7 @@ import {
   TELEPROMPTER_WPS_MAX,
   TELEPROMPTER_WPS_MIN,
   TELEPROMPTER_WPS_STEP,
+  fondoUrlDe,
 } from "@/lib/types";
 import { RESERVED_HOTKEYS } from "@/hooks/use-reader-hotkeys";
 import type { BookPatch } from "@/hooks/use-book-milestones";
@@ -580,7 +581,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                       />
                       {tpSet.fondoRuta && (
                         <img
-                          src={tpSet.fondoRuta}
+                          src={fondoUrlDe(tpSet.fondoRuta)}
                           alt=""
                           className="h-10 w-16 rounded border border-border object-cover"
                         />
