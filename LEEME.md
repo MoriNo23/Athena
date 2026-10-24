@@ -218,8 +218,6 @@ public/uploads/       → tus PDFs y portadas
 .env                  → configuración (1 línea, ya viene lista)
 prisma/schema.prisma  → estructura de la base de datos
 src/                  → el código de la app
-worklog.md            → diario de caza de cada tarea hecha
-scripts/              → utilidades y pruebas (no hacen falta para usar la app)
 ```
 
 ## Resumen ultrarrápido

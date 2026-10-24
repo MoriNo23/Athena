@@ -138,7 +138,7 @@ oklch — el formato canónico del proyecto — y cada rol tiene su cara nocturn
   sobre `primary/10–20%`). El azul global no llega a AA contra su propio
   tinte (4.0:1 claro, 3.4–3.5:1 oscuro móvil); esta cara medida sube cada
   combinación sobre 4.5:1 sin mover `--primary` (riel, progreso y focos
-  quedan intactos). Verificado en `scripts/audit-reader-contrast.py`.
+  quedan intactos). (contraste medido a mano al tocar tokens).
 
 ### Secondary
 - **Panel** (`oklch(0.26 0.05 252)`; día `oklch(0.915 0.035 240)`): superficie
@@ -165,7 +165,7 @@ oklch — el formato canónico del proyecto — y cada rol tiene su cara nocturn
 - **Reader Ink / Title / Rule** (`oklch(0.92 0.018 250)`, `oklch(0.97 0.02 250)`,
   `oklch(0.52 0.04 253)`; día `oklch(0.26 0.05 258)`, `oklch(0.2 0.055 258)`,
   `oklch(0.58 0.045 250)`): cuerpo, títulos y filetes del libro. Contrastes AA+
-  verificados por `scripts/audit-reader-contrast.py`.
+  medidos a mano.
 
 ### Named Rules
 **The Focus-Blue Rule.** El azul es foco, no decoración: aparece solo donde hay
@@ -299,8 +299,7 @@ se auto-oculta a los 3.5s y despierta con cualquier movimiento.
   jerarquía (The Focus-Blue Rule).
 - **Do** respetar `prefers-reduced-motion`: todo encendido estático, cero
   transiciones por carácter.
-- **Do** verificar contraste AA+ con `scripts/audit-reader-contrast.py` al
-  tocar tokens de lectura.
+- **Do** medir contraste AA+ al tocar tokens de lectura.
 
 ### Don't:
 - **Don't** introducir esquinas redondeadas, glassmorphism ni sombras difusas.
