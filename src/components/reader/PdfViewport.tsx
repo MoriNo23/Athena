@@ -198,6 +198,25 @@ export function PdfViewport({
     el.scrollTo({ top: 0, behavior: "smooth" });
   }, [pageNum]);
 
+  // ---- Cambio de página: fundido corto de la página recién pintada ----
+  // La página anterior NUNCA desaparece antes de tiempo: el repinte ocurre
+  // sobre el mismo canvas y el fundido entra cuando la nueva ya está lista
+  // (renderingPage vuelve a false). Así el giro no es un golpe seco ni un
+  // parpadeo de spinner. `prefers-reduced-motion` apaga el movimiento.
+  const frameRef = useRef<HTMLDivElement>(null);
+  const pintadaRef = useRef(false);
+  useEffect(() => {
+    if (renderingPage) return;
+    const el = frameRef.current;
+    if (!el) return;
+    if (!pintadaRef.current) {
+      pintadaRef.current = true;
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+  }, [pageNum, renderingPage]);
+
   return (
     <div
       ref={containerRef}
@@ -215,6 +234,7 @@ export function PdfViewport({
         </div>
       ) : (
         <div
+          ref={frameRef}
           className={cn(
             "flex min-h-full w-full justify-center",
             center ? "items-center" : "items-start",

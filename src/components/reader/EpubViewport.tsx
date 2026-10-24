@@ -48,6 +48,24 @@ export function EpubViewport({ pages, pageNum, fontScale, onFontDelta }: EpubVie
     el.scrollTo({ top: 0, behavior: "smooth" });
   }, [pageNum]);
 
+  // ---- Cambio de página: fundido corto del texto nuevo ----
+  // El texto reflowable también merece un giro sin sobresalto: la página
+  // virtual entra con un fundido de 180 ms (nada de teleport). Con
+  // `prefers-reduced-motion`, el cambio es directo, como antes.
+  const pageRef = useRef<HTMLDivElement>(null);
+  const primeraRef = useRef(false);
+  useEffect(() => {
+    if (!pages) return;
+    const el = pageRef.current;
+    if (!el) return;
+    if (!primeraRef.current) {
+      primeraRef.current = true;
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+  }, [pageNum, pages]);
+
   // ---- Rueda: Ctrl = tamaño de letra; boost configurable para el resto ----
   useEffect(() => {
     const el = containerRef.current;
@@ -90,6 +108,7 @@ export function EpubViewport({ pages, pageNum, fontScale, onFontDelta }: EpubVie
         <div className="relative h-full w-full">
           {/* frame de contenido: filtros + tinte cálido, igual que la página del PDF */}
           <div
+            ref={pageRef}
             className="epub-page relative"
             style={{
               filter: cssFilter === "none" ? undefined : cssFilter,

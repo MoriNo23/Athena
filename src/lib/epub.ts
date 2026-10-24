@@ -104,10 +104,14 @@ export function paginateEpub(chapters: EpubBlock[][]): EpubPage[] {
     const words = current.reduce((acc, b) => acc + b.words, 0);
     // página huérfana demasiado corta: se funde con la anterior del mismo capítulo
     const prev = pages[pages.length - 1];
+    const ultimoBloque = current[current.length - 1];
+    const acabaEnTitulo =
+      current.length > 0 && ultimoBloque.kind !== "img" && HEADING_KINDS.has(ultimoBloque.kind);
     if (
       prev &&
       prev.chapter === chapter &&
       words < EPUB_MIN_TAIL_WORDS &&
+      !acabaEnTitulo &&
       prev.words + words <= EPUB_PAGE_HARD_CAP
     ) {
       prev.blocks.push(...current);
@@ -129,11 +133,20 @@ export function paginateEpub(chapters: EpubBlock[][]): EpubPage[] {
         current = [];
         words = 0;
       }
-      // el bloque no cabe: cierra la página antes de colocarlo
+      // el bloque no cabe: cierra la pagina antes de colocarlo
       if (current.length > 0 && words + block.words > EPUB_WORDS_PER_PAGE) {
+        // anti-huérfano: si la página cerraría con un título al final (solo,
+        // esperando su texto), el título viaja a la página siguiente en vez de
+        // quedarse hundido al pie — nadie lee un título y gira la página.
+        const ultimo = current[current.length - 1];
+        const tituloAlFinal = ultimo.kind !== "img" && HEADING_KINDS.has(ultimo.kind);
         flush(current, c);
         current = [];
         words = 0;
+        if (tituloAlFinal) {
+          current.push(ultimo);
+          words += ultimo.words;
+        }
       }
       current.push(block);
       words += block.words;
