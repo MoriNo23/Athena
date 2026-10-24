@@ -3,9 +3,9 @@
 import JSZip from "jszip";
 
 /**
- * Motor EPUB de Atena.
+ * Motor EPUB de Athena.
  *
- * Un EPUB es reflowable: no tiene páginas. Atena es una casa de páginas (riel,
+ * Un EPUB es reflowable: no tiene páginas. Athena es una casa de páginas (riel,
  * hitos, ETA, racha, modo teleprompter…). La traducción entre ambos mundos es la
  * PÁGINA VIRTUAL: el texto del libro se trocea en bloques (párrafos, títulos,
  * citas, imágenes) y se agrupa en páginas de ~320 palabras — el tamaño de una

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Garantizar que el repositorio de Atena sea un clon limpio, confiable y sin peso muerto: solo dependencias que producen código en uso, un único lockfile como fuente de instalación, y un build de Next que nunca oculta errores de tipos. Aplica a todo clon self-host y a toda dependencia futura.
+Garantizar que el repositorio de Athena sea un clon limpio, confiable y sin peso muerto: solo dependencias que producen código en uso, un único lockfile como fuente de instalación, y un build de Next que nunca oculta errores de tipos. Aplica a todo clon self-host y a toda dependencia futura.
 
 ## Requirements
 
