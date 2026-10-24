@@ -38,10 +38,10 @@ export function middleware(req: NextRequest) {
   }
 
   if (esRecursoEstático(ruta)) return NextResponse.next();
-  if (entra) {
-    if (ruta === "/login") return NextResponse.redirect(new URL("/", req.nextUrl));
-    return NextResponse.next();
+  if (ruta === "/login") {
+    return entra ? NextResponse.redirect(new URL("/", req.nextUrl)) : NextResponse.next();
   }
+  if (entra) return NextResponse.next();
   const destino = new URL("/login", req.nextUrl);
   destino.searchParams.set("next", `${ruta}${req.nextUrl.search}`);
   return NextResponse.redirect(destino);
