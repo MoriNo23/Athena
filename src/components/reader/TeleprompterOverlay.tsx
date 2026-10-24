@@ -26,6 +26,7 @@ import {
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import { useFullscreen } from "@/hooks/use-fullscreen";
+import { useTheme } from "next-themes";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import {
   useTeleprompterWindow,
@@ -43,7 +44,7 @@ import {
 } from "@/lib/types";
 import type { BookDTO } from "@/lib/types";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { cn } from "@/lib/utils";
+import { animarGiroPagina, cn } from "@/lib/utils";
 import type { StreamWindow } from "@/hooks/use-teleprompter-window";
 
 interface TeleprompterOverlayProps {
@@ -158,6 +159,8 @@ export function TeleprompterOverlay({
   );
 
   const { isFullscreen, toggleFullscreen } = useFullscreen();
+  const { resolvedTheme } = useTheme();
+  const oscuro = resolvedTheme !== "light";
   const [uiHidden, setUiHidden] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(false);
 
@@ -213,10 +216,11 @@ export function TeleprompterOverlay({
     stageViewAnchor,
   } = tpWin;
 
-  // Fundido de página: al cambiar de página (cruce en Auto, Shift+→/←) la
-  // columna entra desde un velo suave en vez de cambiar de golpe. WAAPI sobre
-  // el contenedor del flujo: no toca el layout ni el scroll (la cámara y el
-  // ancla atómica siguen intactas) y corre antes del pintado, sin parpadeo.
+  //Crucede página: la columna de la página nueva ENTRA desde la derecha con un
+  // fundido corto — se lee como pasar la hoja, no como un parpadeo. El mismo
+  // tratamiento que el lector (utils.animarGiroPagina), algo más lento porque
+  // el cruce del teleprompter es un momento mayor. La cámara y el ancla
+  // atómica siguen intactas: la animación no toca el layout ni el scroll.
   const streamRef = useRef<HTMLDivElement | null>(null);
   const lastPageRef = useRef<number | null>(null);
   const curStart = win?.start ?? null;
@@ -224,16 +228,12 @@ export function TeleprompterOverlay({
     if (curStart == null) return;
     const prev = lastPageRef.current;
     lastPageRef.current = curStart;
-    // apertura o retroceso: sin fundido (la animación de página es solo hacia delante)
+    // apertura: sin fundido; los retrocesos mantienen su rebobinado directo
     if (prev == null || curStart <= prev) return;
     const el = streamRef.current;
     if (!el || instante) return; // Instantánea: salta
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    el.animate(
-      [{ opacity: 0.25 }, { opacity: 1 }],
-      { duration: 700, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)" }
-    );
-  }, [curStart, instante]);
+    animarGiroPagina(el, oscuro, 1, 450);
+  }, [curStart, instante, oscuro]);
 
   const player = useTeleprompterPlayer({
     pageNum,
