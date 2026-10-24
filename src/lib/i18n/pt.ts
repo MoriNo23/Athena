@@ -53,6 +53,38 @@ export const pt: Record<string, string> = {
   "lib.uploading": "Enviando…",
   "lib.addToRail": "Adicionar ao trilho",
 
+  // ---------- biblioteca por pasta (varredura no lugar, sem cópias) ----------
+  "lib.folder": "Pasta",
+  "lib.folderTitle": "Biblioteca por pasta",
+  "lib.folderDesc":
+    "Aponte uma pasta do disco uma vez: os PDFs e EPUBs são registrados onde estão, sem cópias, e o app jamais os mexe. Re-escaneie a sempre que adicionar ou mover livros.",
+  "lib.folderLabel": "Caminho da pasta (absoluto, da máquina que serve o app)",
+  "lib.folderPlaceholder": "/home/maria/Biblioteca",
+  "lib.folderCurrent": "Pasta atual: {path}",
+  "lib.folderNone": "Nenhuma pasta escolhida ainda.",
+  "lib.folderRescan": "Re-escanear",
+  "lib.folderScan": "Escanear",
+  "lib.scanTitle": "{n} arquivos na pasta",
+  "lib.scanAdded": "{n} novos",
+  "lib.scanRelinked": "{n} re-vinculados",
+  "lib.scanMissing": "{n} sem arquivo",
+  "lib.scanUpdated": "{n} recalculados",
+  "lib.scanDupes": "{n} duplicados ignorados",
+  "lib.scanQuiet": "Tudo já estava registrado",
+  "lib.scanErrorTitle": "A varredura não pôde ser feita",
+  "lib.scanErrorBody": "Confira o caminho e tente de novo.",
+
+  // ---------- re-vínculo (arquivo movido) ----------
+  "lib.relinkTitle": "Re-vincular «{title}»",
+  "lib.relinkDesc":
+    "O arquivo não está mais onde foi escaneado. Escreva o caminho novo: seu progresso, marcos e medalha ficam intactos.",
+  "lib.relinkLabel": "Caminho novo do arquivo (absoluto)",
+  "lib.relinkPlaceholder": "/home/maria/Biblioteca/romances/livro.pdf",
+  "lib.relinkConfirm": "Re-vincular",
+  "lib.relinkDone": "Re-vinculado: «{title}»",
+  "lib.relinkErrorTitle": "Não foi possível re-vincular",
+  "lib.relinkErrorBody": "Confira o caminho do arquivo e tente de novo.",
+
   // ---------- cartão de livro ----------
   "card.open": "Abrir {title}",
   "card.coverAlt": "Capa de {title}",
@@ -64,7 +96,12 @@ export const pt: Record<string, string> = {
   "card.resetTitle": "Zerar leituras",
   "card.delete": "Excluir {title}",
   "card.pages": "pág. {cur} de {total}",
+  "card.pagesUnknown": "páginas na primeira abertura",
   "card.eta": "no seu ritmo, você termina em {date}",
+  "card.fileMissing": "sem arquivo",
+  "card.fileMissingTip": "O arquivo está fora da pasta escaneada: seu progresso está a salvo.",
+  "card.relink": "Re-vincular {title}",
+  "card.relinkTitle": "Re-vincular arquivo",
   "card.todaySummary": "hoje: {p} pág · {m} min · meta {gp}/{g}",
   "card.reread": "Ler de novo",
   "card.continue": "Continuar",

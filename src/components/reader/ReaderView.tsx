@@ -42,7 +42,7 @@ import { useI18n, formatDate } from "@/lib/i18n";
 import { useEpubBook } from "@/hooks/use-epub-book";
 import { epubPageText, type EpubPage } from "@/lib/epub";
 import type { TeleprompterBlock } from "@/lib/teleprompter";
-import { clampTeleprompterFontScale, TELEPROMPTER_FONT_STEP } from "@/lib/types";
+import { clampTeleprompterFontScale, archivoUrlDe, TELEPROMPTER_FONT_STEP } from "@/lib/types";
 import type { BookDTO } from "@/lib/types";
 import type { RailPosition } from "@/lib/types";
 import type { BookWithSessions } from "@/hooks/use-library-books";
@@ -205,7 +205,9 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
 
   /** EPUB: el libro reflowable se lee en páginas virtuales de texto */
   const isEpub = book.filePath.toLowerCase().endsWith(".epub");
-  const epub = useEpubBook(isEpub ? book.filePath : null);
+  // libros de carpeta: el fichero real viaja por el stream de la API; subidos: /uploads
+  const origenUrl = archivoUrlDe(book);
+  const epub = useEpubBook(isEpub ? origenUrl : null);
 
   // Hitos individuales del libro (null → hereda el global)
   const segments = Math.max(2, Math.min(40, book.milestones ?? rail.segments));
@@ -242,6 +244,26 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     book.totalPages
   );
   const { numPages, busy, error } = status;
+
+  /** Libros de carpeta (EPUB y PDF opacos) se escanean con totalPages=0: al
+      primer abrir, cuando el motor ya conoce el número real, se aprende UNA
+      vez en la BD — nunca se toca el fichero del libro. */
+  const paginasAprendidasRef = useRef(false);
+  useEffect(() => {
+    if (paginasAprendidasRef.current) return;
+    if (book.totalPages > 0 || !numPages || numPages <= 0) return;
+    paginasAprendidasRef.current = true;
+    void fetch(`/api/books/${book.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ totalPages: numPages }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { book?: BookDTO } | null) => {
+        if (data?.book) onBookChange?.(data.book);
+      })
+      .catch(() => {});
+  }, [book.totalPages, numPages, book.id, onBookChange]);
 
   const {
     sessionSeconds,
@@ -528,7 +550,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   const pdfViewport = (
     <PdfViewport
       key={book.filePath}
-      filePath={book.filePath}
+      filePath={origenUrl}
       pageNum={pageNum}
       scale={effectiveScale}
       onDocReady={handleDocReady}

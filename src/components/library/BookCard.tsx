@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { BookOpen, FileWarning, Link2, Medal, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RailBar } from "@/components/rail/RailBar";
 import { dayKey, estimateFinishDate, groupSessionsByDay, pickDailyRate, progressPct } from "@/lib/reading";
@@ -8,7 +9,6 @@ import { useI18n, formatDate } from "@/lib/i18n";
 import { useSettings } from "@/lib/settings";
 import { BADGE_TIERS, RailTheme } from "@/lib/types";
 import type { BookWithSessions } from "@/hooks/use-library-books";
-import { BookOpen, Medal, Pencil, RotateCcw, Trash2 } from "lucide-react";
 
 interface BookCardProps {
   book: BookWithSessions;
@@ -18,15 +18,20 @@ interface BookCardProps {
   onDelete: () => void;
   onEdit: () => void;
   onReset: () => void;
+  /** disponible si el fichero desapareció de la carpeta: re-vincularlo */
+  onRelink?: () => void;
   style?: React.CSSProperties;
 }
 
 /** Tarjeta de libro de la biblioteca: portada, mini-riel, ritmo y acciones */
-export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onReset, style }: BookCardProps) {
+export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onReset, onRelink, style }: BookCardProps) {
   const { t, lang } = useI18n();
   const globalGoal = useSettings((s) => s.reading.dailyGoal);
   const pct = progressPct(book);
-  const done = book.currentPage >= book.totalPages;
+  // EPUB/PDF de carpeta recién escaneados: páginas desconocidas hasta el primer abrir
+  const sinContar = book.totalPages <= 0;
+  const done = !sinContar && book.currentPage >= book.totalPages;
+  const sinFichero = Boolean(book.fileMissingAt);
 
   const rate = useMemo(() => pickDailyRate(groupSessionsByDay(book.sessions)), [book.sessions]);
   const eta = useMemo(() => (rate ? estimateFinishDate(book, rate.pages) : null), [book, rate]);
@@ -76,14 +81,41 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
           <div className="min-w-0">
             <h3 className="line-clamp-2 font-display text-lg font-semibold leading-snug">{book.title}</h3>
             <p className="truncate text-sm text-muted-foreground">{book.author || t("card.unknownAuthor")}</p>
-            {book.badge && (
-              <span className={`badge-chip tier-${tierKey} mt-1.5`} data-testid="card-badge-chip">
-                <Medal className="h-3 w-3" />
-                {tierLabel} · {book.badge.readings} {book.badge.readings === 1 ? t("reading1") : t("readingsN")}
-              </span>
+            {(book.badge || sinFichero) && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {book.badge && (
+                  <span className={`badge-chip tier-${tierKey}`} data-testid="card-badge-chip">
+                    <Medal className="h-3 w-3" />
+                    {tierLabel} · {book.badge.readings} {book.badge.readings === 1 ? t("reading1") : t("readingsN")}
+                  </span>
+                )}
+                {sinFichero && (
+                  <span
+                    className="badge-chip text-destructive"
+                    data-testid="card-sinfile"
+                    title={t("card.fileMissingTip")}
+                  >
+                    <FileWarning className="h-3 w-3" />
+                    {t("card.fileMissing")}
+                  </span>
+                )}
+              </div>
             )}
           </div>
           <div className="flex shrink-0 items-center justify-end gap-0.5 sm:order-last">
+            {sinFichero && onRelink && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11 text-destructive sm:h-8 sm:w-8 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                onClick={onRelink}
+                aria-label={t("card.relink", { title: book.title })}
+                title={t("card.relinkTitle")}
+                data-testid="card-relink"
+              >
+                <Link2 className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -129,7 +161,8 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
 
         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
           <span className="tabular-nums">
-            {t("card.pages", { cur: book.currentPage, total: book.totalPages })} · <span className="font-medium text-foreground">{pct}%</span>
+            {sinContar ? t("card.pagesUnknown") : t("card.pages", { cur: book.currentPage, total: book.totalPages })}{" "}
+            {!sinContar && <>· <span className="font-medium text-foreground">{pct}%</span></>}
           </span>
           {eta && !done && (
             <span className="italic">{t("card.eta", { date: formatDate(eta, lang) })}</span>
