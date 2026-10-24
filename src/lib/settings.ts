@@ -17,7 +17,9 @@ import {
   ReadingSettings,
   TeleprompterSettings,
   VocabEntry,
-  TELEPROMPTER_DEFAULT_PRESET,
+  TELEPROMPTER_FONDO_FILTRO_DEFAULT,
+  TELEPROMPTER_WPS_DEFAULT,
+  wpsDePresetAntiguo,
 } from "@/lib/types";
 
 /**
@@ -78,10 +80,15 @@ const defaultSettings: AppSettings = {
     toggleKey: "h",
   },
   teleprompter: {
-    speedPreset: TELEPROMPTER_DEFAULT_PRESET,
+    wps: TELEPROMPTER_WPS_DEFAULT, // control directo: sin presets (24-10)
+    instante: false,
     sound: true,
     auto: false,
     fontScale: 1,
+    fondo: "tema",
+    fondoRuta: "",
+    fondoFiltro: TELEPROMPTER_FONDO_FILTRO_DEFAULT,
+    tarjetasPorFrase: true,
   },
 };
 
@@ -251,7 +258,7 @@ export const useSettings = create<SettingsStore>()(
     },
     {
       name: "riel-settings-v1",
-      version: 12,
+      version: 13,
       migrate: migrateSettings,
       // el vocabulario no persiste aquí: es data, vive en la BD (change
       // cfg-y-biblioteca-por-carpeta); el localStorage queda como caché de
@@ -370,8 +377,9 @@ export function migrateSettings(persisted: unknown, version: number) {
     reading: { ...defaultSettings.reading, ...state.reading },
     immersion: { ...defaultSettings.immersion, ...state.immersion },
     // v8: modo teleprompter · v9: + tamaño de letra · v11: el ajuste se llama
-    // `teleprompter` (se conservan velocidad, sonido, auto y tamaño)
-    teleprompter: { ...defaultSettings.teleprompter, ...(state.vn ?? state.teleprompter) },
+    // `teleprompter` (se conservan velocidad, sonido, auto y tamaño) · v13: los
+    // presets se jubilan — el id guardado se traduce a palabras por segundo
+    teleprompter: teleprompterMigrado(state.vn ?? state.teleprompter),
   } as AppSettings & { modes: ModesSettings };
   // el estado viejo queda en `vn`: no debe volver a persistirse
   delete (base as { vn?: unknown }).vn;
@@ -429,6 +437,21 @@ export function migrateSettings(persisted: unknown, version: number) {
     };
   }
   return base;
+}
+
+/** v13: presets → control directo. El `speedPreset` viejo (id) se traduce a
+    `wps` numérico; «instant» además enciende `instante`. Lo demás se conserva. */
+function teleprompterMigrado(viejo: unknown): typeof defaultSettings.teleprompter {
+  const base = { ...defaultSettings.teleprompter };
+  const v = (viejo ?? {}) as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...base, ...v };
+  const idPreset = typeof v.speedPreset === "string" ? v.speedPreset : null;
+  if (idPreset) {
+    out.wps = wpsDePresetAntiguo(idPreset);
+    out.instante = idPreset === "instant";
+  }
+  delete out.speedPreset; // el ajuste viejo no debe volver a persistirse
+  return out as unknown as typeof defaultSettings.teleprompter;
 }
 
 /** Filtra el objeto de filtros al activar un preset (mantiene compatibilidad) */

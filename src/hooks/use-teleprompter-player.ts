@@ -33,8 +33,8 @@ interface UseTeleprompterPlayerOpts {
   stageViewAnchor: (oldIndex: number, newIndex: number) => void;
   /** Auto: al agotar la página sigue sola */
   auto: boolean;
-  /** wps del preset activo (null = instantáneo) */
-  presetWps: number | null;
+  /** palabras por segundo activas (null = Instantánea) */
+  wps: number | null;
   /** tic de tipeo (WebAudio); ya filtrado por el ajuste de sonido */
   tick: () => void;
 }
@@ -68,7 +68,7 @@ export function useTeleprompterPlayer({
   scrollToChar,
   stageViewAnchor,
   auto,
-  presetWps,
+  wps,
   tick,
 }: UseTeleprompterPlayerOpts) {
   const [lit, setLit] = useState(0);
@@ -185,7 +185,7 @@ export function useTeleprompterPlayer({
     spansRef.current = spans;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const instant = presetWps == null || reduced;
+    const instant = wps == null || reduced;
     const paint = (n: number) => spans.forEach((s, k) => s.classList.toggle("on", k < n));
     const syncHeadings = (n: number) => {
       for (const b of stream.blocks) {
@@ -303,7 +303,7 @@ export function useTeleprompterPlayer({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [win, stream, totalChars, firstLen, numPages, playing, pageDone, bookDone, auto, presetWps, tick, scrollToChar, slide]);
+  }, [win, stream, totalChars, firstLen, numPages, playing, pageDone, bookDone, auto, wps, tick, scrollToChar, slide]);
 
   // ---------- Auto: al agotar la página sigue sola ----------
   useEffect(() => {
