@@ -598,6 +598,23 @@ html:not(.dark) .atena-hero .seal-glow {
 .tp-chrome {
   transition: opacity 0.45s ease, visibility 0.45s ease;
 }
+/* Cabecera del teleprompter con fondo (peticion de la duena): armonia con la
+   lectura — la barra flota sobre una banda del color de lectura que se funde
+   hacia abajo, para que el texto no compita con el libro. El UI es legible a
+   proposito y se puede ocultar a voluntad: cuando la inmersion se lo lleva,
+   la banda se va con el. */
+.tp-header {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--reader-bg) 96%, transparent) 0%,
+    color-mix(in oklab, var(--reader-bg) 84%, transparent) 62%,
+    transparent 100%
+  );
+  backdrop-filter: blur(4px);
+  /* filete inferior: la banda se lee como superficie, no como un velo */
+  border-bottom: 1px solid color-mix(in oklab, var(--reader-ink) 12%, transparent);
+  box-shadow: 0 10px 26px -20px color-mix(in oklab, var(--reader-ink) 55%, transparent);
+}
 .tp-immersed .tp-chrome {
   opacity: 0;
   visibility: hidden;
@@ -714,6 +731,27 @@ html:not(.dark) .atena-hero .seal-glow {
    modos de pantalla completa. Decorativo y sin puntero: nunca bloquea la
    lectura ni captura el mouse. Solo transiciona opacidad — con movimiento
    reducido no hay desplazamiento (y no lo hay en ningún modo). */
+/* Capa que oscurece el visor mientras la interfaz duerme (peticion de la
+   duena: «que la pantalla se oscurezca para que sea mas legible»). Cubre la
+   lectura por debajo del recordatorio (z-30) y de la UI viva; jamas captura el
+   puntero — el mouse que despierta pasa por dentro. */
+.shortcut-ghost-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: rgb(2 6 20 / 62%);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+}
+.shortcut-ghost-scrim-on {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shortcut-ghost-scrim {
+    transition: none;
+  }
+}
 .shortcut-ghost {
   position: fixed;
   right: clamp(18px, 4vw, 64px);
@@ -729,7 +767,9 @@ html:not(.dark) .atena-hero .seal-glow {
   pointer-events: none;
 }
 .shortcut-ghost.shortcut-ghost-on {
-  opacity: 0.5;
+  /* la duena: «la ui de aviso de teclado debe ser mas clara» — el recordatorio
+     se tiene que LEER, no adivinarse */
+  opacity: 0.78;
 }
 .shortcut-ghost-row {
   display: flex;
@@ -749,7 +789,7 @@ html:not(.dark) .atena-hero .seal-glow {
 }
 .shortcut-ghost-action {
   font-size: clamp(0.95rem, 1.4vw, 1.25rem);
-  color: color-mix(in oklab, var(--foreground) 72%, transparent);
+  color: color-mix(in oklab, var(--foreground) 88%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {
   .shortcut-ghost {
