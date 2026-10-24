@@ -16,7 +16,7 @@ nunca usuarios de un servicio alojado.
 
 ## Product Purpose
 
-Atena es una app de lectura local-first para PDF y EPUB cuyo producto es **la
+Athena es una app de lectura local-first para PDF y EPUB cuyo producto es **la
 última página**: que los libros se terminen. Éxito = libros terminados
 (`readCount`, `finishedAt`); el mecanismo diario que lleva ahí es el **riel** —
 progreso con hitos, racha y ETA honesta a la última página — que te devuelve a
@@ -60,10 +60,10 @@ diario con ritmo propio.
 
 ## Brand Commitments
 
-- Nombre: **Atena** (sello propio `public/atena-seal.svg`, logo `public/logo.svg`).
+- Nombre: **Athena** (sello propio `public/athena-seal.svg`, logo `public/logo.svg`).
 - Voz nacida en español: *riel*, *insignias*, «la casa de lectura»; los términos
   propios se traducen después (es/en/pt), nunca al revés.
-- Decoración de la sala: `atena-capa2-fachada.png` y `atena-capa2-busto.png`
+- Decoración de la sala: `athena-capa2-fachada.png` y `athena-capa2-busto.png`
   (capa ambiental de la biblioteca).
 - Trato de «la casa»: la interfaz habla de estancias y objetos de lectura, no
   de «features» ni «ajustes de sistema».

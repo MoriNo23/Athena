@@ -52,12 +52,12 @@ const atkinson = Atkinson_Hyperlegible({
 });
 
 export const metadata: Metadata = {
-  title: "Atena — Termina tus libros",
+  title: "Athena — Termina tus libros",
   description:
     "La lectora de la diosa de la estrategia: riel de progreso, hitos celebrados, modo cinematográfico letra a letra, tres idiomas y una lectura que se siente juego.",
-  keywords: ["Atena", "lectura", "libros", "PDF", "EPUB", "modo cinematográfico", "hábito", "progreso"],
+  keywords: ["Athena", "lectura", "libros", "PDF", "EPUB", "modo cinematográfico", "hábito", "progreso"],
   icons: {
-    icon: "/atena-seal.svg",
+    icon: "/athena-seal.svg",
   },
 };
 
@@ -85,10 +85,10 @@ export default function RootLayout({
               Va ENCIMA del fondo base y DEBAJO de todo el contenido. Sin
               animación, sin transición: piedra tallada, no fuegos artificiales.
               En claro se desvanece a recuerdo pálido. */}
-          <div className="atena-capa2" aria-hidden="true">
-            <div className="atena-capa2__fachada" />
-            <div className="atena-capa2__busto" />
-            <div className="atena-capa2__vignette" />
+          <div className="athena-capa2" aria-hidden="true">
+            <div className="athena-capa2__fachada" />
+            <div className="athena-capa2__busto" />
+            <div className="athena-capa2__vignette" />
           </div>
           {children}
           <Toaster />

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 408 120" role="img" aria-label="ATHENA">
+  <style>
+    .ink { stroke: #1d2330; }
+    .brand { stroke: #3a72c4; }
+    @media (prefers-color-scheme: dark) {
+      .ink { stroke: #e9edf5; }
+      .brand { stroke: #7fb2e8; }
+    }
+  </style>
+  <!-- ATHENA · wordmark monoline: la primera A en color de marca, el resto en tinta -->
+  <g fill="none" stroke-width="10" stroke-linecap="butt">
+    <g class="brand" stroke-linejoin="miter">
+      <path d="M10 100 L33 20 L56 100" />
+      <path d="M21 66 L45 66" />
+    </g>
+    <g class="ink" stroke-linejoin="miter">
+      <path d="M78 20 L124 20 M101 20 L101 100" />
+      <!-- la H: dos pies y travesaño al mismo nivel que la A delantera -->
+      <path d="M146 20 L146 100" />
+      <path d="M190 20 L190 100" />
+      <path d="M146 60 L190 60" />
+      <path d="M260 20 L214 20 L214 100 L260 100 M214 60 L252 60" />
+    </g>
+    <!-- la N: sus uniones son agudas, el bisel corta la punta que deja el miter -->
+    <path class="ink" stroke-linejoin="bevel" d="M282 100 L282 20 L328 100 L328 20" />
+    <g class="ink" stroke-linejoin="miter">
+      <path d="M350 100 L373 20 L396 100" />
+      <path d="M361 66 L385 66" />
+    </g>
+  </g>
+</svg>

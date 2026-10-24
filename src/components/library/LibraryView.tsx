@@ -42,9 +42,9 @@ import type { BookDTO } from "@/lib/types";
 export type { BookWithSessions } from "@/hooks/use-library-books";
 import type { BookWithSessions } from "@/hooks/use-library-books";
 
-/** Sello de Atena: columna dórica geométrica en marco cuadrado.
+/** Sello de Athena: columna dórica geométrica en marco cuadrado.
     Minimalista y brutalista — piedra, no caricatura. */
-function AtenaSeal({ className }: { className?: string }) {
+function AthenaSeal({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" fill="none" className={className} aria-hidden>
       {/* marco del sello */}
@@ -232,12 +232,12 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
       {/* Móvil: identidad a todo lo ancho (sello menor, subtítulo a 2 líneas)
           y las acciones vuelan a su propia fila; en el hero ya no hay icono
           destructivo a 24px de la CTA principal (vive en el menú «⋯»). */}
-      <header className="atena-hero mb-8 animate-fade-up px-5 py-6 sm:px-8 sm:py-7">
+      <header className="athena-hero mb-8 animate-fade-up px-5 py-6 sm:px-8 sm:py-7">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-56 flex-1 items-center gap-4 sm:gap-5">
-            <AtenaSeal className="seal-glow h-12 w-12 shrink-0 text-primary sm:h-16 sm:w-16" />
+            <AthenaSeal className="seal-glow h-12 w-12 shrink-0 text-primary sm:h-16 sm:w-16" />
             <div className="min-w-0">
-              <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Atena</h1>
+              <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Athena</h1>
               <p className="mt-1 max-w-xl text-sm text-muted-foreground line-clamp-2 sm:line-clamp-none">
                 {t("lib.heroSubtitle")}
               </p>
