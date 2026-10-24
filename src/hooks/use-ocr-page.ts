@@ -150,7 +150,12 @@ export function useOcrPage(opts: {
 
     return () => {
       alive = false;
-      if (ocrWorkingRef.current) void cancelOcr(ocrLangRef.current);
+      const wasWorking = ocrWorkingRef.current;
+      // el run deja de valer antes de cancelar: si recognize no resuelve tras
+      // terminar el worker, el finally no puede reenganchar la guardia
+      ocrRunRef.current += 1;
+      ocrWorkingRef.current = false;
+      if (wasWorking) void cancelOcr(ocrLangRef.current);
     };
   }, [pageNum, filePath, ocrLang, startOcr, pageHasTextRef]);
 

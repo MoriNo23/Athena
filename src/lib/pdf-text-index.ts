@@ -12,7 +12,7 @@
  * se cierra a mitad de la preparación (doc destruido), se conserva lo extraído
  * y un `preparePdfText` posterior con el doc nuevo retoma donde quedó.
  *
- * Espejo de tests: scripts/test-pdf-text-prep.ts
+ * Espejo de tests: src/lib/pdf-text.test.ts y src/lib/pdf-text-index.test.ts
  */
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { extractPdfPageBlocks, pdfTextItems, type PdfTextBlock } from "@/lib/pdf-text";
@@ -146,7 +146,9 @@ export function preparePdfText(key: string, doc: PDFDocumentProxy): void {
 export function ensurePdfTextPage(key: string, page: number): Promise<void> {
   const e = CACHE.get(key);
   if (!e || e.pages[page - 1] !== undefined || e.done || !e.running) return Promise.resolve();
-  if (page >= 1 && page <= e.total && !e.wanted.includes(page)) e.wanted.push(page);
+  // fuera de rango: nunca se extrae, el waiter se quedaría esperando para siempre
+  if (page < 1 || page > e.total) return Promise.resolve();
+  if (!e.wanted.includes(page)) e.wanted.push(page);
   return new Promise((resolve) => {
     const list = e.waiters.get(page);
     if (list) list.push(resolve);

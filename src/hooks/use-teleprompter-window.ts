@@ -66,6 +66,13 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, wps, porFr
   const winRef = useRef<StreamWindow | null>(null);
   const winSourceRef = useRef<string | null>(null);
   const cacheRef = useRef<Map<number, TeleprompterBlock[]>>(new Map());
+
+  // el caché es del doc/SOURCE en curs0: al cambiar libro o fuente, arranca
+  // limpio (mezclar bloques de dos libros es leer lo que ya no es)
+  useEffect(() => {
+    cacheRef.current = new Map();
+  }, [doc, getPageBlocks]);
+
   const spansRef = useRef<HTMLSpanElement[]>([]);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewAnchorRef = useRef<StreamViewAnchor | null>(null);

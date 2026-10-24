@@ -146,6 +146,19 @@ function putAjustes() {
   }, 1000);
 }
 
+/** Bloques que el usuario cambió respecto a `base` (migración local no lo es:
+    durante la hidratación un toggle del primer segundo NO debe descartarse). */
+function bloquesTocados(state: SettingsStore, base: AppSettings & { modes: ModesSettings }) {
+  const ahora = snapshotAjustes(state);
+  const out: Record<string, unknown> = {};
+  for (const bloque of ["lang", "rail", "filters", "reading", "immersion", "teleprompter", "modes"] as const) {
+    if (JSON.stringify(ahora[bloque]) !== JSON.stringify(base[bloque])) {
+      out[bloque] = ahora[bloque];
+    }
+  }
+  return Object.keys(out).length > 0 ? (out as Partial<SettingsStore>) : null;
+}
+
 /** SET directo (sin debounce): se usa en flush de pestaña oculta y migración. */
 function escribirAhorra(state: SettingsStore) {
   void fetch("/api/settings", {
@@ -281,6 +294,7 @@ export const useSettings = create<SettingsStore>()(
     4) vocabulary queda poblado desde la BD. */
 export async function hidratarAjustes(): Promise<void> {
   try {
+    const baseAntes = snapshotAjustes(useSettings.getState()); // previo al fetch
     const res = await fetch("/api/settings");
     if (!res.ok) return;
     const data = (await res.json()) as {
@@ -326,6 +340,13 @@ export async function hidratarAjustes(): Promise<void> {
       useSettings.setState({ ...finales, vocabulary: vocab });
     } catch {
       useSettings.setState(finales);
+    }
+    // si la dueña tocó algo MIENTRAS bajaba el fichero, el fichero no puede
+    // pisarlo: los bloques distintos al snapshot previo quedan como estaban
+    const tocado = bloquesTocados(useSettings.getState(), baseAntes);
+    if (tocado) {
+      useSettings.setState(tocado);
+      putAjustes();
     }
     hidratado = true;
   } catch {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
@@ -115,7 +115,9 @@ function nextLabelFor(atEnd: boolean, pageDone: boolean, t: (k: string) => strin
  * y el control de reproducción (motor, pausa, rebobinado, encadenado) en
  * `use-teleprompter-player`.
  */
-export function TeleprompterOverlay({
+/** memo: el cronómetro del lector re-renderiza cada segundo; el overlay solo
+    debe repintarse si cambian sus props memoizadas (página, fuente, cierre). */
+export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   book,
   doc,
   getPageBlocks,
@@ -172,6 +174,15 @@ export function TeleprompterOverlay({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const speedOpenRef = useRef(false);
+
+  // el navegador topa los AudioContext vivos: al cerrar el teleprompter se
+  // suelta el suyo (si no, tras unas cuantas aperturas el tic se apaga solo)
+  useEffect(() => {
+    return () => {
+      void audioCtxRef.current?.close();
+      audioCtxRef.current = null;
+    };
+  }, []);
 
   // ---------- tic de tipeo (WebAudio, muy bajo) ----------
   const tpTick = useCallback(() => {
@@ -689,4 +700,4 @@ export function TeleprompterOverlay({
       </div>
     </div>
   );
-}
+});

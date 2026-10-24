@@ -108,6 +108,8 @@ export function estimateFinishDate(
   rate: number
 ): Date | null {
   if (rate <= 0) return null;
+  // en la última página (o terminado): no queda nada que estimar
+  if (book.currentPage >= book.totalPages) return null;
   // quedan por leer las páginas desde la actual (sin contar la que estás leyendo)
   const remaining = book.totalPages - (book.currentPage - 1);
   if (remaining <= 0) return null;

@@ -23,8 +23,13 @@ export function useImmerseHint(
     if (!chromeHidden || hiddenByKeyRef.current) return;
     const fire = window.setTimeout(() => {
       if (hiddenByKeyRef.current) return;
-      if (localStorage.getItem(IMMERSE_HINT_SEEN_KEY)) return;
-      localStorage.setItem(IMMERSE_HINT_SEEN_KEY, "1");
+      try {
+        // storage bloqueado (Safari privado): sin pista, pero la inmersión sigue
+        if (localStorage.getItem(IMMERSE_HINT_SEEN_KEY)) return;
+        localStorage.setItem(IMMERSE_HINT_SEEN_KEY, "1");
+      } catch {
+        return;
+      }
       setImmerseHint(true);
     }, 0);
     return () => window.clearTimeout(fire);

@@ -1,13 +1,50 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePdfText } from "@/hooks/use-pdf-text";
 import { useI18n } from "@/lib/i18n";
-import { foldPdfTextIndex, type PdfTextIndex } from "@/lib/pdf-text";
+import { foldPdfTextIndex, type PdfTextBlock, type PdfTextIndex } from "@/lib/pdf-text";
 import { probePdfTextLayer } from "@/lib/pdf-text-index";
 import type { TeleprompterBlock } from "@/lib/teleprompter";
 import type { BookDTO } from "@/lib/types";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+
+// ---------- fold incremental del modo texto (slot de módulo, como pdf-text-index) ----------
+
+interface Plegado {
+  token: string;
+  base: number; // páginas reales ya plegadas (prefijo contiguo 1..base)
+  index: PdfTextIndex;
+}
+
+/** Último plegado vivo: al cambiar de libro o apagarse el modo se descarta. */
+let slot: Plegado | null = null;
+
+function limpiarPlegado(): null {
+  slot = null;
+  return null;
+}
+
+/** Páginas virtuales del prefijo listo, replegando solo la delta respecto al
+    plegado anterior. El prefijo que expone `ready` es contiguo (así lo sube
+    pdf-text-index), así que concatenar capítulos es exacto. */
+function plegarTexto(
+  token: string,
+  listo: number,
+  textPage: (p: number) => PdfTextBlock[] | undefined,
+): PdfTextIndex | null {
+  if (listo === 0) {
+    slot = null;
+    return null;
+  }
+  if (slot && (slot.token !== token || slot.base > listo)) slot = null;
+  const base = slot?.base ?? 0;
+  if (listo === base) return slot!.index;
+  const nuevas = Array.from({ length: listo - base }, (_, i) => textPage(base + 1 + i) ?? []);
+  const index = foldPdfTextIndex(slot?.index ?? null, nuevas, base);
+  slot = { token, base: listo, index };
+  return index;
+}
 
 interface UsePdfTextModeOpts {
   book: BookDTO;
@@ -58,26 +95,14 @@ export function usePdfTextMode({ book, doc, isEpub, pageNum, goToPage, patchExtr
   } = usePdfText(textMode ? book.id : null, textMode ? doc : null);
 
   /** páginas virtuales del prefijo extraído (null mientras no hay nada paginable) */
-  const foldRef = useRef<{ token: string; base: number; index: PdfTextIndex } | null>(null);
-  const textIndex = useMemo<PdfTextIndex | null>(() => {
-    if (!textMode || textReady === 0) return null;
-    let fold = foldRef.current;
-    // el prefijo extraído es contiguo (pdf-text-index lo garantiza); si cambió
-    // de libro o el fold es más largo que lo listo, arranca de cero
-    if (!fold || fold.token !== book.id || fold.base > textReady) fold = null;
-    const base = fold?.base ?? 0;
-    if (textReady > base) {
-      // solo plega lo NUEVO: el prefix 1..base ya está en fold.index
-      const nuevas = Array.from({ length: textReady - base }, (_, i) => textPage(base + 1 + i) ?? []);
-      fold = {
-        token: book.id,
-        base: textReady,
-        index: foldPdfTextIndex(fold?.index ?? null, nuevas, base),
-      };
-      foldRef.current = fold;
-    }
-    return fold ? fold.index : null;
-  }, [textMode, textReady, textPage, book.id]);
+  const textIndex = useMemo<PdfTextIndex | null>(
+    // el fold avanza SOLO con lo NUEVO: cada aviso paga el delta, no el prefijo
+    // (`paginateEpub` no funde capítulos distintos → concatenar es exacto).
+    // La memoria del plegado vive al nivel del módulo como en pdf-text-index:
+    // ni refs en render ni setState-en-efecto, que el compilador los prohíbe.
+    () => (textMode ? plegarTexto(book.id, textReady, textPage) : limpiarPlegado()),
+    [textMode, book.id, textReady, textPage]
+  );
 
   // Navegación virtual: la elección local solo vale dentro de su página real;
   // lo demás se deriva de `pageNum` (nada de espejos en efectos).

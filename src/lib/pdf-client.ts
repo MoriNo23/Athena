@@ -2,6 +2,7 @@
 
 import "./map-get-or-insert-polyfill";
 import type * as PdfjsModule from "pdfjs-dist";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 
 let libPromise: Promise<typeof PdfjsModule> | null = null;
 
@@ -16,12 +17,24 @@ export const PDFJS_ASSETS = {
 /** Carga perezosa de pdf.js en el cliente y configura el worker */
 export async function loadPdfLib(): Promise<typeof PdfjsModule> {
   if (!libPromise) {
-    libPromise = import("pdfjs-dist").then((lib) => {
-      lib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-      return lib;
-    });
+    libPromise = import("pdfjs-dist")
+      .then((lib) => {
+        lib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        return lib;
+      })
+      .catch((e) => {
+        // un fallo transitorio de red/chunk no debe quedar cacheado para siempre
+        libPromise = null;
+        throw e;
+      });
   }
   return libPromise;
+}
+
+/** Libera el documento en el worker: `destroy` existe en runtime pero no en
+    los tipos de pdfjs-dist; el cast vive aquí, no en cada visor. */
+export function destruirPdfDoc(doc: PDFDocumentProxy): void {
+  (doc as unknown as { destroy?: () => void }).destroy?.();
 }
 
 export interface PdfProbe {

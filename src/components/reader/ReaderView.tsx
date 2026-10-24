@@ -251,7 +251,6 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   useEffect(() => {
     if (paginasAprendidasRef.current) return;
     if (book.totalPages > 0 || !numPages || numPages <= 0) return;
-    paginasAprendidasRef.current = true;
     void fetch(`/api/books/${book.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -260,6 +259,9 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { book?: BookDTO } | null) => {
         if (data?.book) onBookChange?.(data.book);
+        // solo tras responder: si el PATCH falló, la bandera queda libre y
+        // el próximo abrir reintenta (un fallo no deja totalPages en 0)
+        paginasAprendidasRef.current = true;
       })
       .catch(() => {});
   }, [book.totalPages, numPages, book.id, onBookChange]);
@@ -308,6 +310,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
 
   const goToPage = useCallback(
     (target: number, opts?: { silent?: boolean; noPause?: boolean }) => {
+      if (numPages < 1) return; // motor aún cargando: sin clamp, la página 0 sería un spinner eterno
       const clamped = Math.min(Math.max(1, Math.round(target)), numPages);
       const prev = pageNumRef.current;
       if (clamped === prev) return;
@@ -373,6 +376,29 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     [tpTextMode, goToVirtual, jumpOutsideText]
   );
 
+  /**
+   * Fuente del teleprompter: un objeto NUEVO por render volvía a pintar miles
+   * de spans cada segundo (el cronómetro de la sesión re-difiere el árbol).
+   * Memoizado por sus entradas reales, el overlay no se entera del tick.
+   */
+  const tpSource = useMemo(
+    () =>
+      teleprompterSourceFor({
+        isEpub,
+        tpTextMode,
+        doc,
+        tpVirtualBlocks,
+        epubGetPageBlocks: epub.getPageBlocks,
+        textVirtual,
+        pageNum,
+        textPages: textIndex?.pages.length ?? 0,
+        numPages,
+        onGoToPage: tpGoToPage,
+      }),
+    [isEpub, tpTextMode, doc, tpVirtualBlocks, epub.getPageBlocks, textVirtual, pageNum, textIndex, numPages, tpGoToPage]
+  );
+  const tpClose = useCallback(() => setTpOpen(false), [setTpOpen]);
+
   /** Extracto de texto de la página p para el carrusel peek (EPUB). */
   const epubTextPreview = useCallback(
     (p: number) => {
@@ -391,6 +417,18 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     getPage: () => pageNumRef.current,
     onJump: silentJumpTo,
   });
+
+  /** Selección desde el carrusel peek: callback estable (el gesto reengancha
+      su listener de teclas con cada identidad nueva, y el lector re-renderiza
+      cada segundo por el cronómetro de la sesión). */
+  const { setPeek: setPeekOpen } = peek;
+  const peekSelectPage = useCallback(
+    (p: number) => {
+      setPeekOpen(false);
+      silentJumpTo(p);
+    },
+    [setPeekOpen, silentJumpTo]
+  );
 
   // ---------- Zoom ----------
   const {
@@ -521,7 +559,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     />
   );
 
-  const pct = Math.round((pageNum / numPages) * 100);
+  const pct = numPages > 0 ? Math.round((pageNum / numPages) * 100) : 0;
   const sessionMin = Math.floor(sessionSeconds / 60);
   // «Hoy» de ESTE libro (base de montaje + contador vivo) contra su meta efectiva:
   // la meta propia del libro manda; sin ella, el mínimo global de ajustes.
@@ -713,10 +751,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
         totalPages={numPages}
         sel={peek.peekSel}
         originPage={pageNum}
-        onSelect={(p) => {
-          peek.setPeek(false);
-          silentJumpTo(p);
-        }}
+        onSelect={peekSelectPage}
         onScrub={peek.setPeekSel}
         onCancel={peek.onPeekCancel}
       />
@@ -758,19 +793,8 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
       {tpOpen && (
         <TeleprompterOverlay
           book={book}
-          {...teleprompterSourceFor({
-            isEpub,
-            tpTextMode,
-            doc,
-            tpVirtualBlocks,
-            epubGetPageBlocks: epub.getPageBlocks,
-            textVirtual,
-            pageNum,
-            textPages: textIndex?.pages.length ?? 0,
-            numPages,
-            onGoToPage: tpGoToPage,
-          })}
-          onClose={() => setTpOpen(false)}
+          {...tpSource}
+          onClose={tpClose}
           todayPages={todayPagesShown}
           todayGoal={effectiveGoal}
         />

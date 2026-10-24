@@ -5,7 +5,7 @@
  *
  * Todo lo que es TIMING vive aquí como funciones puras para poder auditarlo
  * con Python (scripts/audit_teleprompter_timing.py) y testearlo con bun
- * (scripts/test-teleprompter-engine.ts) sin montar la UI.
+ * (src/lib/*.test.ts) sin montar la UI.
  *
  * Modelo temporal (validado matemáticamente):
  *  - Cada carácter se revela tras un retardo base derivado del WPS elegido:
@@ -57,74 +57,6 @@ export interface TeleprompterStep {
   char: string;
   /** ms a esperar ANTES de revelar este carácter (incluye pausa heredada) */
   delay: number;
-}
-
-export interface TeleprompterTimelineInfo {
-  steps: TeleprompterStep[];
-  totalMs: number;
-  letters: number;
-  commas: number;
-  periods: number;
-}
-
-/**
- * Construye la línea de tiempo de revelado para un texto.
- * `wps === null` ⇒ modo Instantánea: todos los delays son 0.
- */
-export function buildTeleprompterTimeline(text: string, wps: number | null): TeleprompterTimelineInfo {
-  const chars = Array.from(text);
-  if (chars.length === 0) {
-    return { steps: [], totalMs: 0, letters: 0, commas: 0, periods: 0 };
-  }
-  if (wps == null) {
-    return {
-      steps: chars.map((char) => ({ char, delay: 0 })),
-      totalMs: 0,
-      letters: chars.filter((c) => /\S/.test(c)).length,
-      commas: 0,
-      periods: 0,
-    };
-  }
-
-  const base = 1000 / (wps * TELEPROMPTER_LETTERS_PER_WORD);
-  const steps: TeleprompterStep[] = [];
-  let pendingPause = 0;
-  let commas = 0;
-  let periods = 0;
-
-  for (const char of chars) {
-    steps.push({ char, delay: base + pendingPause });
-    pendingPause = 0;
-    if (PUNCT_STRONG.has(char)) {
-      periods += 1;
-      // máx en vez de suma: "..." o "?!" respiran UNA vez, no tres
-      pendingPause = Math.max(pendingPause, base * TELEPROMPTER_PERIOD_PAUSE_LETTERS);
-    } else if (PUNCT_WEAK.has(char)) {
-      commas += 1;
-      pendingPause = Math.max(pendingPause, base * TELEPROMPTER_COMMA_PAUSE_LETTERS);
-    } else if (PUNCT_DASH.has(char)) {
-      pendingPause = Math.max(pendingPause, base * TELEPROMPTER_DASH_PAUSE_LETTERS);
-    } else if (PUNCT_PAREN.has(char)) {
-      pendingPause = Math.max(pendingPause, base * TELEPROMPTER_PAREN_PAUSE_LETTERS);
-    } else if (PUNCT_QUOTE.has(char)) {
-      pendingPause = Math.max(pendingPause, base * TELEPROMPTER_QUOTE_PAUSE_LETTERS);
-    }
-  }
-  // pendingPause final se descarta solo: no hay más pasos que lo consuman.
-
-  const totalMs = steps.reduce((acc, s) => acc + s.delay, 0);
-  return {
-    steps,
-    totalMs,
-    letters: chars.filter((c) => /\S/.test(c)).length,
-    commas,
-    periods,
-  };
-}
-
-/** Retardo base en ms para un WPS dado (utilidad para UI y tests). */
-export function teleprompterBaseDelayMs(wps: number): number {
-  return 1000 / (wps * TELEPROMPTER_LETTERS_PER_WORD);
 }
 
 // ---------- Flujo continuo: bloques → timeline por carácter ----------
