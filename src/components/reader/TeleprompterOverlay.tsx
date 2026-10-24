@@ -216,8 +216,9 @@ export function TeleprompterOverlay({
     stageViewAnchor,
   } = tpWin;
 
-  //Crucede página: la columna de la página nueva ENTRA desde la derecha con un
-  // fundido corto — se lee como pasar la hoja, no como un parpadeo. El mismo
+  // Cruce de página en AMBOS sentidos: la columna de la página nueva entra
+  // desde el lado del avance — derecha al avanzar, izquierda al retroceder
+  // (la dueña: «al volver a una página atrás que haya transición»). El mismo
   // tratamiento que el lector (utils.animarGiroPagina), algo más lento porque
   // el cruce del teleprompter es un momento mayor. La cámara y el ancla
   // atómica siguen intactas: la animación no toca el layout ni el scroll.
@@ -228,11 +229,12 @@ export function TeleprompterOverlay({
     if (curStart == null) return;
     const prev = lastPageRef.current;
     lastPageRef.current = curStart;
-    // apertura: sin fundido; los retrocesos mantienen su rebobinado directo
-    if (prev == null || curStart <= prev) return;
+    // apertura: sin transición (la página ya viene encendida)
+    if (prev === null) return;
     const el = streamRef.current;
     if (!el || instante) return; // Instantánea: salta
-    animarGiroPagina(el, oscuro, 1, 450);
+    const direccion: 1 | -1 = curStart < prev ? -1 : 1;
+    animarGiroPagina(el, oscuro, direccion, 450);
   }, [curStart, instante, oscuro]);
 
   const player = useTeleprompterPlayer({
@@ -607,7 +609,10 @@ export function TeleprompterOverlay({
       </div>
 
       {/* Escenario: columna única con scroll real */}
-      <div className="tp-stage absolute inset-0 z-10" data-testid="tp-stage" onClick={forward}>
+      {/* El escenario NO avanza al hacer click (la dueña: «que no salte a la
+          siguiente página»): avanzar es cosa del botón, la barra espaciadora
+          o las flechas. Clickear en el texto es para seleccionar/pausar. */}
+      <div className="tp-stage absolute inset-0 z-10" data-testid="tp-stage">
         {stale ? (
           <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
             {t("tp.opening")}
