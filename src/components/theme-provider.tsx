@@ -3,7 +3,7 @@
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 
 /**
- * Casa Atena: dos caras del azul del focus.
+ * Casa Athena: dos caras del azul del focus.
  * Oscuro por defecto (noche egea); el usuario cambia a claro desde la
  * biblioteca o el panel de ajustes. Estrategia `class` para que las
  * variantes `dark:` de Tailwind y los tokens de globals.css respondan.

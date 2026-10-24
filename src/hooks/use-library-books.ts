@@ -15,20 +15,19 @@ export function useLibraryBooks() {
   const { toast } = useToast();
   const { t } = useI18n();
   const [books, setBooks] = useState<BookWithSessions[] | null>(null);
-  const [locked, setLocked] = useState(false);
 
   const fetchBooks = useCallback(async () => {
     try {
       const res = await fetch("/api/books", { cache: "no-store" });
-      // candado auth-api: el API protegido responde 401 → puerta de contraseña
-      // (no tratarlo como biblioteca vacía)
+      // candado: la puerta real es /login (el middleware redirige páginas). En
+      // cliente, una sesión vencida a mitad de camino vuelve a la puerta.
       if (res.status === 401) {
-        setLocked(true);
+        const destino = encodeURIComponent(window.location.pathname);
+        window.location.assign(`/login?next=${destino}`);
         return;
       }
       const data = await res.json();
       setBooks(data.books ?? []);
-      setLocked(false);
     } catch {
       toast({ title: t("lib.errorTitle"), description: t("lib.errorBody"), variant: "destructive" });
       setBooks([]);
@@ -50,5 +49,5 @@ export function useLibraryBooks() {
     return { streak, pagesToday: today.pages, minutesToday: today.minutes, finished };
   }, [books]);
 
-  return { books, fetchBooks, updateBook, stats, locked };
+  return { books, fetchBooks, updateBook, stats };
 }

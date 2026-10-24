@@ -45,7 +45,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ---------- Casa Atena: la psicología del azul hecha tema ----------
+/* ---------- Casa Athena: la psicología del azul hecha tema ----------
    El azul sostiene el enfoque (calma + profundidad). Dos caras:
    · Oscura: noche egea profunda — la calma de la madrugada de estudio.
    · Clara: mañana de mármol azul — luz serena de sala de lectura.
@@ -436,7 +436,7 @@ body.gesture-lock * {
    encima: un render del Partenón a sangre completa y la estatua de Atenea
    anclada abajo a la derecha. Estática por designio (nada de animaciones),
    siempre en contraste con el tema: piedra cálida sobre noche egeo. */
-.atena-capa2 {
+.athena-capa2 {
   position: fixed;
   inset: 0;
   z-index: -10;
@@ -446,24 +446,24 @@ body.gesture-lock * {
      el viewport y mueve el scroll horizontal en móviles. */
   overflow: hidden;
 }
-.atena-capa2__fachada {
+.athena-capa2__fachada {
   position: absolute;
   inset: 0;
-  background: url("/atena-capa2-fachada.png") center / cover no-repeat;
+  background: url("/athena-capa2-fachada.png") center / cover no-repeat;
   opacity: 0.18;
   filter: saturate(0.82) contrast(1.06);
 }
-.atena-capa2__busto {
+.athena-capa2__busto {
   position: absolute;
   right: max(-3vw, -60px);
   bottom: 0;
   width: min(34vw, 540px);
   aspect-ratio: 768 / 1344;
-  background: url("/atena-capa2-busto.png") bottom center / contain no-repeat;
+  background: url("/athena-capa2-busto.png") bottom center / contain no-repeat;
   opacity: 0.17;
   filter: saturate(0.78) contrast(1.05);
 }
-.atena-capa2__vignette {
+.athena-capa2__vignette {
   position: absolute;
   inset: 0;
   background:
@@ -471,21 +471,21 @@ body.gesture-lock * {
     linear-gradient(180deg, oklch(0.145 0.045 253 / 0.42) 0%, transparent 28%, transparent 62%, oklch(0.145 0.045 253 / 0.66) 100%);
 }
 /* En la mañana clara la piedra se vuelve recuerdo: casi invisible, azul pálido */
-html:not(.dark) .atena-capa2__fachada {
+html:not(.dark) .athena-capa2__fachada {
   opacity: 0.05;
   filter: saturate(0.3) contrast(1.02) brightness(1.04);
 }
-html:not(.dark) .atena-capa2__busto {
+html:not(.dark) .athena-capa2__busto {
   opacity: 0.04;
   filter: saturate(0.25) brightness(1.05);
 }
-html:not(.dark) .atena-capa2__vignette {
+html:not(.dark) .athena-capa2__vignette {
   background:
     radial-gradient(120% 90% at 50% 8%, transparent 46%, oklch(0.965 0.018 235 / 0.5) 100%),
     linear-gradient(180deg, oklch(0.965 0.018 235 / 0.4) 0%, transparent 30%, transparent 64%, oklch(0.965 0.018 235 / 0.55) 100%);
 }
 /* ---------- Hero de Atenea (biblioteca) ---------- */
-.atena-hero {
+.athena-hero {
   position: relative;
   overflow: hidden;
   border-radius: 0;
@@ -496,16 +496,16 @@ html:not(.dark) .atena-capa2__vignette {
     var(--card);
   box-shadow: var(--brutal-shadow-lg);
 }
-html:not(.dark) .atena-hero {
+html:not(.dark) .athena-hero {
   background:
     radial-gradient(900px 380px at 85% -20%, oklch(0.85 0.06 240 / 45%), transparent 60%),
     radial-gradient(600px 300px at 0% 120%, oklch(0.88 0.05 230 / 32%), transparent 55%),
     var(--card);
 }
-.atena-hero .seal-glow {
+.athena-hero .seal-glow {
   filter: drop-shadow(0 0 22px oklch(0.66 0.14 246 / 45%));
 }
-html:not(.dark) .atena-hero .seal-glow {
+html:not(.dark) .athena-hero .seal-glow {
   filter: drop-shadow(0 0 18px oklch(0.55 0.155 250 / 38%));
 }
 

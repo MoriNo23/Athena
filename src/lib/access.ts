@@ -1,16 +1,20 @@
 /**
- * Candado del API (change auth-api, extendido en modo-normal-lan):
+ * Candado del API (change auth-api, extendido en candado-completo-y-athena):
  * - la sesión es stateless: la cookie guarda un hash derivado de la contraseña;
  *   comparación en tiempo constante vía digest de 32 bytes.
- * - la contraseña efectiva depende del modo de arranque (design §2 del change
- *   modo-normal-lan): `ATENA_PASSWORD` del .env manda; en modo lan sin ella se
- *   genera una aleatoria que persiste en db/atena-lock; el resto = abierto.
+ * - la contraseña efectiva depende del modo de arranque: ATHENA_PASSWORD del
+ *   .env manda (fallback legado ATENA_PASSWORD); en modo lan sin ella se
+ *   genera una aleatoria que persiste en db/athena-lock; ATHENA_ABIERTO=1
+ *   abre el lan sin candado. El resto = abierto.
+ * - nombres renombrados a Athena con fallback de lectura a los viejos:
+ *   cookie atena_session sigue vidiendo, y db/atena-lock se transcribe una vez.
  */
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { mkdirSync, openSync, readFileSync, writeSync, closeSync } from "node:fs";
 
-export const COOKIE_SESION = "atena_session";
-export const ARCHIVO_CONTRASEÑA = "db/atena-lock";
+export const COOKIE_SESION = "athena_session";
+export const ARCHIVO_CONTRASEÑA = "db/athena-lock";
+const ARCHIVO_LEGADO = "db/atena-lock";
 const SEMILLA_COOKIE = "atena-cookie-v1";
 
 /** valor de cookie que deriva de la contraseña (hex) */
@@ -24,37 +28,83 @@ export function igualEnTiempoConstante(a: string, b: string): boolean {
 }
 
 /**
- * garantiza la contraseña autogenerada en db/atena-lock y la devuelve.
+ * garantiza la contraseña autogenerada en db/athena-lock y la devuelve.
+ * Respeta la instalación vieja: si ya existía db/atena-lock (legado), su
+ * contenido manda y se transcribe al nombre nuevo.
  * Race-free: la creación usa flag `wx` (falla si otro proceso ganó) y después
  * se lee el archivo, así varios arranques concurrentes convergen en una sola.
  */
 export function garantizaContraseña(): string {
-  try {
-    return readFileSync(ARCHIVO_CONTRASEÑA, "utf8").trim();
-  } catch {
-    // no existe aún: crearla
-  }
+  const nueva = lee(ARCHIVO_CONTRASEÑA);
+  if (nueva) return nueva;
+  const legada = lee(ARCHIVO_LEGADO);
   mkdirSync("db", { recursive: true });
-  const generada = randomBytes(9).toString("base64url");
   try {
     const fd = openSync(ARCHIVO_CONTRASEÑA, "wx", 0o600);
-    writeSync(fd, generada);
-    closeSync(fd);
+    try {
+      writeSync(fd, legada ?? randomBytes(9).toString("base64url"));
+    } finally {
+      closeSync(fd);
+    }
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
   }
-  return readFileSync(ARCHIVO_CONTRASEÑA, "utf8").trim();
+  return lee(ARCHIVO_CONTRASEÑA) ?? "";
+}
+
+function lee(ruta: string): string | null {
+  try {
+    const contenido = readFileSync(ruta, "utf8").trim();
+    return contenido || null;
+  } catch {
+    return null;
+  }
+}
+
+/** env renombrado con fallback de lectura al nombre legado */
+function envDe(nueva: string, legada: string): string | undefined {
+  const v = process.env[nueva];
+  if (v !== undefined) return v;
+  return process.env[legada];
 }
 
 /**
- * contraseña que rige el candado en este arranque (design §2):
- * 1. ATENA_PASSWORD no vacía → esa (elección del usuario, cualquier modo).
- * 2. modo lan sin contraseña → autogenerada y persistida (garantizaContraseña).
+ * contraseña que rige el candado en este arranque:
+ * 1. ATHENA_PASSWORD (o ATENA_PASSWORD legado) no vacía → esa, aunque haya
+ *    ABIERTO=1 (la elección explícita de la dueña manda).
+ * 2. modo lan: ATHENA_ABIERTO=1 (o ATENA_ABIERTO) → abierto sin candado;
+ *    sin ella → autogenerada y persistida (garantizaContraseña).
  * 3. resto (modo normal sin contraseña) → "" = abierto, solo localhost.
  */
 export function contraseñaEfectiva(): string {
-  const fija = (process.env.ATENA_PASSWORD ?? "").trim();
+  const fija = (envDe("ATHENA_PASSWORD", "ATENA_PASSWORD") ?? "").trim();
   if (fija) return fija;
-  if ((process.env.ATENA_MODO ?? "offline") === "lan") return garantizaContraseña();
+  if ((envDe("ATHENA_MODO", "ATENA_MODO") ?? "offline") === "lan") {
+    if (envDe("ATHENA_ABIERTO", "ATENA_ABIERTO") === "1") return "";
+    return garantizaContraseña();
+  }
   return "";
+}
+
+/**
+ * destino seguro tras el login (`next`): solo rutas relativas internas
+ * (empiezan por "/" y sin "//" inicial); cualquier otra cosa → null.
+ */
+export function siguienteSeguro(v: string | null | undefined): string | null {
+  if (!v || !v.startsWith("/") || v.startsWith("//")) return null;
+  // `new URL` normaliza "\" a "/" — `/\evil.com` acabaría navegando fuera; los
+  // caracteres de control no tienen sitio en una URL tecleada por una persona.
+  if (v.includes("\\") || /[\u0000-\u001f]/.test(v)) return null;
+  return v;
+}
+
+/**
+ * un recurso estático es una ruta cuyo último tramo lleva extensión, SALVO los
+ * ficheros propios de la biblioteca bajo /uploads/: bajo candado viajan por las
+ * rutas del API (/api/books/[id]/file y /cover), nunca de gratis como estático.
+ */
+export function esRecursoEstático(pathname: string): boolean {
+  if (pathname.startsWith("/uploads/")) return false;
+  const tramo = pathname.split("/").pop() ?? "";
+  return tramo.includes(".");
 }
