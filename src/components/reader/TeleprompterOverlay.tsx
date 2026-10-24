@@ -41,6 +41,7 @@ import {
   TELEPROMPTER_WPS_MAX,
   TELEPROMPTER_WPS_MIN,
   TELEPROMPTER_WPS_STEP,
+  fondoUrlDe,
 } from "@/lib/types";
 import type { BookDTO } from "@/lib/types";
 import type { PDFDocumentProxy } from "pdfjs-dist";
@@ -145,7 +146,7 @@ export function TeleprompterOverlay({
     tpSet.fondo === "portada"
       ? book.coverUrl ?? null
       : tpSet.fondo === "imagen"
-        ? tpSet.fondoRuta || null
+        ? tpSet.fondoRuta ? fondoUrlDe(tpSet.fondoRuta) : null
         : null;
   const fondoFiltro = Math.round(tpSet.fondoFiltro);
 

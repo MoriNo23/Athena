@@ -20,6 +20,10 @@ export async function POST(req: NextRequest) {
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
   const ahora = Date.now();
+  // purga perezosa: las entradas vencidas de otras IPs no se eternizan
+  for (const [k, v] of fallos) {
+    if (ahora >= v.reset) fallos.delete(k);
+  }
   const estado = fallos.get(ip);
   if (estado && ahora < estado.reset && estado.n >= MAX) {
     return NextResponse.json({ error: "Demasiados intentos; espera un minuto" }, { status: 429 });

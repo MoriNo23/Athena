@@ -52,6 +52,13 @@ export function archivoUrlDe(book: { id: string; filePath: string; origin?: stri
   return `/api/books/${book.id}/file`;
 }
 
+/** URL del fondo propio del teleprompter: la app sirve la imagen (no estático,
+    igual que libros y portadas — los ficheros creados tras el arranque fallan
+    en producción). La ruta guardada en config sigue siendo /uploads/<nombre>. */
+export function fondoUrlDe(ruta: string): string {
+  return `/api/teleprompter/fondo?ruta=${encodeURIComponent(ruta)}`;
+}
+
 // ---------- Insignias ----------
 
 export const BADGE_TIERS: Record<number, { key: string; label: string; hint: string }> = {

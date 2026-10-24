@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile, stat } from "fs/promises";
+import { createReadStream } from "fs";
+import { Readable } from "stream";
 import path from "path";
 import { escribirAjustes, leerAjustes } from "@/lib/config-file";
 
@@ -13,6 +15,39 @@ import { escribirAjustes, leerAjustes } from "@/lib/config-file";
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 const MAX_BYTES = 8 * 1024 * 1024;
 const MIME_OK = new Set(["image/png", "image/jpeg", "image/webp", "image/avif"]);
+const MIME_IMG: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".avif": "image/avif",
+};
+
+/**
+ * GET?ruta=/uploads/<nombre>: sirve la imagen subida. Por la APP y no por el
+ * estático (change ficheros-servidos-por-la-app): en producción el estático
+ * no ve ficheros creados tras el arranque. Basename de /uploads/ únicamente.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const ruta = req.nextUrl.searchParams.get("ruta") ?? "";
+    if (!ruta.startsWith("/uploads/")) {
+      return Response.json({ error: "Ruta inválida" }, { status: 404 });
+    }
+    const archivo = path.join(UPLOAD_DIR, path.basename(ruta));
+    await stat(archivo);
+    const stream = createReadStream(archivo);
+    return new Response(Readable.toWeb(stream) as unknown as ReadableStream, {
+      status: 200,
+      headers: {
+        "Content-Type": MIME_IMG[path.extname(archivo).toLowerCase()] ?? "application/octet-stream",
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch {
+    return Response.json({ error: "La imagen no está" }, { status: 404 });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

@@ -26,6 +26,10 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
       return NextResponse.json({ error: "El compañero debe ser un PDF" }, { status: 415 });
     }
+    // mismo tope que las subidas normales (200 MB)
+    if (file.size > 200 * 1024 * 1024) {
+      return NextResponse.json({ error: "El compañero pasa de 200 MB" }, { status: 413 });
+    }
 
     await mkdir(UPLOAD_DIR, { recursive: true });
     const fileName = `${id}-companion.pdf`;

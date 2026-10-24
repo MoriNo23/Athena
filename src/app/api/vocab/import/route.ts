@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as { entries?: unknown };
     const entries = Array.isArray(body.entries) ? body.entries : [];
     if (entries.length === 0) return NextResponse.json({ imported: 0 });
+    // la importación es one-shot desde el eco local; más que esto ya no es eco
+    if (entries.length > 1000) {
+      return NextResponse.json({ error: "Demasiadas entradas (máx 1000)" }, { status: 413 });
+    }
 
     const existentes = await db.vocab.findMany({
       select: { word: true, lang: true },

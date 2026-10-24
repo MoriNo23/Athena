@@ -74,16 +74,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       }
     }
 
-    const updated = await db.book.update({
-      where: { id },
-      data: { currentPage, lastReadAt: new Date(), milestones, dailyGoal, totalPages, extras: extras as never },
-    });
-
-    if (pagesRead > 0 || minutes > 0) {
-      await db.readingSession.create({
-        data: { bookId: id, pagesRead, minutes },
+    const updated = await db.$transaction(async (tx) => {
+      const b = await tx.book.update({
+        where: { id },
+        data: { currentPage, lastReadAt: new Date(), milestones, dailyGoal, totalPages, extras: extras as never },
       });
-    }
+      if (pagesRead > 0 || minutes > 0) {
+        await tx.readingSession.create({
+          data: { bookId: id, pagesRead, minutes },
+        });
+      }
+      return b;
+    });
 
     return NextResponse.json({ book: updated });
   } catch (e) {
