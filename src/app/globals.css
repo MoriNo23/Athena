@@ -744,6 +744,21 @@ html:not(.dark) .athena-hero .seal-glow {
    sola; no vigila el mouse. Decorativo y sin puntero: nunca bloquea la
    lectura ni captura el mouse. Solo transiciona opacidad — con movimiento
    reducido no hay desplazamiento (y no lo hay en ningún modo). */
+.shortcut-ghost-scrim {
+  /* velo que opaca el texto de atrás mientras el recordatorio está en
+     pantalla: las teclas se leen sobre el fondo del tema, no mezcladas
+     con la página. Bajo la columna (z-30), decorativo, sin puntero. */
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  background: color-mix(in oklab, var(--background) 88%, transparent);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  pointer-events: none;
+}
+.shortcut-ghost-scrim.shortcut-ghost-scrim-on {
+  opacity: 1;
+}
 .shortcut-ghost {
   position: fixed;
   right: clamp(18px, 4vw, 64px);
@@ -784,7 +799,8 @@ html:not(.dark) .athena-hero .seal-glow {
   color: color-mix(in oklab, var(--foreground) 88%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {
-  .shortcut-ghost {
+  .shortcut-ghost,
+  .shortcut-ghost-scrim {
     transition: none;
   }
 }

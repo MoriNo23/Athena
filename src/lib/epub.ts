@@ -92,7 +92,6 @@ const HEADING_KINDS = new Set<EpubTextKind>(["h1", "h2", "h3", "h4"]);
  * Agrupa los bloques de cada capítulo en páginas virtuales.
  * Reglas de la casa:
  *  - una página se cierra al alcanzar EPUB_WORDS_PER_PAGE (nunca a mitad de bloque);
- *  - un título estrena página si la actual ya tiene contenido;
  *  - la última página huérfana de un capítulo (< EPUB_MIN_TAIL_WORDS) se funde
  *    con la anterior si no la revienta.
  */
@@ -126,13 +125,6 @@ export function paginateEpub(chapters: EpubBlock[][]): EpubPage[] {
     let words = 0;
 
     for (const block of chapters[c]) {
-      const isHeading = block.kind !== "img" && HEADING_KINDS.has(block.kind);
-      // título estrena página (si la actual no está vacía)
-      if (isHeading && current.length > 0) {
-        flush(current, c);
-        current = [];
-        words = 0;
-      }
       // el bloque no cabe: cierra la pagina antes de colocarlo
       if (current.length > 0 && words + block.words > EPUB_WORDS_PER_PAGE) {
         // anti-huérfano: si la página cerraría con un título al final (solo,
@@ -140,6 +132,7 @@ export function paginateEpub(chapters: EpubBlock[][]): EpubPage[] {
         // quedarse hundido al pie — nadie lee un título y gira la página.
         const ultimo = current[current.length - 1];
         const tituloAlFinal = ultimo.kind !== "img" && HEADING_KINDS.has(ultimo.kind);
+        if (tituloAlFinal) current.pop(); // baja de verdad: sale también de la página cerrada (sin duplicarse)
         flush(current, c);
         current = [];
         words = 0;
