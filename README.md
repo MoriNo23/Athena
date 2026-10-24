@@ -76,7 +76,7 @@ Internet is only needed for the install and the first OCR language download —
 **reading works offline.**
 
 ```bash
-git clone https://github.com/MoriNo23/atena.git
+git clone https://github.com/MoriNo23/Athena.git
 cd Athena
 
 cp .env.example .env     # one line: DATABASE_URL=file:../db/custom.db
