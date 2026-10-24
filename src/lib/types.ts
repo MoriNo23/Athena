@@ -32,6 +32,24 @@ export interface BookDTO {
   badge: BadgeDTO | null;
   createdAt: string;
   lastReadAt: string | null;
+  /** "subido" = copia en uploads/ · "carpeta" = registrado en su sitio, sin copia */
+  origin?: "subido" | "carpeta";
+  /** fecha en que el escáner dejó de encontrar el fichero (movido/borrado) */
+  fileMissingAt?: string | null;
+  /** URL por la que el lector obtiene el fichero (uploads directo o stream API) */
+  archivoUrl?: string;
+}
+
+/**
+ * URL por la que el lector obtiene el fichero del libro:
+ *  - subidos: `filePath` ya es URL (`/uploads/<f>`) — sirve Next estático.
+ *  - carpeta: ruta real del disco de la dueña — la sirve el stream de
+ *    `/api/books/<id>/file`; en USB/otra máquina el bloqueo de ficheros
+ *    locales no existe, pero el stream siempre es mismo origen.
+ */
+export function archivoUrlDe(book: { id: string; filePath: string; origin?: string }): string {
+  if (!book.origin || book.origin === "subido") return book.filePath;
+  return `/api/books/${book.id}/file`;
 }
 
 // ---------- Insignias ----------

@@ -53,6 +53,38 @@ export const es: Record<string, string> = {
   "lib.uploading": "Subiendo…",
   "lib.addToRail": "Añadir al riel",
 
+  // ---------- biblioteca por carpeta (escaneo en sitio, sin copia) ----------
+  "lib.folder": "Carpeta",
+  "lib.folderTitle": "Biblioteca por carpeta",
+  "lib.folderDesc":
+    "Señala la carpeta de tu disco una vez: los PDF y EPUB se registran en su sitio, sin copias, y la app jamás los toca. Re-escanéala cuando añadas o muevas libros.",
+  "lib.folderLabel": "Ruta de la carpeta (absoluta, de la máquina que sirve)",
+  "lib.folderPlaceholder": "/home/maria/Biblioteca",
+  "lib.folderCurrent": "Carpeta actual: {path}",
+  "lib.folderNone": "Aún no hay carpeta elegida.",
+  "lib.folderRescan": "Re-escanear",
+  "lib.folderScan": "Escanear",
+  "lib.scanTitle": "{n} ficheros en la carpeta",
+  "lib.scanAdded": "{n} nuevos",
+  "lib.scanRelinked": "{n} re-vinculados",
+  "lib.scanMissing": "{n} sin fichero",
+  "lib.scanUpdated": "{n} recalculados",
+  "lib.scanDupes": "{n} duplicados omitidos",
+  "lib.scanQuiet": "Todo ya estaba registrado",
+  "lib.scanErrorTitle": "El escaneo no pudo hacerse",
+  "lib.scanErrorBody": "Revisa la ruta y vuelve a intentarlo.",
+
+  // ---------- re-vínculo (fichero movido) ----------
+  "lib.relinkTitle": "Re-vincular «{title}»",
+  "lib.relinkDesc":
+    "El fichero ya no está donde se escaneó. Escribe su ruta nueva: tu progreso, hitos e insignia quedan intactos.",
+  "lib.relinkLabel": "Ruta nueva del fichero (absoluta)",
+  "lib.relinkPlaceholder": "/home/maria/Biblioteca/novelas/libro.pdf",
+  "lib.relinkConfirm": "Re-vincular",
+  "lib.relinkDone": "Re-vinculado: «{title}»",
+  "lib.relinkErrorTitle": "No se pudo re-vincular",
+  "lib.relinkErrorBody": "Revisa la ruta del fichero y vuelve a intentarlo.",
+
   // ---------- tarjeta de libro ----------
   "card.open": "Abrir {title}",
   "card.coverAlt": "Portada de {title}",
@@ -64,11 +96,16 @@ export const es: Record<string, string> = {
   "card.resetTitle": "Reiniciar lecturas",
   "card.delete": "Eliminar {title}",
   "card.pages": "pág. {cur} de {total}",
+  "card.pagesUnknown": "páginas al primer abrir",
   "card.eta": "a tu ritmo, terminas el {date}",
   "card.todaySummary": "hoy: {p} pág · {m} min · meta {gp}/{g}",
   "card.reread": "Volver a leer",
   "card.continue": "Continuar",
   "card.start": "Empezar a leer",
+  "card.fileMissing": "sin fichero",
+  "card.fileMissingTip": "El fichero está fuera de la carpeta escaneada: tu progreso está a salvo.",
+  "card.relink": "Re-vincular {title}",
+  "card.relinkTitle": "Re-vincular fichero",
   "reading1": "lectura",
   "readingsN": "lecturas",
 

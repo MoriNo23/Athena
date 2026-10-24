@@ -53,6 +53,38 @@ export const en: Record<string, string> = {
   "lib.uploading": "Uploading…",
   "lib.addToRail": "Add to rail",
 
+  // ---------- library by folder (scan in place, no copies) ----------
+  "lib.folder": "Folder",
+  "lib.folderTitle": "Library by folder",
+  "lib.folderDesc":
+    "Point to a folder on your disk once: the PDF and EPUB files get registered where they live, with no copies, and the app never touches them. Re-scan whenever you add or move books.",
+  "lib.folderLabel": "Folder path (absolute, on the machine serving the app)",
+  "lib.folderPlaceholder": "/home/maria/Library",
+  "lib.folderCurrent": "Current folder: {path}",
+  "lib.folderNone": "No folder chosen yet.",
+  "lib.folderRescan": "Re-scan",
+  "lib.folderScan": "Scan",
+  "lib.scanTitle": "{n} files in the folder",
+  "lib.scanAdded": "{n} new",
+  "lib.scanRelinked": "{n} re-linked",
+  "lib.scanMissing": "{n} missing file",
+  "lib.scanUpdated": "{n} recalculated",
+  "lib.scanDupes": "{n} duplicates skipped",
+  "lib.scanQuiet": "Everything was already registered",
+  "lib.scanErrorTitle": "The scan could not run",
+  "lib.scanErrorBody": "Check the path and try again.",
+
+  // ---------- re-link (moved file) ----------
+  "lib.relinkTitle": "Re-link «{title}»",
+  "lib.relinkDesc":
+    "The file is no longer where it was scanned. Write its new path: your progress, milestones and badge stay intact.",
+  "lib.relinkLabel": "New file path (absolute)",
+  "lib.relinkPlaceholder": "/home/maria/Library/novels/book.pdf",
+  "lib.relinkConfirm": "Re-link",
+  "lib.relinkDone": "Re-linked: «{title}»",
+  "lib.relinkErrorTitle": "Could not re-link",
+  "lib.relinkErrorBody": "Check the file path and try again.",
+
   // ---------- book card ----------
   "card.open": "Open {title}",
   "card.coverAlt": "Cover of {title}",
@@ -64,11 +96,16 @@ export const en: Record<string, string> = {
   "card.resetTitle": "Reset readings",
   "card.delete": "Delete {title}",
   "card.pages": "pg. {cur} of {total}",
+  "card.pagesUnknown": "pages on first open",
   "card.eta": "at your pace, you finish on {date}",
   "card.todaySummary": "today: {p} pg · {m} min · goal {gp}/{g}",
   "card.reread": "Read again",
   "card.continue": "Continue",
   "card.start": "Start reading",
+  "card.fileMissing": "missing file",
+  "card.fileMissingTip": "The file is outside the scanned folder: your progress is safe.",
+  "card.relink": "Re-link {title}",
+  "card.relinkTitle": "Re-link file",
   "reading1": "reading",
   "readingsN": "readings",
 

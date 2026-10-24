@@ -56,6 +56,11 @@ export async function POST(req: NextRequest) {
       readCount: number;
       createdAt: string;
       lastReadAt: string | null;
+      origin?: string;
+      fileHash?: string | null;
+      fileBytes?: number | null;
+      fileMtime?: number | null;
+      fileMissingAt?: string | null;
     };
 
     await db.book.create({
@@ -77,6 +82,12 @@ export async function POST(req: NextRequest) {
         readCount: b.readCount,
         createdAt: new Date(b.createdAt),
         lastReadAt: b.lastReadAt ? new Date(b.lastReadAt) : null,
+        // campos del escaneo por carpeta (si la fila los traía)
+        origin: b.origin === "carpeta" ? "carpeta" : "subido",
+        fileHash: b.fileHash ?? null,
+        fileBytes: b.fileBytes ?? null,
+        fileMtime: b.fileMtime ?? null,
+        fileMissingAt: b.fileMissingAt ? new Date(b.fileMissingAt) : null,
       },
     });
 

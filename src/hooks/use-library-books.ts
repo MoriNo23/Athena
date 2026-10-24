@@ -45,7 +45,8 @@ export function useLibraryBooks() {
     const dayMap = groupSessionsByDay(allSessions);
     const today = dayMap.get(dayKey(new Date())) ?? { pages: 0, minutes: 0 };
     const streak = computeStreak(dayMap);
-    const finished = (books ?? []).filter((b) => b.currentPage >= b.totalPages).length;
+    // libros de carpeta con páginas sin contar (totalPages=0) no cuentan como terminados
+    const finished = (books ?? []).filter((b) => b.totalPages > 0 && b.currentPage >= b.totalPages).length;
     return { streak, pagesToday: today.pages, minutesToday: today.minutes, finished };
   }, [books]);
 

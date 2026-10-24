@@ -15,6 +15,8 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       milestones?: number | null;
       dailyGoal?: number | null;
       extras?: Record<string, unknown> | null;
+      /** el lector aprende páginas al primer abrir (libros de carpeta escaneados) */
+      totalPages?: number;
     };
 
     const book = await db.book.findUnique({ where: { id } });
@@ -22,10 +24,20 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Libro no encontrado" }, { status: 404 });
     }
 
+    // Páginas totales aprendidas al abrir (EPUB/PDF opacos guardan 0 en el escaneo).
+    // Mientras LLEGA una nueva medida, el clamp de la página usa esa, no la vieja.
+    let totalPages = book.totalPages;
+    if (typeof body.totalPages === "number" && Number.isFinite(body.totalPages) && body.totalPages >= 1) {
+      totalPages = Math.round(body.totalPages);
+    }
+    const techoTotal = totalPages > 0 ? totalPages : Number.MAX_SAFE_INTEGER;
+
     const currentPage =
       typeof body.currentPage === "number" && Number.isFinite(body.currentPage)
-        ? Math.min(Math.max(1, Math.round(body.currentPage)), book.totalPages)
-        : book.currentPage;
+        ? Math.min(Math.max(1, Math.round(body.currentPage)), techoTotal)
+        : book.totalPages > 0 && book.currentPage > book.totalPages
+          ? book.totalPages
+          : book.currentPage;
 
     const pagesRead = Math.max(0, Math.round(body.pagesRead ?? 0));
     const minutes = Math.max(0, Math.round(body.minutes ?? 0));
@@ -64,7 +76,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
     const updated = await db.book.update({
       where: { id },
-      data: { currentPage, lastReadAt: new Date(), milestones, dailyGoal, extras: extras as never },
+      data: { currentPage, lastReadAt: new Date(), milestones, dailyGoal, totalPages, extras: extras as never },
     });
 
     if (pagesRead > 0 || minutes > 0) {
@@ -90,16 +102,24 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
 
     await sweepExpiredUndo();
 
-    // Los archivos van a la papelera de deshacer (no se destruyen aún), y la
-    // instantánea guarda la ficha completa para poder restaurar todo.
-    const files: string[] = [path.basename(book.filePath)];
+    // PILAR (cfg-y-biblioteca-por-carpeta): libros origin="carpeta" — el fichero
+    // es de la dueña y la app JAMÁS lo mueve a la papelera ni lo borra. Solo
+    // desaparece la fila de BD (con insignia y sesiones); el fichero queda
+    // byte a byte en su carpeta. La instantánea permite deshacer sin tocar nada.
+    const esCarpeta = book.origin === "carpeta";
+    const files: string[] = [];
+    if (!esCarpeta) {
+      files.push(path.basename(book.filePath));
+    }
     if (book.coverPath && book.coverPath.startsWith("/uploads/")) {
       files.push(path.basename(book.coverPath));
     }
     if (book.companionPath) {
       files.push(path.basename(book.companionPath));
     }
-    await moveToTrash(id, files);
+    if (files.length > 0) {
+      await moveToTrash(id, files);
+    }
 
     const [sessions, badge] = await Promise.all([
       db.readingSession.findMany({ where: { bookId: id } }),
@@ -111,7 +131,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       badge: badge ? JSON.parse(JSON.stringify(badge)) : null,
       sessions: sessions.map((s) => ({ pagesRead: s.pagesRead, minutes: s.minutes, date: s.date.toISOString() })),
       files: {
-        pdf: path.basename(book.filePath),
+        pdf: esCarpeta ? "" : path.basename(book.filePath),
         ...(book.coverPath && book.coverPath.startsWith("/uploads/") ? { cover: path.basename(book.coverPath) } : {}),
         ...(book.companionPath ? { companion: path.basename(book.companionPath) } : {}),
       },

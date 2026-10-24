@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import { HeroMenu } from "@/components/library/HeroMenu";
@@ -29,8 +30,10 @@ import { formatMinutes } from "@/lib/reading";
 import {
   Clock3,
   Flame,
+  FolderOpen,
   Loader2,
   Plus,
+  RefreshCw,
   Target,
   Trophy,
   UploadCloud,
@@ -111,6 +114,119 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
     confirmResetAll,
   } = useBookActions({ onBooksChanged: fetchBooks });
 
+  /** ---- Biblioteca por carpeta (cfg-y-biblioteca-por-carpeta) ----
+      Elegir carpeta = escanear: los PDF/EPUB se registran EN SU SITIO, sin
+      copia. Re-escanear mantiene la app fiel: añade, re-vincula (huella de
+      hash), marca «sin fichero». La data (progreso/insignias) no se toca. */
+  const { toast } = useToast();
+  const [carpetaOpen, setCarpetaOpen] = useState(false);
+  const [carpetaActual, setCarpetaActual] = useState("");
+  const [carpetaDraft, setCarpetaDraft] = useState("");
+  const [escaneando, setEscaneando] = useState(false);
+  const [relinkTarget, setRelinkTarget] = useState<BookWithSessions | null>(null);
+  const [relinkDraft, setRelinkDraft] = useState("");
+  const [relinking, setRelinking] = useState(false);
+
+  const abrirCarpeta = async () => {
+    setCarpetaDraft("");
+    setCarpetaOpen(true);
+    try {
+      const res = await fetch("/api/settings");
+      if (res.ok) {
+        const data = (await res.json()) as { biblioteca?: { carpeta?: string } };
+        const ruta = data.biblioteca?.carpeta ?? "";
+        setCarpetaActual(ruta);
+        setCarpetaDraft(ruta);
+      }
+    } catch {
+      setCarpetaActual("");
+    }
+  };
+
+  const descripcionDeResumen = (resumen: {
+    ficheros: number;
+    anadidos: string[];
+    relinkados: unknown[];
+    sinFichero: string[];
+    actualizados: unknown[];
+    duplicados: string[];
+  }) => {
+    const partes: string[] = [];
+    if (resumen.anadidos.length > 0) partes.push(t("lib.scanAdded", { n: resumen.anadidos.length }));
+    if (resumen.relinkados.length > 0) partes.push(t("lib.scanRelinked", { n: resumen.relinkados.length }));
+    if (resumen.sinFichero.length > 0) partes.push(t("lib.scanMissing", { n: resumen.sinFichero.length }));
+    if (resumen.actualizados.length > 0) partes.push(t("lib.scanUpdated", { n: resumen.actualizados.length }));
+    if (resumen.duplicados.length > 0) partes.push(t("lib.scanDupes", { n: resumen.duplicados.length }));
+    return partes.length > 0 ? partes.join(" · ") : t("lib.scanQuiet");
+  };
+
+  const escanear = async (carpetaNueva: string | null) => {
+    setEscaneando(true);
+    try {
+      const res = await fetch("/api/library/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(carpetaNueva ? { carpeta: carpetaNueva } : {}),
+      });
+      const data = (await res.json()) as {
+        resumen?: {
+          carpeta: string;
+          ficheros: number;
+          anadidos: string[];
+          relinkados: unknown[];
+          sinFichero: string[];
+          actualizados: unknown[];
+          duplicados: string[];
+        };
+        error?: string;
+      };
+      if (!res.ok || !data.resumen) {
+        toast({ title: t("lib.scanErrorTitle"), description: data.error ?? t("lib.scanErrorBody"), variant: "destructive" });
+        return;
+      }
+      toast({
+        title: t("lib.scanTitle", { n: data.resumen.ficheros }),
+        description: descripcionDeResumen(data.resumen),
+      });
+      setCarpetaActual(data.resumen.carpeta);
+      await fetchBooks();
+      setCarpetaOpen(false);
+    } catch {
+      toast({ title: t("lib.scanErrorTitle"), description: t("lib.scanErrorBody"), variant: "destructive" });
+    } finally {
+      setEscaneando(false);
+    }
+  };
+
+  const relinkar = async () => {
+    if (!relinkTarget) return;
+    setRelinking(true);
+    try {
+      const res = await fetch(`/api/books/${relinkTarget.id}/relink`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filePath: relinkDraft.trim() }),
+      });
+      const data = (await res.json()) as { book?: BookDTO; error?: string };
+      if (!res.ok || !data.book) {
+        toast({ title: t("lib.relinkErrorTitle"), description: data.error ?? t("lib.relinkErrorBody"), variant: "destructive" });
+        return;
+      }
+      updateBook({ id: data.book.id, fileMissingAt: null, filePath: data.book.filePath, fileName: data.book.fileName });
+      toast({ title: t("lib.relinkDone", { title: data.book.title }) });
+      setRelinkTarget(null);
+    } catch {
+      toast({ title: t("lib.relinkErrorTitle"), description: t("lib.relinkErrorBody"), variant: "destructive" });
+    } finally {
+      setRelinking(false);
+    }
+  };
+
+  const selectRelink = (book: BookWithSessions) => {
+    setRelinkDraft("");
+    setRelinkTarget(book);
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl px-8 py-8">
       {/* ---- Hero de Atenea ---- */}
@@ -129,6 +245,9 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
             </div>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            <Button size="lg" variant="outline" className="gap-2" onClick={() => void abrirCarpeta()} data-testid="lib-carpeta">
+              <FolderOpen className="h-5 w-5" /> {t("lib.folder")}
+            </Button>
             <Button size="lg" className="gap-2" onClick={() => fileInputRef.current?.click()}>
               <Plus className="h-5 w-5" /> {t("lib.addBook")}
             </Button>
@@ -224,6 +343,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
                 onDelete={() => setDeleteTarget(book)}
                 onEdit={() => setEditTarget(book)}
                 onReset={() => setResetTarget(book)}
+                onRelink={book.fileMissingAt ? () => selectRelink(book) : undefined}
                 style={{ animationDelay: `${140 + idx * 50}ms` }}
               />
             ))}
@@ -303,6 +423,86 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
           })
         }
       />
+
+      {/* ---- Biblioteca por carpeta: elegir/escanear ---- */}
+      <Dialog open={carpetaOpen} onOpenChange={(o) => !o && !escaneando && setCarpetaOpen(false)}>
+        <DialogContent className="sm:max-w-lg" data-testid="folder-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">{t("lib.folderTitle")}</DialogTitle>
+            <DialogDescription>{t("lib.folderDesc")}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="folder-path">{t("lib.folderLabel")}</Label>
+              <Input
+                id="folder-path"
+                value={carpetaDraft}
+                onChange={(e) => setCarpetaDraft(e.target.value)}
+                placeholder={t("lib.folderPlaceholder")}
+                className="font-mono text-sm"
+                data-testid="folder-input"
+              />
+              <p className="text-xs text-muted-foreground">
+                {carpetaActual ? t("lib.folderCurrent", { path: carpetaActual }) : t("lib.folderNone")}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <div className="flex w-full flex-wrap justify-end gap-2">
+              {carpetaActual && (
+                <Button variant="outline" className="gap-2" onClick={() => void escanear(null)} disabled={escaneando} data-testid="folder-rescan">
+                  {escaneando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  {t("lib.folderRescan")}
+                </Button>
+              )}
+              <Button variant="ghost" onClick={() => setCarpetaOpen(false)} disabled={escaneando}>
+                {t("common.cancel")}
+              </Button>
+              <Button
+                className="gap-2"
+                onClick={() => void escanear(carpetaDraft.trim())}
+                disabled={escaneando || carpetaDraft.trim() === ""}
+                data-testid="folder-scan"
+              >
+                {escaneando && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t("lib.folderScan")}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ---- Re-vínculo: el fichero se movió y la dueña dice dónde está ---- */}
+      <Dialog open={!!relinkTarget} onOpenChange={(o) => !o && !relinking && setRelinkTarget(null)}>
+        <DialogContent className="sm:max-w-lg" data-testid="relink-dialog">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">{t("lib.relinkTitle", { title: relinkTarget?.title ?? "" })}</DialogTitle>
+            <DialogDescription>{t("lib.relinkDesc")}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-1.5 py-2">
+            <Label htmlFor="relink-path">{t("lib.relinkLabel")}</Label>
+            <Input
+              id="relink-path"
+              value={relinkDraft}
+              onChange={(e) => setRelinkDraft(e.target.value)}
+              placeholder={t("lib.relinkPlaceholder")}
+              className="font-mono text-sm"
+              data-testid="relink-input"
+            />
+          </div>
+          <DialogFooter>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setRelinkTarget(null)} disabled={relinking}>
+                {t("common.cancel")}
+              </Button>
+              <Button onClick={() => void relinkar()} disabled={relinking || relinkDraft.trim() === ""} className="gap-2" data-testid="relink-confirm">
+                {relinking && <Loader2 className="h-4 w-4 animate-spin" />}
+                {t("lib.relinkConfirm")}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ---- Confirmaciones destructivas ---- */}
       <LibraryConfirmDialogs
