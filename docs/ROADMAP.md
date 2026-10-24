@@ -9,12 +9,12 @@ taller como un change de openspec cuando empieza.
 Éxito = libros terminados. Nada que exija nube, nada de adorno. Dirección
 elegida el 24-10-2026: **preparar Athena para que otros monten la suya**.
 
-## Fase 0 — El candado cómodo (aquí y ahora)
+## Fase 0 — El candado cómodo (hecho, change candado-completo-y-athena)
 
-- LAN sin contraseña a elección: `ATENA_PASSWORD` fija manda igual que hoy;
-  si la dueña quiere abrir el modo lan, una opción del `.env` lo dice.
-- Toda la interfaz se pausa hasta iniciar sesión: hoy la puerta solo cubre la
-  parrilla de libros.
+- LAN sin contraseña a elección: `ATHENA_PASSWORD` fija manda (`ATENA_PASSWORD`
+  sigue leyéndose como legado); `ATHENA_ABIERTO=1` abre el modo lan sin candado.
+- Toda la interfaz se pausa hasta iniciar sesión en `/login` (no solo la
+  parrilla de libros), con el `next` validado en servidor.
 - La sesión sigue recordando en el navegador (cookie de 30 días, sin cambios).
 
 ## Fase 1 — Guardarraíles (red de seguridad)

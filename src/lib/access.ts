@@ -92,11 +92,19 @@ export function contraseñaEfectiva(): string {
  */
 export function siguienteSeguro(v: string | null | undefined): string | null {
   if (!v || !v.startsWith("/") || v.startsWith("//")) return null;
+  // `new URL` normaliza "\" a "/" — `/\evil.com` acabaría navegando fuera; los
+  // caracteres de control no tienen sitio en una URL tecleada por una persona.
+  if (v.includes("\\") || /[\u0000-\u001f]/.test(v)) return null;
   return v;
 }
 
-/** un recurso estático es una ruta cuyo último tramo lleva extensión */
+/**
+ * un recurso estático es una ruta cuyo último tramo lleva extensión, SALVO los
+ * ficheros propios de la biblioteca bajo /uploads/: bajo candado viajan por las
+ * rutas del API (/api/books/[id]/file y /cover), nunca de gratis como estático.
+ */
 export function esRecursoEstático(pathname: string): boolean {
+  if (pathname.startsWith("/uploads/")) return false;
   const tramo = pathname.split("/").pop() ?? "";
-  return tramo.includes(".") ;
+  return tramo.includes(".");
 }

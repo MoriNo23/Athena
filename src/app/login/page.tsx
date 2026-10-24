@@ -1,6 +1,8 @@
 import { LoginForm } from "@/components/auth/LoginForm";
 import { siguienteSeguro } from "@/lib/access";
 
+export const metadata = { title: "Entrar" };
+
 /**
  * Puerta real del candado (change candado-completo-y-athena): toda la
  * interfaz espera al login. El `next` se valida EN SERVIDOR para que un
