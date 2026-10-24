@@ -254,7 +254,41 @@ export function pdfPageText(blocks: PdfTextBlock[] | undefined): string {
     .join("\n\n");
 }
 
-// ---------- Paginación con reglas del EPUB + doble índice ----------
+// ---------- Paginación con reglas del EPUB + doble índice + fold incremental ----------
+
+/**
+ * Fold incremental: añade a un índice ya plegado (páginas reales 1..baseIndex0)
+ * las páginas reales nuevas que le siguen. Es EXACTO respecto a re-paginar el
+ * prefijo completo: `paginateEpub` nunca funde páginas de capítulos distintos,
+ * así que cada página real se pagina por su cuenta y el fold es pura
+ * concatenación + doble índice recalculado (barato).
+ */
+export function foldPdfTextIndex(
+  prev: PdfTextIndex | null,
+  nuevas: PdfTextBlock[][],
+  baseIndex0: number,
+): PdfTextIndex {
+  const agregadas = paginatePdfTextSolo(nuevas);
+  const pages: PdfVirtualPage[] = [
+    ...(prev?.pages ?? []),
+    ...agregadas.pages.map((p) => ({ ...p, realPage: p.realPage + baseIndex0 })),
+  ];
+  const pageStart = pages.map((p) => p.realPage);
+
+  const realToVirtual: number[] = [];
+  let v = 0;
+  for (let r = 1; r <= baseIndex0 + nuevas.length; r++) {
+    while (v < pageStart.length && pageStart[v] < r) v += 1;
+    realToVirtual.push(pages.length > 0 ? Math.min(v, pages.length - 1) : -1);
+  }
+
+  const emptyRealPages = [
+    ...(prev?.emptyRealPages ?? []),
+    ...nuevas.map((bloques, i) => (bloques.length > 0 ? 0 : baseIndex0 + i + 1)).filter((n) => n > 0),
+  ];
+
+  return { pages, pageStart, realToVirtual, emptyRealPages };
+}
 
 /**
  * Páginas virtuales (~320 palabras) a partir de las páginas reales extraídas.
@@ -262,24 +296,17 @@ export function pdfPageText(blocks: PdfTextBlock[] | undefined): string {
  * funde con la anterior (dentro de la misma página real).
  */
 export function paginatePdfText(realPages: PdfTextBlock[][]): PdfTextIndex {
+  return foldPdfTextIndex(null, realPages, 0);
+}
+
+/** El paginador base: páginas virtuales + reales de origen, sin doble índice global. */
+function paginatePdfTextSolo(realPages: PdfTextBlock[][]): { pages: PdfVirtualPage[] } {
   const raw: EpubPage[] = paginateEpub(realPages);
-  const pages: PdfVirtualPage[] = raw.map((p) => ({
-    blocks: p.blocks as unknown as PdfTextBlock[],
-    words: p.words,
-    realPage: p.chapter + 1,
-  }));
-  const pageStart = pages.map((p) => p.realPage);
-
-  const realToVirtual: number[] = [];
-  let v = 0;
-  for (let r = 1; r <= realPages.length; r++) {
-    while (v < pageStart.length && pageStart[v] < r) v += 1;
-    realToVirtual.push(pages.length > 0 ? Math.min(v, pages.length - 1) : -1);
-  }
-
-  const emptyRealPages = realPages
-    .map((blocks, i) => (blocks.length > 0 ? 0 : i + 1))
-    .filter((n) => n > 0);
-
-  return { pages, pageStart, realToVirtual, emptyRealPages };
+  return {
+    pages: raw.map((p) => ({
+      blocks: p.blocks as unknown as PdfTextBlock[],
+      words: p.words,
+      realPage: p.chapter + 1,
+    })),
+  };
 }
