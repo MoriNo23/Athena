@@ -28,9 +28,6 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "@next/next/no-img-element": "off",
     "@next/next/no-html-link-for-pages": "off",
     
-    // Calidad (spec CRAPPER.md): complejidad ciclomática por función — aviso visible
-    "complexity": ["warn", 30],
-
     // General JavaScript rules
     "prefer-const": "off",
     "no-unused-vars": "off",

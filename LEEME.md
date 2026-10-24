@@ -206,8 +206,6 @@ Garantías y detalles que conviene saber:
 | `bun run build` | Compila para producción |
 | `bun run start` | Sirve la compilación de producción (puerto 3000) |
 | `bun run lint` | Revisión de código con ESLint |
-| `bun run crap` | Medidor de complejidad CRAP (Uncle Bob) sobre `src/` |
-| `bun run crap:changed` | Igual, solo archivos cambiados |
 | `bun run db:push` | Aplica el esquema de Prisma a la BD |
 | `bun run db:generate` | Regenera el cliente Prisma |
 | `bun run db:reset` | ⚠️ BORRA la base de datos entera y la recrea vacía |
@@ -220,10 +218,8 @@ public/uploads/       → tus PDFs y portadas
 .env                  → configuración (1 línea, ya viene lista)
 prisma/schema.prisma  → estructura de la base de datos
 src/                  → el código de la app
-CRAPPER.md            → spec de calidad de código (presupuestos de complejidad)
 worklog.md            → diario de caza de cada tarea hecha
 scripts/              → utilidades y pruebas (no hacen falta para usar la app)
-tools/crapper/        → herramienta de métricas (opcional, necesita Python)
 ```
 
 ## Resumen ultrarrápido

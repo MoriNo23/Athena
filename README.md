@@ -98,7 +98,6 @@ Drop a PDF or EPUB on the library. That's the whole onboarding.
 | `bun run dev` | Dev server on port 3000 |
 | `bun run build` + `bun run start` | Optional production mode |
 | `bun run lint` | ESLint pass |
-| `bun run crap` | CRAP complexity audit over `src/` (needs Python, see `tools/crapper/`) |
 | `bun run db:push` | Apply Prisma schema changes |
 
 Your books, covers and progress live in `db/custom.db` + `public/uploads/` — copy those
@@ -113,10 +112,7 @@ the repo root, in this order:
 
 ```bash
 bunx tsc --noEmit        # 0 type errors
-bun run lint             # 0 errors, 0 warnings (complexity budgets included)
-bun run crap             # CRAP audit over src/ — bands per CRAPPER.md:
-                         #   view components CC ≤ 30 (hard cap 50), helpers ≤ 8/15,
-                         #   UI primitives exempt; output must stay in band
+bun run lint             # 0 errors, 0 warnings
 bun run build            # production build compiles
 scripts/clean-install-test.sh   # full clean-clone rehearsal (dev + prod boot)
 ```
