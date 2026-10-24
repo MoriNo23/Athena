@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePdfText } from "@/hooks/use-pdf-text";
 import { useI18n } from "@/lib/i18n";
-import { paginatePdfText, type PdfTextIndex } from "@/lib/pdf-text";
+import { foldPdfTextIndex, type PdfTextIndex } from "@/lib/pdf-text";
 import { probePdfTextLayer } from "@/lib/pdf-text-index";
 import type { TeleprompterBlock } from "@/lib/teleprompter";
 import type { BookDTO } from "@/lib/types";
@@ -58,11 +58,26 @@ export function usePdfTextMode({ book, doc, isEpub, pageNum, goToPage, patchExtr
   } = usePdfText(textMode ? book.id : null, textMode ? doc : null);
 
   /** páginas virtuales del prefijo extraído (null mientras no hay nada paginable) */
+  const foldRef = useRef<{ token: string; base: number; index: PdfTextIndex } | null>(null);
   const textIndex = useMemo<PdfTextIndex | null>(() => {
     if (!textMode || textReady === 0) return null;
-    const realPages = Array.from({ length: textReady }, (_, i) => textPage(i + 1) ?? []);
-    return paginatePdfText(realPages);
-  }, [textMode, textReady, textPage]);
+    let fold = foldRef.current;
+    // el prefijo extraído es contiguo (pdf-text-index lo garantiza); si cambió
+    // de libro o el fold es más largo que lo listo, arranca de cero
+    if (!fold || fold.token !== book.id || fold.base > textReady) fold = null;
+    const base = fold?.base ?? 0;
+    if (textReady > base) {
+      // solo plega lo NUEVO: el prefix 1..base ya está en fold.index
+      const nuevas = Array.from({ length: textReady - base }, (_, i) => textPage(base + 1 + i) ?? []);
+      fold = {
+        token: book.id,
+        base: textReady,
+        index: foldPdfTextIndex(fold?.index ?? null, nuevas, base),
+      };
+      foldRef.current = fold;
+    }
+    return fold ? fold.index : null;
+  }, [textMode, textReady, textPage, book.id]);
 
   // Navegación virtual: la elección local solo vale dentro de su página real;
   // lo demás se deriva de `pageNum` (nada de espejos en efectos).
