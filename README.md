@@ -69,6 +69,12 @@ bun run dev              # → http://localhost:3000
 
 Drop a PDF or EPUB on the library. That's the whole onboarding.
 
+> **Sizes:** each book can weigh up to **200 MB** (PDF or EPUB). The lock
+> (`src/proxy.ts`) never clips the upload: `next.config.ts` raises the proxy
+> body cap (`experimental.proxyClientMaxBodySize`, 10 MB default in Next 16)
+> to 256 MB so heavy books reach the API whole. Above 200 MB the API answers
+> 413 with a friendly notice.
+
 > Why `file:../db/custom.db`? Prisma resolves the SQLite path relative to
 > `prisma/`, so this single line lands the library at `<repo>/db/custom.db`
 > on any machine — no edits, no absolute paths, no `prisma/db/` strays.

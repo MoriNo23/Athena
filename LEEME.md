@@ -36,6 +36,12 @@ bun run dev             # arranca la app en http://localhost:3000
 Y abre **http://localhost:3000** en el navegador. Sube un PDF o EPUB con
 arrastrarlo a la biblioteca. Ya está. A leer.
 
+> **Tamaños:** cada libro puede pesar hasta **200 MB** (PDF o EPUB). El
+> candado (`src/proxy.ts`) no recorta la subida: `next.config.ts` sube el
+> tope de body del proxy (`experimental.proxyClientMaxBodySize`, 10 MB por
+> defecto en Next 16) a 256 MB para que libros pesados lleguen enteros al
+> API. Por encima de 200 MB el API responde 413 con aviso.
+
 > **¿Cómo arranco? — normal vs lan**
 >
 > - `bun run dev` (o `bun run start` tras build) → **modo normal**: escucha
