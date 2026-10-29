@@ -91,3 +91,4 @@ scripts/impeccable-*.txt
 scripts/impeccable-*.json
 scripts/verify-*.txt
 /public/evidencia/
+*.patch
