@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.github
+db/*.db
+db/*.db-journal
+db/athena-lock
+public/uploads/*
+!public/uploads/.gitkeep
+*.log
+dev.log
+server.log
+.env

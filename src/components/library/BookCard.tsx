@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { BookOpen, FileWarning, Link2, Medal, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RailBar } from "@/components/rail/RailBar";
+import { TodayRing } from "@/components/library/TodayRing";
 import { dayKey, estimateFinishDate, groupSessionsByDay, pickDailyRate, progressPct } from "@/lib/reading";
 import { useI18n, formatDate } from "@/lib/i18n";
 import { useSettings } from "@/lib/settings";
@@ -46,6 +47,11 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
   );
   const effectiveGoal = book.dailyGoal ?? globalGoal;
   const hasToday = today.pages > 0 || today.minutes > 0;
+  // P3: el estado de HOY se nombra, no se adivina (sin empezar / en curso /
+  // meta cumplida) — el anillo da el vistazo, la frase da el número.
+  const metaHoy = Math.max(1, effectiveGoal);
+  const hoyCumplida = today.pages >= metaHoy;
+  const hoyEnCurso = today.pages > 0 && !hoyCumplida;
 
   return (
     <article
@@ -169,9 +175,19 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
           )}
         </div>
 
-        {hasToday && (
-          <p className="mt-1 text-xs tabular-nums text-muted-foreground" data-testid="card-today-summary">
-            {t("card.todaySummary", { p: today.pages, m: today.minutes, gp: today.pages, g: effectiveGoal })}
+        {(!done || hasToday) && (
+          <p
+            className="mt-1 flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground"
+            data-testid="card-today-summary"
+          >
+            <TodayRing pages={today.pages} goal={metaHoy} />
+            <span className={hoyCumplida ? "font-medium text-emerald-600 dark:text-emerald-400" : undefined}>
+              {hoyCumplida
+                ? t("card.todayGoalMet", { p: today.pages, g: metaHoy })
+                : hoyEnCurso
+                  ? t("card.todayProgress", { p: today.pages, g: metaHoy, m: today.minutes })
+                  : t("card.todayNone", { g: metaHoy })}
+            </span>
           </p>
         )}
 

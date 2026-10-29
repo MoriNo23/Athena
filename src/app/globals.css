@@ -585,6 +585,30 @@ html:not(.dark) .athena-hero .seal-glow {
 .tp-block-h .tp-ch.on {
   transition: none;
 }
+/* Tarjeta de imagen del teleprompter (P2): la figura se desvela con el
+   encendido del flujo (un span = un paso) y respira con la columna. */
+.tp-img-block {
+  margin: 1.1em 0;
+}
+.tp-img {
+  display: block;
+  /* el span de imagen no compite con las letras: opacity la lleva la imagen */
+  opacity: 1;
+}
+.tp-img img {
+  display: block;
+  max-height: min(62vh, 560px);
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: 10px;
+  opacity: 0.16;
+  transition: opacity 420ms ease-out;
+}
+.tp-img.on img {
+  opacity: 1;
+  transition: opacity 420ms ease-out;
+}
 /* En pantallas estrechas la letra baja de 24px y el umbral AA sube a 4.5:1:
    el apagado se acerca un punto más para seguir siendo texto legible. */
 @media (max-width: 640px) {

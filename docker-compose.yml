@@ -1,0 +1,24 @@
+services:
+  athena:
+    build: .
+    image: athena:latest
+    container_name: athena
+    ports:
+      - "3000:3000"
+    environment:
+      # la BD y los ficheros subidos viven en volúmenes (no dentro del contenedor)
+      DATABASE_URL: file:/app/db/custom.db
+      # modo lan: escucha en 0.0.0.0 y activa el candado
+      ATHENA_MODO: lan
+      # pon tu contraseña aquí (o deja vacío: Athena genera una y la muestra
+      # en `docker logs athena` la primera vez, guardada en db/athena-lock)
+      ATHENA_PASSWORD: ${ATHENA_PASSWORD:-}
+      # ATHENA_ABIERTO: "1"   # sin candado en lan (no recomendado)
+    volumes:
+      - athena-db:/app/db
+      - athena-uploads:/app/public/uploads
+    restart: unless-stopped
+
+volumes:
+  athena-db:
+  athena-uploads:

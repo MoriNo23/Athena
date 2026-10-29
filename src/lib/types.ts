@@ -266,6 +266,10 @@ export interface TeleprompterSettings {
   fondoFiltro: number;
   /** tarjetas por frase: los bloques largos se parten en frases legibles */
   tarjetasPorFrase: boolean;
+  /** P2: pausar a mostrar las figuras (EPUB incorporadas, PDF renderizadas) */
+  pausaImagen: boolean;
+  /** P2: cuánto se muestra cada figura (ms), independiente de la velocidad */
+  imagenHoldMs: number;
 }
 
 /** De dónde sale el fondo del escenario del teleprompter */
@@ -299,6 +303,16 @@ export const TELEPROMPTER_WPS_STEP = 0.1;
 export const TELEPROMPTER_WPS_DEFAULT = 2.5;
 /** intensidad por defecto del filtro de legibilidad del fondo (0-100) */
 export const TELEPROMPTER_FONDO_FILTRO_DEFAULT = 55;
+/** P2: espera de cada tarjeta de imagen (ms): independiente de la velocidad */
+export const TELEPROMPTER_IMAGEN_HOLD_MIN = 2000;
+export const TELEPROMPTER_IMAGEN_HOLD_MAX = 30000;
+export const TELEPROMPTER_IMAGEN_HOLD_STEP = 500;
+export const TELEPROMPTER_IMAGEN_HOLD_DEFAULT = 5000;
+
+export function clampTeleprompterImagenHold(v: number): number {
+  const r = Math.round(v / TELEPROMPTER_IMAGEN_HOLD_STEP) * TELEPROMPTER_IMAGEN_HOLD_STEP;
+  return Math.min(TELEPROMPTER_IMAGEN_HOLD_MAX, Math.max(TELEPROMPTER_IMAGEN_HOLD_MIN, r));
+}
 
 export function clampTeleprompterWps(v: number): number {
   const r = Math.round(v * 10) / 10;

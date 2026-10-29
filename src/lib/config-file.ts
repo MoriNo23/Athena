@@ -17,6 +17,7 @@ import {
   TELEPROMPTER_WPS_MAX,
   TELEPROMPTER_WPS_MIN,
   TeleprompterFondo,
+  TELEPROMPTER_IMAGEN_HOLD_DEFAULT,
   wpsDePresetAntiguo,
 } from "@/lib/types";
 
@@ -72,6 +73,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     fondoRuta: "",
     fondoFiltro: 55,
     tarjetasPorFrase: true,
+    pausaImagen: true,
+    imagenHoldMs: TELEPROMPTER_IMAGEN_HOLD_DEFAULT,
   },
 };
 
@@ -216,6 +219,13 @@ export function saneaAjustes(raw: unknown): AppSettings & { modes: ModesFichero 
           : "",
       fondoFiltro: numIn(T.fondoFiltro, base.teleprompter.fondoFiltro, 0, 100),
       tarjetasPorFrase: boolIn(T.tarjetasPorFrase, base.teleprompter.tarjetasPorFrase),
+      pausaImagen: boolIn(T.pausaImagen, base.teleprompter.pausaImagen),
+      imagenHoldMs: numIn(
+        typeof T.imagenHoldMs === "number" ? T.imagenHoldMs : base.teleprompter.imagenHoldMs,
+        base.teleprompter.imagenHoldMs,
+        500,
+        60000
+      ),
     },
     modes: {
       toggles: {
