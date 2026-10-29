@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Tip } from "@/components/reader/ZoomControls";
 import { TeleprompterPageNotice } from "@/components/reader/TeleprompterPageNotice";
+import { TeleprompterSettingsSheet } from "@/components/reader/TeleprompterSettingsSheet";
 import { ShortcutGhost, type ShortcutGhostEntry } from "@/components/reader/ShortcutGhost";
 import {
   ChevronLeft,
@@ -18,6 +19,7 @@ import {
   Pause,
   Play,
   Repeat,
+  Settings2,
   Target,
   Volume2,
   VolumeX,
@@ -34,6 +36,7 @@ import {
 import { useTeleprompterPlayer } from "@/hooks/use-teleprompter-player";
 import {
   clampTeleprompterFontScale,
+  clampTeleprompterImagenHold,
   clampTeleprompterWps,
   TELEPROMPTER_FONT_MAX,
   TELEPROMPTER_FONT_MIN,
@@ -166,6 +169,8 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   const oscuro = resolvedTheme !== "light";
   const [uiHidden, setUiHidden] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(false);
+  /** P4: ajustes del teleprompter DENTRO del modo (tecla A) */
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Pantalla despierta: el teleprompter es el caso de uso de la lectura larga;
   // el overlay existe solo mientras el modo está abierto (con o sin F11).
@@ -174,6 +179,11 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const speedOpenRef = useRef(false);
+  const settingsOpenRef = useRef(false);
+
+  useEffect(() => {
+    settingsOpenRef.current = settingsOpen;
+  }, [settingsOpen]);
 
   // el navegador topa los AudioContext vivos: al cerrar el teleprompter se
   // suelta el suyo (si no, tras unas cuantas aperturas el tic se apaga solo)
@@ -213,7 +223,15 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     }
   }, [tpSet.sound]);
 
-  const tpWin = useTeleprompterWindow({ doc, getPageBlocks, numPages, wps: wpsActivo, porFrase: tpSet.tarjetasPorFrase });
+  const tpWin = useTeleprompterWindow({
+    doc,
+    getPageBlocks,
+    numPages,
+    wps: wpsActivo,
+    porFrase: tpSet.tarjetasPorFrase,
+    pausaImagen: tpSet.pausaImagen,
+    imagenHoldMs: clampTeleprompterImagenHold(tpSet.imagenHoldMs),
+  });
   const {
     win,
     setWin,
@@ -289,7 +307,9 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     const arm = () => {
       if (hideTimer) window.clearTimeout(hideTimer);
       hideTimer = window.setTimeout(() => {
-        if (!speedOpenRef.current) setUiHidden(true);
+        // con la sheet de ajustes abierta la UI no se esconde (sería niebla
+        // para quien está tocando controles)
+        if (!speedOpenRef.current && !settingsOpenRef.current) setUiHidden(true);
         else arm();
       }, TP_IDLE_MS);
     };
@@ -311,6 +331,10 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   // ---------- teclado ----------
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Jerarquía de Escape (change teleprompter-ajustes-inmode): con la sheet
+      // de ajustes abierta, Esc LA CIERRA (Radix) y las demás teclas son suyas
+      // — el overlay no debe salir del modo por debajo de la sheet.
+      if (settingsOpenRef.current) return;
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -351,6 +375,10 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
         e.preventDefault();
         e.stopPropagation();
         toggleFullscreen();
+      } else if (e.key === "a" || e.key === "A") {
+        e.preventDefault();
+        e.stopPropagation();
+        setSettingsOpen(true);
       }
     };
     window.addEventListener("keydown", onKey, true);
@@ -370,6 +398,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
       { keys: "↑", action: t("ghost.tp.up") },
       { keys: "Espacio", action: t("ghost.tp.pause") },
       { keys: "−/+", action: t("ghost.tp.font") },
+      { keys: "A", action: t("ghost.tp.settings") },
       { keys: "M", action: t("ghost.tp.fullscreen") },
       { keys: "Esc", action: t("ghost.tp.exit") },
     ],
@@ -379,6 +408,17 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   const blocksJsx = useMemo(
     () =>
       stream.blocks.map((b, bi) => {
+        // tarjeta de imagen (P2): UN span revelable que contiene la figura;
+        // el encendido (.on) la desvela como el resto de letras
+        if (b.image) {
+          return (
+            <p key={bi} className="tp-block tp-img-block" data-block={bi}>
+              <span className="tp-ch tp-img">
+                <img src={b.image} alt="" draggable={false} decoding="async" />
+              </span>
+            </p>
+          );
+        }
         const Tag = (b.heading ? (b.kind === "h4" ? "h4" : b.kind === "h3" ? "h3" : "h1" === b.kind ? "h1" : "h2") : "p") as
           | "h1"
           | "h2"
@@ -594,6 +634,19 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
             {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </Button>
         </Tip>
+        <Tip label={t("tp.settingsTip")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setSettingsOpen(true)}
+            aria-label={t("tp.settingsAria")}
+            aria-haspopup="dialog"
+            data-testid="tp-settings"
+          >
+            <Settings2 className="h-4 w-4" />
+          </Button>
+        </Tip>
         <Tip label={t("tp.exitTip")}>
           <Button
             variant="ghost"
@@ -607,6 +660,10 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           </Button>
         </Tip>
       </div>
+
+      {/* P4: ajustes del teleprompter, en modo (tecla A). Radix lo saca a
+          portal: la jerarquía de Escape la gobierna settingsOpenRef arriba. */}
+      <TeleprompterSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} book={book} />
 
       {/* Progreso de la página (auto-ocultable) */}
       <div className="tp-chrome absolute inset-x-0 top-[52px] z-20 px-5">

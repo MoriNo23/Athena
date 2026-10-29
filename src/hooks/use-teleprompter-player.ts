@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { teleprompterRewind, teleprompterCharCount, type TeleprompterBlock } from "@/lib/teleprompter";
+import { teleprompterRewind, teleprompterCharCount, msPorUnidad, type TeleprompterBlock } from "@/lib/teleprompter";
 import { TELEPROMPTER_PAGE_TURN_MS } from "@/lib/teleprompter";
+import { TELEPROMPTER_WPS_DEFAULT } from "@/lib/types";
 import type { StreamWindow } from "@/hooks/use-teleprompter-window";
 import { plannedStepDelay, stepWait, type PendingStep } from "@/lib/step-timer";
 
@@ -33,7 +34,8 @@ interface UseTeleprompterPlayerOpts {
   stageViewAnchor: (oldIndex: number, newIndex: number) => void;
   /** Auto: al agotar la página sigue sola */
   auto: boolean;
-  /** palabras por segundo activas (null = Instantánea) */
+  /** palabras por segundo activas (null = Instantánea). SOLO el paso null↔número
+      reinicia el motor: los cambios en vivo los lee delayAt por ref */
   wps: number | null;
   /** tic de tipeo (WebAudio); ya filtrado por el ajuste de sonido */
   tick: () => void;
@@ -78,6 +80,17 @@ export function useTeleprompterPlayer({
   const [bookDone, setBookDone] = useState(false);
   const litRef = useRef(0);
   const allowCrossRef = useRef(false);
+  // Velocidad ACTIVA leída por ref (change fluidez-velocidad): arrastrar el
+  // slider de wps NO reinicia el motor — el efecto no depende de `wps` y el
+  // ritmo nuevo entra con la letra siguiente. Solo el paso a Instantánea
+  // (null ↔ número) reinicia, porque cambia el MODO de encendido.
+  const wpsRef = useRef(wps);
+  useEffect(() => {
+    wpsRef.current = wps;
+  }, [wps]);
+  /** modo de encendido (Instantánea): su flip SÍ reinicia el motor, el drag
+      del slider NO (ver deps del efecto de encendido) */
+  const instante = wps == null;
   // El callback del lector se lee por ref: su identidad nunca debe reiniciar
   // el motor ni recrear `slide` (defensa ante un padre que no lo memoice).
   const onGoToPageRef = useRef(onGoToPage);
@@ -186,7 +199,7 @@ export function useTeleprompterPlayer({
     spansRef.current = spans;
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const instant = wps == null || reduced;
+    const instant = instante || reduced;
     const paint = (n: number) => spans.forEach((s, k) => s.classList.toggle("on", k < n));
     const syncHeadings = (n: number) => {
       for (const b of stream.blocks) {
@@ -278,16 +291,22 @@ export function useTeleprompterPlayer({
       schedule(delayAt(i));
     };
 
-    /** Espera planeada del paso que empieza en `idx`: con Auto, el cruce de
+    /** Espera planeada del paso que empieza en `idx`: unidades de tempo → ms
+        con el wps ACTIVO (leído por ref: la velocidad se cambia en vivo), o
+        la espera absoluta de una tarjeta de imagen. Con Auto, el cruce de
         página espera `TELEPROMPTER_PAGE_TURN_MS` (cambio no brusco) */
     function delayAt(idx: number) {
+      const paso = stream.steps[idx];
+      const espera =
+        paso?.holdMs ??
+        (paso ? paso.units * msPorUnidad(wpsRef.current ?? TELEPROMPTER_WPS_DEFAULT) : 40);
       return plannedStepDelay({
         lit: idx,
         firstLen,
         hasNext: !!win?.pages[1],
         auto,
         allowCross: allowCrossRef.current,
-        stepDelay: stream.steps[idx]?.delay ?? 40,
+        stepDelay: espera,
         turnMs: TELEPROMPTER_PAGE_TURN_MS,
       });
     }
@@ -304,7 +323,7 @@ export function useTeleprompterPlayer({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [win, stream, totalChars, firstLen, numPages, playing, pageDone, bookDone, auto, wps, tick, scrollToChar, slide]);
+  }, [win, stream, totalChars, firstLen, numPages, playing, pageDone, bookDone, auto, instante, tick, scrollToChar, slide]);
 
   // ---------- Auto: al agotar la página sigue sola ----------
   useEffect(() => {

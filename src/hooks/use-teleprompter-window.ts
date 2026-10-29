@@ -8,7 +8,8 @@ import {
   teleprompterCharCount,
   type TeleprompterBlock,
 } from "@/lib/teleprompter";
-import { createViewAnim } from "@/lib/view-anim";
+import { extractPdfPageImageBlocks } from "@/lib/teleprompter-images";
+import { createCameraController, type CameraController } from "@/lib/camera";
 
 /** Ventana de lectura: la página actual y la siguiente (DOM acotado a dos) */
 export interface StreamWindow {
@@ -36,23 +37,16 @@ interface UseTeleprompterWindowOpts {
   /** EPUB: bloques reales de la página (h1-h4 en el flujo) */
   getPageBlocks?: (page: number) => Promise<TeleprompterBlock[]>;
   numPages: number;
-  /** wps del preset activo: tempo del flujo encendido */
+  /** wps del preset activo: SOLO decide el modo instantáneo de la cámara.
+      El tempo del flujo NO vive aquí (timeline en unidades: cambiar wps no
+      reconstruye nada — change fluidez-velocidad). */
   wps: number | null;
   /** tarjetas por frase: los bloques largos se parten en frases legibles */
   porFrase: boolean;
-}
-
-/** ease-out cúbico: arranca rápido y asienta suave (sin cola visible) */
-function easeOutCubic(t: number): number {
-  return 1 - Math.pow(1 - t, 3);
-}
-
-/** Duración de la transición de vista escalada por distancia:
-    ≈90 ms para pasos de línea, hasta ≈400 ms en saltos grandes (título,
-    cruce de página, revelado completo, rebobinado). */
-function viewAnimDuration(deltaPx: number): number {
-  const d = Math.abs(deltaPx);
-  return Math.min(400, Math.max(90, 90 + (d / 600) * 310));
+  /** P2: detener a mostrar las figuras (EPUB incorporadas, PDF renderizadas) */
+  pausaImagen: boolean;
+  /** P2: cuánto se muestra cada figura (ms, independiente de la velocidad) */
+  imagenHoldMs: number;
 }
 
 /**
@@ -61,7 +55,15 @@ function viewAnimDuration(deltaPx: number): number {
  * seguimiento de scroll que deja el carácter activo a ~40 % del alto visible.
  * El control de reproducción vive en `use-teleprompter-player`.
  */
-export function useTeleprompterWindow({ doc, getPageBlocks, numPages, wps, porFrase = true }: UseTeleprompterWindowOpts) {
+export function useTeleprompterWindow({
+  doc,
+  getPageBlocks,
+  numPages,
+  wps,
+  porFrase = true,
+  pausaImagen,
+  imagenHoldMs,
+}: UseTeleprompterWindowOpts) {
   const [win, setWin] = useState<StreamWindow | null>(null);
   const winRef = useRef<StreamWindow | null>(null);
   const winSourceRef = useRef<string | null>(null);
@@ -77,57 +79,37 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, wps, porFr
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const viewAnchorRef = useRef<StreamViewAnchor | null>(null);
 
-  // ---------- animador de vista: transición breve por orden de cámara ----------
-  // Un SOLO rAF activo a la vez: cada orden de cámara (scrollToChar) fija un
-  // objetivo nuevo contra el DOM real y retoma desde la posición actual, así
-  // retargetar a mitad de vuelo nunca tira de vuelta. Con preset instantáneo
-  // o movimiento reducido el animador no se activa (la vista salta, como hoy).
-  const viewAnimRef = useRef(0);
+  // ---------- cámara: UN bucle rAF persistente con lerp exponencial ----------
+  // Las órdenes de cámara (scrollToChar) SOLO actualizan el objetivo: la
+  // velocidad es continua y retargetear a mitad de vuelo nunca tira de vuelta
+  // ni arranca curvas nuevas (el rebote del modo automático era eso). Con
+  // preset instantáneo o movimiento reducido la cámara escribe directo.
+  const cameraRef = useRef<CameraController | null>(null);
   const viewInstantRef = useRef(false);
+
+  if (!cameraRef.current) {
+    cameraRef.current = createCameraController({
+      el: () => scrollRef.current,
+      now: () => performance.now(),
+      schedule: (cb) => requestAnimationFrame(cb),
+      cancel: (id) => cancelAnimationFrame(id),
+      attached: (el) => el.isConnected,
+    });
+  }
+  const camera = cameraRef.current;
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     viewInstantRef.current = wps == null || reduced;
   }, [wps]);
 
-  /** Cancela la transición en curso: el desplazamiento manual manda sobre el
+  /** Cancela la cámara en vuelo: el desplazamiento manual manda sobre el
       seguimiento (rueda, ↑) y el objetivo se recalcula contra el DOM real. */
   const cancelViewAnim = useCallback((): boolean => {
-    if (viewAnimRef.current) {
-      cancelAnimationFrame(viewAnimRef.current);
-      viewAnimRef.current = 0;
-      return true; // había una transición en vuelo
-    }
-    return false;
-  }, []);
-
-  const animateScrollTopTo = useCallback(
-    (target: number) => {
-      const root = scrollRef.current;
-      if (!root) return;
-      cancelViewAnim();
-      const delta = target - root.scrollTop;
-      if (Math.abs(delta) < 1) return;
-      // La cámara cede ante cualquier otro desplazamiento (ver lib/view-anim):
-      // la rueda manda aunque el navegador la resuelva fuera de nuestro rAF.
-      const anim = createViewAnim({
-        el: root,
-        target,
-        duration: viewAnimDuration(delta),
-        t0: performance.now(),
-        ease: easeOutCubic,
-      });
-      const step = (now: number) => {
-        if (!scrollRef.current) {
-          viewAnimRef.current = 0; // desmontado: el bucle muere solo
-          return;
-        }
-        viewAnimRef.current = anim.step(now) === "run" ? requestAnimationFrame(step) : 0;
-      };
-      viewAnimRef.current = requestAnimationFrame(step);
-    },
-    [cancelViewAnim]
-  );
+    const estaba = camera.isActive();
+    camera.cancel();
+    return estaba;
+  }, [camera]);
 
   /** Publica el ancla de vista para el PRÓXIMO cambio de ventana: el carácter
       newIndex de la ventana nueva debe quedar tras el swap donde está ahora
@@ -145,16 +127,36 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, wps, porFr
   }, []);
 
   // ---------- carga de bloques (PDF: heurística compartida con el modo texto) ----
+  // `pausaImagen` se lee por ref: el toggle no debe recrear loadBlocks (eso
+  // reconstruiría la ventana y devolvería la lectura al inicio de página).
+  const pausaImagenRef = useRef(pausaImagen);
+  useEffect(() => {
+    pausaImagenRef.current = pausaImagen;
+  }, [pausaImagen]);
+
   const loadBlocks = useCallback(
     async (page: number): Promise<TeleprompterBlock[]> => {
       if (page < 1 || page > numPages) return [];
       const cached = cacheRef.current.get(page);
       if (cached) return cached;
-      const blocks = getPageBlocks
-        ? await getPageBlocks(page)
-        : doc
-          ? await extractPdfPageBlocksForTeleprompter(doc, page)
-          : [];
+      let blocks: TeleprompterBlock[] = [];
+      if (getPageBlocks) {
+        blocks = await getPageBlocks(page);
+      } else if (doc) {
+        blocks = await extractPdfPageBlocksForTeleprompter(doc, page);
+        // P2 PDF: láminas de la página (render público, fallo → sin tarjeta)
+        if (pausaImagenRef.current) {
+          try {
+            const imgs = await extractPdfPageImageBlocks(doc, page);
+            if (imgs.length > 0) blocks = [...blocks, ...imgs];
+          } catch {
+            /* sin figuras: la página fluye como texto */
+          }
+        }
+      }
+      // P2 EPUB: las tarjetas ya vienen dentro de getPageBlocks — el toggle
+      // las filtra aquí (mismo contrato para ambas fuentes)
+      if (!pausaImagenRef.current) blocks = blocks.filter((b) => !b.image);
       cacheRef.current.set(page, blocks);
       return blocks;
     },
@@ -175,7 +177,7 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, wps, porFr
   // pintado— para que el carácter ancla quede donde estaba y la columna no
   // se reacomode (el navegador clampea al rango válido: con la página nueva
   // al inicio de la columna el asentamiento cae al tope). Sin ancla, cualquier
-  // transición vieja apunta a contenido que ya no existe — se cancela y el
+  // cámara en vuelo apunta a contenido que ya no existe — se cancela y el
   // motor re-ancla con su primer scrollToChar contra el DOM fresco.
   useLayoutEffect(() => {
     const anchor = viewAnchorRef.current;
@@ -191,10 +193,10 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, wps, porFr
     root.scrollTop = docOffset - anchor.viewportY;
   }, [win, cancelViewAnim]);
 
-  /** deja el carácter `idx` a ~40 % del alto visible, con transición breve.
-      El objetivo SIEMPRE se calcula contra el DOM real (rects frescos): así la
-      reanudación tras releer o un cruce de página nunca anima desde una
-      posición vieja — parten de donde esté la vista ahora. */
+  /** deja el carácter `idx` a ~40 % del alto visible. La cámara parte SIEMPRE
+      de donde esté la vista ahora y solo actualiza el objetivo: en modo auto
+      las órdenes llegan letra a letra y ninguna reconstruye la animación —
+      la columna sube continua, sin brincos (change teleprompter-camara-estable). */
   const scrollToChar = useCallback(
     (idx: number, opts?: { instant?: boolean }) => {
       const root = scrollRef.current;
@@ -206,21 +208,21 @@ export function useTeleprompterWindow({ doc, getPageBlocks, numPages, wps, porFr
       // `instant`: el rebobinado acompaña la posición de forma DIRECTA (sin
       // animación de cámara): el resultado depende solo del layout y de qué
       // letras están encendidas, nunca de una animación en vuelo.
-      if (viewInstantRef.current || opts?.instant) {
-        cancelViewAnim();
-        root.scrollTop = target;
-        return;
-      }
-      animateScrollTopTo(target);
+      camera.order(target, { instant: viewInstantRef.current || opts?.instant });
     },
-    [animateScrollTopTo, cancelViewAnim]
+    [camera]
   );
 
   const windowBlocks = useMemo(
     () => (win ? [...(win.pages[0] ?? []), ...(win.pages[1] ?? [])] : []),
     [win]
   );
-  const stream = useMemo(() => buildTeleprompterStream(windowBlocks, wps, porFrase), [windowBlocks, wps, porFrase]);
+  // El timeline NO depende del wps (unidades de tempo): arrastrar el slider
+  // de velocidad no reconstruye el flujo ni reinicia el motor.
+  const stream = useMemo(
+    () => buildTeleprompterStream(windowBlocks, porFrase, imagenHoldMs),
+    [windowBlocks, porFrase, imagenHoldMs]
+  );
   const firstLen = useMemo(() => teleprompterCharCount(win?.pages[0] ?? []), [win]);
   const totalChars = stream.steps.length;
 

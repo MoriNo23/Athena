@@ -27,6 +27,8 @@ test("saneaAjustes(null): todo a defaults de la casa", () => {
       fondoRuta: "",
       fondoFiltro: 55,
       tarjetasPorFrase: true,
+      pausaImagen: true,
+      imagenHoldMs: 5000,
     },
     modes: {
       toggles: {

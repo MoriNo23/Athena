@@ -8,16 +8,22 @@
  * (src/lib/*.test.ts) sin montar la UI.
  *
  * Modelo temporal (validado matemáticamente):
- *  - Cada carácter se revela tras un retardo base derivado del WPS elegido:
- *        delayBase = 1000 / (wps · LETRAS_POR_PALABRA)
- *    con LETRAS_POR_PALABRA ≈ 6 (media española de palabra + espacio).
+ *  - El timeline vive en UNIDADES (letras base), NO en milisegundos: cada
+ *    carácter paga 1 unidad y las pausas son múltiplos de unidad. El paso a
+ *    ms se hace AL PROGRAMAR cada paso (msPorUnidad(wps)): así cambiar la
+ *    velocidad en marcha no reconstruye el flujo ni reinicia el motor
+ *    (change fluidez-velocidad) — el ritmo nuevo entra con la letra siguiente.
+ *  - La unidad vale 1000 / (wps · LETRAS_POR_PALABRA) ms, con
+ *    LETRAS_POR_PALABRA ≈ 6 (media española de palabra + espacio).
  *  - Los signos de puntuación añaden una pausa AL SIGUIENTE carácter,
- *    expresada en múltiplos del retardo base (así el ritmo respira igual
- *    en todas las velocidades):
+ *    expresada en unidades (así el ritmo respira igual en todas las
+ *    velocidades):
  *        , ; :   →  PAUSA_COMA  (media respiración)
  *        . ? ! … →  PAUSA_PUNTO (respiración completa)
  *  - Las pausas no se acumulan en series ("..." = una pausa, no tres).
  *  - La pausa colgante tras el último carácter se descarta sola.
+ *  - Las tarjetas de imagen pagan una espera ABSOLUTA (holdMs) que NO
+ *    depende de la velocidad (change teleprompter-pausa-imagen).
  */
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
@@ -52,11 +58,18 @@ const PUNCT_QUOTE = new Set(["«", "»", "“", "”", '"']);
 
 // ---------- Timeline ----------
 
+/** Carácter de tarjeta de imagen (object replacement char): el paso existe
+    para el motor (una celda = un span revelable) pero no se escribe. */
+export const TELEPROMPTER_IMAGE_CHAR = "\uFFFC";
+
 export interface TeleprompterStep {
-  /** carácter a revelar */
+  /** carácter a revelar (TELEPROMPTER_IMAGE_CHAR en tarjetas de imagen) */
   char: string;
-  /** ms a esperar ANTES de revelar este carácter (incluye pausa heredada) */
-  delay: number;
+  /** unidades de tempo a esperar ANTES de revelar (incluye pausa heredada);
+      ms reales = units · msPorUnidad(wps) calculados al programar el paso */
+  units: number;
+  /** SOLO tarjetas de imagen: espera absoluta en ms, independiente del wps */
+  holdMs?: number;
 }
 
 // ---------- Flujo continuo: bloques → timeline por carácter ----------
@@ -67,10 +80,20 @@ export type TeleprompterBlockKind = "h1" | "h2" | "h3" | "h4" | "p" | "quote" | 
 export interface TeleprompterBlock {
   kind: TeleprompterBlockKind;
   text: string;
+  /** SOLO EPUB/PDF con figura: tarjeta de imagen entre los bloques. La
+      extracción la pone con SRC ya resuelto (dataURL del zip/render) y el
+      flujo la presenta entera con una espera fija (holdMs del ajuste). */
+  image?: string;
 }
 
 /** Pausa antes de un título y antes del cuerpo que lo sigue, en letras. */
 export const TELEPROMPTER_HEADING_PAUSE_LETTERS = 12;
+
+/** ms que vale una unidad de tempo a wps palabras/segundo.
+    Función de conversión ÚNICA motor ↔ timeline (la espeja el player). */
+export function msPorUnidad(wps: number): number {
+  return 1000 / (wps * TELEPROMPTER_LETTERS_PER_WORD);
+}
 
 /** Con Auto, espera antes de pasar a la página siguiente (ms): que el cambio no sea brusco */
 export const TELEPROMPTER_PAGE_TURN_MS = 2000;
@@ -83,21 +106,24 @@ export interface TeleprompterStreamBlock extends TeleprompterBlock {
   /** h1-h4: se presenta completo, sin encendido letra a letra */
   heading: boolean;
 }
-
 export interface TeleprompterStream {
   steps: TeleprompterStep[];
   blocks: TeleprompterStreamBlock[];
-  totalMs: number;
+  /** unidades de tempo totales (a ms: totalUnits · msPorUnidad(wps)) */
+  totalUnits: number;
 }
 
 const isHeadingKind = (kind: TeleprompterBlockKind) =>
   kind === "h1" || kind === "h2" || kind === "h3" || kind === "h4";
 
 /**
- * Flujo de una página: bloques reales → timeline por carácter.
+ * Flujo de una página: bloques reales → timeline en unidades de tempo.
  * Los títulos aparecen completos: su primer carácter paga la pausa de título
  * (más la que traiga la puntuación anterior) y el resto no añade retardo; el
- * primer carácter del cuerpo tras un título paga otra pausa.
+ * primer carácter del cuerpo tras un título paga otra pausa. Las tarjetas de
+ * imagen son UN paso con espera absoluta (`imagenHoldMs`).
+ * NOTE: NO recibe wps a propósito — el timeline es el MISMO a cualquier
+ * velocidad; el wps solo vive en msPorUnidad() al programar cada paso.
  */
 /** Tope de palabras por tarjeta al partir por frases: la frase natural manda,
     pero una retahíla de comas no debe volverse lectura interminable. */
@@ -154,16 +180,27 @@ function tarjetasDeFrases(text: string): string[] {
 
 export function buildTeleprompterStream(
   blocks: readonly TeleprompterBlock[],
-  wps: number | null,
-  porFrase = true
+  porFrase = true,
+  imagenHoldMs = 5000
 ): TeleprompterStream {
-  const base = wps == null ? 0 : 1000 / (wps * TELEPROMPTER_LETTERS_PER_WORD);
   const steps: TeleprompterStep[] = [];
   const out: TeleprompterStreamBlock[] = [];
   let pending = 0;
   let prevHeading = false; // el bloque anterior fue un título
 
   for (const block of blocks) {
+    // tarjeta de imagen: UN paso, espera absoluta (no respira con la velocidad)
+    if (block.image) {
+      const start = steps.length;
+      const hold = Math.max(500, Math.round(imagenHoldMs));
+      steps.push({ char: TELEPROMPTER_IMAGE_CHAR, units: 0, holdMs: hold });
+      // el hold YA ES la pausa: una puntuación pendiente del texto anterior no
+      // se arrastra a través de la figura (la lámina respira por sí sola)
+      pending = 0;
+      out.push({ kind: block.kind, text: "", start, length: 1, heading: false, image: block.image });
+      prevHeading = false;
+      continue;
+    }
     const text = block.text.replace(/\s+/g, " ").trim();
     if (!text) continue;
     const heading = isHeadingKind(block.kind);
@@ -177,48 +214,53 @@ export function buildTeleprompterStream(
 
     for (let j = 0; j < chars.length; j++) {
       const char = chars[j];
-      let delay = base + pending;
+      let units = 1 + pending;
       pending = 0;
       if (heading) {
         // Un título que sigue a otro título (p. ej. portadilla de capítulo y
         // luego el título de la sección) NO acumula dos respiros: el del título
         // anterior ya se esperó (`pending`), así que se cuenta una sola vez.
         if (j === 0) {
-          // `delay` ya incluye el respiro pendiente del título anterior
-          if (!prevHeading) delay += base * TELEPROMPTER_HEADING_PAUSE_LETTERS;
-        } else delay = 0; // el título se enciende de golpe
+          // `units` ya incluye el respiro pendiente del título anterior
+          if (!prevHeading) units += TELEPROMPTER_HEADING_PAUSE_LETTERS;
+        } else units = 0; // el título se enciende de golpe
       }
-      steps.push({ char, delay });
+      steps.push({ char, units });
       if (heading) continue;
       if (PUNCT_STRONG.has(char)) {
-        pending = Math.max(pending, base * TELEPROMPTER_PERIOD_PAUSE_LETTERS);
+        pending = Math.max(pending, TELEPROMPTER_PERIOD_PAUSE_LETTERS);
       } else if (PUNCT_WEAK.has(char)) {
-        pending = Math.max(pending, base * TELEPROMPTER_COMMA_PAUSE_LETTERS);
+        pending = Math.max(pending, TELEPROMPTER_COMMA_PAUSE_LETTERS);
       } else if (PUNCT_DASH.has(char)) {
-        pending = Math.max(pending, base * TELEPROMPTER_DASH_PAUSE_LETTERS);
+        pending = Math.max(pending, TELEPROMPTER_DASH_PAUSE_LETTERS);
       } else if (PUNCT_PAREN.has(char)) {
-        pending = Math.max(pending, base * TELEPROMPTER_PAREN_PAUSE_LETTERS);
+        pending = Math.max(pending, TELEPROMPTER_PAREN_PAUSE_LETTERS);
       } else if (PUNCT_QUOTE.has(char)) {
-        pending = Math.max(pending, base * TELEPROMPTER_QUOTE_PAUSE_LETTERS);
+        pending = Math.max(pending, TELEPROMPTER_QUOTE_PAUSE_LETTERS);
       }
     }
     // el cuerpo no arranca hasta pasado el respiro del título
-    if (heading) pending = Math.max(pending, base * TELEPROMPTER_HEADING_PAUSE_LETTERS);
+    if (heading) pending = Math.max(pending, TELEPROMPTER_HEADING_PAUSE_LETTERS);
 
     out.push({ kind: block.kind, text: tarjeta, start, length: chars.length, heading });
     prevHeading = heading;
     }
   }
 
-  const totalMs = steps.reduce((acc, s) => acc + s.delay, 0);
-  return { steps, blocks: out, totalMs };
+  const totalUnits = steps.reduce((acc, s) => acc + s.units, 0);
+  return { steps, blocks: out, totalUnits };
 }
 
 // ---------- Rebobinado (orden inverso y cruce de página) ----------
 
-/** Caracteres visibles de una página (misma normalización que el flujo). */
+/** Caracteres visibles de una página (misma normalización que el flujo).
+    Cada tarjeta de imagen cuenta como 1: una página ilustrada sin texto NO
+    es una página muda — el teleprompter se detiene a mostrarla. */
 export function teleprompterCharCount(blocks: readonly TeleprompterBlock[]): number {
-  return blocks.reduce((n, b) => n + Array.from(b.text.replace(/\s+/g, " ").trim()).length, 0);
+  return blocks.reduce(
+    (n, b) => n + (b.image ? 1 : Array.from(b.text.replace(/\s+/g, " ").trim()).length),
+    0
+  );
 }
 
 export interface TeleprompterCursor {

@@ -53,14 +53,21 @@ export function useEpubBook(filePath: string | null) {
     };
   }, [filePath]);
 
-  /** Bloques de texto de la página p (1-based) para el teleprompter continuo. */
+  /** Bloques de texto de la página p (1-based) para el teleprompter continuo.
+      P2: las figuras del EPUB viajan como tarjetas de imagen (el extractor
+      ya las resolvió a dataURL dentro del presupuesto; las descartadas no
+      llegan aquí). El toggle pausaImagen las filtra después la ventana. */
   const getPageBlocks = useCallback(async (p: number): Promise<TeleprompterBlock[]> => {
     const pages = bookRef.current?.pages;
     if (!pages) return [];
     const page = pages[Math.min(Math.max(1, p), pages.length) - 1];
     const blocks: TeleprompterBlock[] = [];
     for (const b of page.blocks) {
-      if (b.kind === "img" || !b.text.trim()) continue;
+      if (b.kind === "img") {
+        if (b.src) blocks.push({ kind: "p", text: "", image: b.src });
+        continue;
+      }
+      if (!b.text.trim()) continue;
       blocks.push({ kind: b.kind, text: b.text });
     }
     return blocks;
