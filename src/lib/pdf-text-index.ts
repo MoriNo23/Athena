@@ -106,14 +106,18 @@ export function getPdfTextPage(key: string, page: number): PdfTextBlock[] | unde
 }
 
 /**
- * ¿El PDF trae capa de texto? Muestrea tres páginas repartidas (portada, mitad
- * y final: hay tomos con portada escaneada y cuerpo digital) y exige ~300
- * caracteres: un escaneo puro no llega, un libro digital lo supera de sobra.
+ * ¿El PDF trae capa de texto? Muestrea SIETE páginas repartidas (portada,
+ * sextos y final) y exige ~300 caracteres acumulados: un escaneo puro no
+ * llega, un libro digital lo supera de sobra. El muestreo corto (3 páginas)
+ * caía en láminas a plena página y dejaba sin modo texto a libros two-up muy
+ * ilustrados: el «70 años de humor en Venezuela» muestreaba portada, mitad
+ * (spread de caricaturas) y contraportada — 63 chars para un libro con
+ * páginas de 4 000+.
  */
 export async function probePdfTextLayer(doc: PDFDocumentProxy): Promise<boolean> {
   const total = doc.numPages;
-  const samples = Array.from(new Set([1, Math.ceil(total / 2), total])).filter(
-    (p) => p >= 1 && p <= total,
+  const samples = Array.from(
+    new Set([0, 1 / 6, 1 / 3, 1 / 2, 2 / 3, 5 / 6, 1].map((f) => Math.min(total, Math.max(1, Math.round(total * f)))))
   );
   let chars = 0;
   for (const p of samples) {
@@ -231,6 +235,8 @@ async function run(e: Entry): Promise<void> {
       const content = await proxy.getTextContent();
       e.pages[page - 1] = extractPdfPageBlocks(pdfTextItems(content.items), {
         pageHeight: viewport.height,
+        // ancho para la detección two-up: los spreads se leen por columnas
+        pageWidth: viewport.width,
       });
       e.extracted += 1;
       flushWaiters(e, page);

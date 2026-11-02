@@ -294,7 +294,12 @@ export async function extractPdfPageBlocksForTeleprompter(
   const page = await doc.getPage(pageNum);
   const viewport = page.getViewport({ scale: 1 });
   const content = await page.getTextContent();
-  return extractPdfPageBlocks(pdfTextItems(content.items), { pageHeight: viewport.height }).map((b) => ({
+  // pageWidth activa la lectura por columnas: los PDF two-up (dos páginas de
+  // libro por hoja) se extraían con los renglones de ambas páginas fundidos
+  return extractPdfPageBlocks(pdfTextItems(content.items), {
+    pageHeight: viewport.height,
+    pageWidth: viewport.width,
+  }).map((b) => ({
     kind: b.kind,
     text: b.text,
   }));

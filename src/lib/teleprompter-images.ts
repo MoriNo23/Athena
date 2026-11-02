@@ -20,9 +20,12 @@
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { loadPdfLib } from "@/lib/pdf-client";
+import { detectPdfColumns, pdfTextItems } from "@/lib/pdf-text";
 import type { TeleprompterBlock } from "@/lib/teleprompter";
 
-/** Área mínima de la figura respecto de la página (el SDD: ≥ 12 %). */
+/** Área mínima de la figura respecto de la PÁGINA LÓGICA (el SDD: ≥ 12 %).
+ *  En un two-up la página lógica es la mitad del spread: una lámina que
+ *  llena media hoja del libro debe qualificar igual que en un PDF normal. */
 const AREA_MIN = 0.12;
 /** Lado mínimo de una figura (px de página base): filetes y adornos fuera. */
 const SIDE_MIN = 120;
@@ -38,8 +41,28 @@ interface ImageBox {
   h: number;
 }
 
-/** cajas de las figuras de la página (null si no hay o si el análisis falla) */
-async function cajasDeFiguras(doc: PDFDocumentProxy, pageNum: number): Promise<ImageBox[] | null> {
+/**
+ * Caja axis-aligned (esquina superior-izquierda, Y hacia abajo) de una imagen
+ * pintada en el cuadrado unitario bajo la CTM [a,b,c,d,e,f]: el bbox de las
+ * cuatro esquinas transformadas. El atajo anterior (h = |b| si b ≠ 0)
+ * degeneraba la caja de las imágenes ROTADAS — InDesign rota láminas todo el
+ * tiempo y los collages a 1° o las portadas a 90° se descartaban (visto en el
+ * «70 años de humor en Venezuela»: pág. 42, dos collages a página completa
+ * pintados con una inclinación de ~1° daban cajas de 8 pt de alto).
+ */
+export function cajaImagenDeCtm(ctm: number[], altoPagina: number): ImageBox {
+  const [a, b, c, d, e, f] = ctm;
+  const w = Math.abs(a) + Math.abs(c);
+  const h = Math.abs(b) + Math.abs(d);
+  const minX = e + Math.min(0, a, c, a + c);
+  const minY = f + Math.min(0, b, d, b + d);
+  return { x: minX, y: altoPagina - (minY + h), w, h };
+}
+
+/** cajas de las figuras de la página (null si no hay o si el análisis falla).
+ *  `areaRef` es el área de la PÁGINA LÓGICA: el umbral de área se mide contra
+ *  ella (en un two-up, la mitad del spread). */
+async function cajasDeFiguras(doc: PDFDocumentProxy, pageNum: number, areaRef: number): Promise<ImageBox[] | null> {
   try {
     const lib = await loadPdfLib();
     const { OPS } = lib;
@@ -67,20 +90,12 @@ async function cajasDeFiguras(doc: PDFDocumentProxy, pageNum: number): Promise<I
         fn === OPS.paintImageXObjectRepeat ||
         fn === OPS.paintImageMaskXObjectRepeat
       ) {
-        // la imagen se pinta en el cuadrado unitario escalado por la CTM
-        const [a, b, , , e, f] = ctm;
-        const w = Math.abs(a);
-        const h = Math.abs(b === 0 ? ctm[3] : b);
-        const width = Math.max(w, 0);
-        const height = Math.max(h, 0);
-        if (width < SIDE_MIN || height < SIDE_MIN) continue;
-        if (width * height < viewport.width * viewport.height * AREA_MIN) continue;
-        cajas.push({
-          x: e,
-          y: viewport.height - (f + height),
-          w: width,
-          h: height,
-        });
+        // la imagen se pinta en el cuadrado unitario escalado por la CTM:
+        // la caja es el bbox de las esquinas (soporta rotaciones)
+        const caja = cajaImagenDeCtm(ctm, viewport.height);
+        if (caja.w < SIDE_MIN || caja.h < SIDE_MIN) continue;
+        if (caja.w * caja.h < areaRef * AREA_MIN) continue;
+        cajas.push(caja);
       }
     }
     page.cleanup();
@@ -152,21 +167,27 @@ export async function extractPdfPageImageBlocks(
   doc: PDFDocumentProxy,
   pageNum: number
 ): Promise<TeleprompterBlock[]> {
-  const cajas = await cajasDeFiguras(doc, pageNum);
-  if (!cajas || cajas.length === 0) return [];
-  // ¿página mixta? si no hay texto extraíble, es escaneada: no tarjeta
+  // Una sola pasada de texto: decide si la página es mixta (tiene capa de
+  // texto) y da los ítems para saber si el spread es two-up (el umbral de
+  // área se mide contra la PÁGINA LÓGICA, no contra la hoja completa)
+  let areaRef = 0;
+  let chars = 0;
   try {
     const page = await doc.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1 });
     const content = await page.getTextContent();
-    const chars = content.items.reduce(
-      (n, it) => n + (typeof (it as { str?: unknown }).str === "string" ? (it as { str: string }).str.length : 0),
-      0
-    );
+    const items = pdfTextItems(content.items);
+    chars = items.reduce((n, it) => n + it.str.length, 0);
+    const columnas = detectPdfColumns(items, viewport.width).columns;
+    areaRef = (viewport.width * viewport.height) / columnas;
     page.cleanup();
-    if (chars < 24) return [];
   } catch {
     return [];
   }
+  // ¿página mixta? si no hay texto extraíble, es escaneada: no tarjeta
+  if (chars < 24) return [];
+  const cajas = await cajasDeFiguras(doc, pageNum, areaRef);
+  if (!cajas || cajas.length === 0) return [];
   const canvas = await renderPagina(doc, pageNum);
   if (!canvas) return [];
   const base = (await doc.getPage(pageNum)).getViewport({ scale: 1 });

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePdfText } from "@/hooks/use-pdf-text";
 import { useI18n } from "@/lib/i18n";
 import { foldPdfTextIndex, type PdfTextBlock, type PdfTextIndex } from "@/lib/pdf-text";
+import { extractPdfPageImageBlocks } from "@/lib/teleprompter-images";
 import { probePdfTextLayer } from "@/lib/pdf-text-index";
 import type { TeleprompterBlock } from "@/lib/teleprompter";
 import type { BookDTO } from "@/lib/types";
@@ -162,15 +163,32 @@ export function usePdfTextMode({ book, doc, isEpub, pageNum, goToPage, patchExtr
   /** modo texto con páginas virtuales listas: el teleprompter las consume */
   const tpTextMode = textMode && textIndex !== null && textIndex.pages.length > 0;
 
-  /** bloques de una página virtual para el teleprompter (mismo contrato que el EPUB) */
+  /** bloques de una página virtual para el teleprompter (mismo contrato que el EPUB).
+   *  Las figuras del PDF entran aquí también: la lámina de la página real se
+   *  añade tras el texto de su ÚLTIMA página virtual (la misma posición que en
+   *  el modo página: figura después del texto de su hoja). Sin esto, el
+   *  teleprompter del modo texto se comía las ilustraciones del libro (los
+   *  reflujo no las traen: los bloques del índice son solo texto). El toggle
+   *  «pausa en figuras» las filtra en la ventana, como con el EPUB. */
   const tpVirtualBlocks = useCallback(
     async (v: number): Promise<TeleprompterBlock[]> => {
       const pages = textIndex?.pages;
       if (!pages || pages.length === 0) return [];
-      const page = pages[Math.min(Math.max(1, Math.round(v)), pages.length) - 1];
-      return page.blocks.map((b) => ({ kind: b.kind, text: b.text }));
+      const idx = Math.min(Math.max(1, Math.round(v)), pages.length) - 1;
+      const page = pages[idx];
+      const bloques: TeleprompterBlock[] = page.blocks.map((b) => ({ kind: b.kind, text: b.text }));
+      const esUltimaDeSuReal = idx === pages.length - 1 || pages[idx + 1].realPage !== page.realPage;
+      if (doc && esUltimaDeSuReal) {
+        try {
+          const figuras = await extractPdfPageImageBlocks(doc, page.realPage);
+          bloques.push(...figuras);
+        } catch {
+          /* sin figuras: la página fluye como texto */
+        }
+      }
+      return bloques;
     },
-    [textIndex]
+    [textIndex, doc]
   );
 
   // Aviso de página sin texto: el riel pidió una página vacía y el flujo
