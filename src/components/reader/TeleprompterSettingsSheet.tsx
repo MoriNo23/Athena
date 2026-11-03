@@ -298,6 +298,18 @@ export function TeleprompterSettingsSheet({ open, onOpenChange, book }: Teleprom
           </p>
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
+              <Label className="text-xs">{t("config.tpContinuo")}</Label>
+              <p className="text-[11px] text-muted-foreground">{t("config.tpContinuoHint")}</p>
+            </div>
+            <Switch
+              checked={tpSet.flujoContinuo}
+              onCheckedChange={(v) => setTeleprompter({ flujoContinuo: v })}
+              aria-label={t("config.tpContinuo")}
+              data-testid="tp-sheet-continuo"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
               <Label className="text-xs">{t("config.tpAuto")}</Label>
               <p className="text-[11px] text-muted-foreground">{t("config.tpAutoHint")}</p>
             </div>

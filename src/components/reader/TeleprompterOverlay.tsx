@@ -140,6 +140,9 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   const instante = tpSet.instante;
   const wpsActivo = instante ? null : wps;
   const auto = tpSet.auto;
+  // Lectura continua (flujo-continuo): el cruce de página virtual no es un
+  // evento — ni giro de columna, ni pausa del motor, ni aviso flotante.
+  const continuo = tpSet.flujoContinuo;
   const fontScale = clampTeleprompterFontScale(tpSet.fontScale);
   const speedLabel = instante
     ? t("tp.instantLabel")
@@ -252,6 +255,9 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   // tratamiento que el lector (utils.animarGiroPagina), algo más lento porque
   // el cruce del teleprompter es un momento mayor. La cámara y el ancla
   // atómica siguen intactas: la animación no toca el layout ni el scroll.
+  // En LECTURA CONTINUA no hay transición alguna: el ancla atómica deja el
+  // texto donde estaba y la columna sigue subiendo — el cambio de página
+  // virtual no se anuncia (flujo-continuo).
   const streamRef = useRef<HTMLDivElement | null>(null);
   const lastPageRef = useRef<number | null>(null);
   const curStart = win?.start ?? null;
@@ -262,10 +268,10 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     // apertura: sin transición (la página ya viene encendida)
     if (prev === null) return;
     const el = streamRef.current;
-    if (!el || instante) return; // Instantánea: salta
+    if (!el || instante || continuo) return; // Instantánea y continua: sin giro
     const direccion: 1 | -1 = curStart < prev ? -1 : 1;
     animarGiroPagina(el, oscuro, direccion, 450);
-  }, [curStart, instante, oscuro]);
+  }, [curStart, instante, oscuro, continuo]);
 
   const player = useTeleprompterPlayer({
     pageNum,
@@ -286,6 +292,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     scrollToChar: tpWin.scrollToChar,
     stageViewAnchor,
     auto,
+    continuo,
     wps: wps,
     tick: tpTick,
   });
@@ -478,18 +485,22 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           la pestaña (ya no vigila el mouse, ver ShortcutGhost) */}
       <ShortcutGhost entries={tpGhostEntries} testId="tp-shortcut-ghost" />
 
-      {/* Aviso de cambio de página del Auto (no depende de la barra auto-oculta) */}
-      <TeleprompterPageNotice
-        auto={auto}
-        playing={playing}
-        pageDone={pageDone}
-        hasNext={!!win?.pages[1]}
-        start={curStart}
-        lit={lit}
-        firstLen={firstLen}
-        todayPages={todayPages}
-        todayGoal={todayGoal}
-      />
+      {/* Aviso de cambio de página del Auto (no depende de la barra auto-oculta).
+          En lectura continua el cruce no es un evento: no se anuncia ni se
+          celebra — el texto sigue y nada compite con la lectura (flujo-continuo). */}
+      {!continuo && (
+        <TeleprompterPageNotice
+          auto={auto}
+          playing={playing}
+          pageDone={pageDone}
+          hasNext={!!win?.pages[1]}
+          start={curStart}
+          lit={lit}
+          firstLen={firstLen}
+          todayPages={todayPages}
+          todayGoal={todayGoal}
+        />
+      )}
 
       {/* Barra superior: identidad + progreso + controles (auto-ocultable).
           Con fondo (peticion de la duena): la banda .tp-header da armonia con

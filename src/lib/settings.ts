@@ -92,6 +92,7 @@ const defaultSettings: AppSettings = {
     tarjetasPorFrase: true,
     pausaImagen: true, // P2: el teleprompter se detiene a mostrar las figuras
     imagenHoldMs: TELEPROMPTER_IMAGEN_HOLD_DEFAULT,
+    flujoContinuo: true, // el texto que nunca termina: el cruce no se anuncia (flujo-continuo)
   },
 };
 
@@ -274,7 +275,7 @@ export const useSettings = create<SettingsStore>()(
     },
     {
       name: "riel-settings-v1",
-      version: 14,
+      version: 15,
       migrate: migrateSettings,
       // el vocabulario no persiste aquí: es data, vive en la BD (change
       // cfg-y-biblioteca-por-carpeta); el localStorage queda como caché de
@@ -403,7 +404,8 @@ export function migrateSettings(persisted: unknown, version: number) {
     // v8: modo teleprompter · v9: + tamaño de letra · v11: el ajuste se llama
     // `teleprompter` (se conservan velocidad, sonido, auto y tamaño) · v13: los
     // presets se jubilan — el id guardado se traduce a palabras por segundo
-    // · v14: + pausaImagen / imagenHoldMs (teleprompterMigrado rellena defaults)
+    // · v14: + pausaImagen / imagenHoldMs · v15: + flujoContinuo
+    // (teleprompterMigrado rellena defaults en ambos casos)
     teleprompter: teleprompterMigrado(state.vn ?? state.teleprompter),
   } as AppSettings & { modes: ModesSettings };
   // el estado viejo queda en `vn`: no debe volver a persistirse

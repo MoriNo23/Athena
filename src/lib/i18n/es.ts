@@ -501,6 +501,8 @@ export const es: Record<string, string> = {
   "config.tpFontHint": "Para leer de lejos o de cerca, sin salir del modo.",
   "config.tpSound": "Tic de tipeo",
   "config.tpSoundHint": "Un click bajito por letra: el oído lleva el ritmo.",
+  "config.tpContinuo": "Lectura continua",
+  "config.tpContinuoHint": "Al acabar la página el texto sigue solo: sin pausa, sin giro y sin aviso. La columna nunca se interrumpe.",
   "config.tpAuto": "Avance solo",
   "config.tpAutoHint": "Al acabar la página, pasa a la siguiente sin que toques nada.",
   "config.tpCards": "Tarjetas por frase",

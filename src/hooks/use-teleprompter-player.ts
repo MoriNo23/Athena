@@ -34,6 +34,11 @@ interface UseTeleprompterPlayerOpts {
   stageViewAnchor: (oldIndex: number, newIndex: number) => void;
   /** Auto: al agotar la página sigue sola */
   auto: boolean;
+  /** Lectura continua: el cruce de página corre a ritmo normal —sin la pausa
+      del giro— y el overlay suprime su transición y su aviso. La pausa de 2 s
+      del revelado instantáneo (pageDone + Auto) se conserva: ahí no hay ritmo
+      de letras que proteger. */
+  continuo: boolean;
   /** palabras por segundo activas (null = Instantánea). SOLO el paso null↔número
       reinicia el motor: los cambios en vivo los lee delayAt por ref */
   wps: number | null;
@@ -48,8 +53,9 @@ interface UseTeleprompterPlayerOpts {
  * La ventana (página actual + siguiente) se reconstruye al llegar a una página
  * fuera de ella y resetea la reproducción; al cruzar de página el flujo
  * «desliza» la ventana y precarga la siguiente en silencio. Sin Auto, el cruce
- * espera la orden explícita (allowCross); con Auto, una pausa calculada del
- * tempo lo autoriza solo.
+ * espera la orden explícita (allowCross); con Auto, el flujo lo cruza solo —
+ * con la pausa del giro (2 s) salvo en lectura continua, donde el cruce corre
+ * a ritmo normal y la página virtual no es un evento (flujo-continuo).
  */
 export function useTeleprompterPlayer({
   pageNum,
@@ -70,6 +76,7 @@ export function useTeleprompterPlayer({
   scrollToChar,
   stageViewAnchor,
   auto,
+  continuo,
   wps,
   tick,
 }: UseTeleprompterPlayerOpts) {
@@ -294,7 +301,8 @@ export function useTeleprompterPlayer({
     /** Espera planeada del paso que empieza en `idx`: unidades de tempo → ms
         con el wps ACTIVO (leído por ref: la velocidad se cambia en vivo), o
         la espera absoluta de una tarjeta de imagen. Con Auto, el cruce de
-        página espera `TELEPROMPTER_PAGE_TURN_MS` (cambio no brusco) */
+        página espera `TELEPROMPTER_PAGE_TURN_MS` (cambio no brusco) — salvo
+        en flujo continuo: la columna nunca se detiene (flujo-continuo) */
     function delayAt(idx: number) {
       const paso = stream.steps[idx];
       const espera =
@@ -308,6 +316,7 @@ export function useTeleprompterPlayer({
         allowCross: allowCrossRef.current,
         stepDelay: espera,
         turnMs: TELEPROMPTER_PAGE_TURN_MS,
+        continuo,
       });
     }
 
@@ -323,7 +332,7 @@ export function useTeleprompterPlayer({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [win, stream, totalChars, firstLen, numPages, playing, pageDone, bookDone, auto, instante, tick, scrollToChar, slide]);
+  }, [win, stream, totalChars, firstLen, numPages, playing, pageDone, bookDone, auto, continuo, instante, tick, scrollToChar, slide]);
 
   // ---------- Auto: al agotar la página sigue sola ----------
   useEffect(() => {

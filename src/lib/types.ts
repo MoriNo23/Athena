@@ -270,6 +270,12 @@ export interface TeleprompterSettings {
   pausaImagen: boolean;
   /** P2: cuánto se muestra cada figura (ms), independiente de la velocidad */
   imagenHoldMs: number;
+  /** Lectura continua (change teleprompter-flujo-continuo): al agotarse la
+      página virtual el flujo sigue a ritmo normal —sin pausa de giro, sin
+      animación de página y sin aviso— y el cruce atómico conserva la
+      posición: la columna nunca se interrumpe. Apagado, el cruce se anuncia
+      como hoy (pausa de 2 s + aviso + fundido de página). */
+  flujoContinuo: boolean;
 }
 
 /** De dónde sale el fondo del escenario del teleprompter */

@@ -37,7 +37,9 @@ export function stepWait<W>(
  * Espera planeada del paso que empieza en la letra `lit`. Con Auto, al llegar
  * al final de la página (con página siguiente cargada) el paso es el CRUCE y
  * espera `turnMs` para que el cambio no sea brusco; las señales manuales
- * (`allowCross`) no esperan. Fuera de ahí, el retardo normal del carácter.
+ * (`allowCross`) no esperan. En flujo continuo (`continuo`) el cruce TAMBIÉN
+ * corre a ritmo normal: la página virtual no existe como evento y la columna
+ * nunca se detiene. Fuera de ahí, el retardo normal del carácter.
  */
 export function plannedStepDelay(o: {
   lit: number;
@@ -47,7 +49,9 @@ export function plannedStepDelay(o: {
   allowCross: boolean;
   stepDelay: number;
   turnMs: number;
+  /** flujo continuo: el cruce no paga la pausa del giro (change teleprompter-flujo-continuo) */
+  continuo?: boolean;
 }): number {
   const atBoundary = o.hasNext && o.lit >= o.firstLen;
-  return atBoundary && o.auto && !o.allowCross ? o.turnMs : o.stepDelay;
+  return atBoundary && o.auto && !o.allowCross && !o.continuo ? o.turnMs : o.stepDelay;
 }

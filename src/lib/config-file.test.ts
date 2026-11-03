@@ -29,6 +29,7 @@ test("saneaAjustes(null): todo a defaults de la casa", () => {
       tarjetasPorFrase: true,
       pausaImagen: true,
       imagenHoldMs: 5000,
+      flujoContinuo: true,
     },
     modes: {
       toggles: {
@@ -120,6 +121,16 @@ test("saneaAjustes: migración de speedPreset antiguo a wps", () => {
   expect(saneaAjustes({ teleprompter: { speedPreset: "instant" } }).teleprompter.instante).toBe(true);
   // wps numérico válido manda sobre el preset viejo
   expect(saneaAjustes({ teleprompter: { wps: 3, speedPreset: "0-8" } }).teleprompter.wps).toBe(3);
+});
+
+test("saneaAjustes: flujoContinuo — la casa arranca en continuo y el fichero viejo se respeta", () => {
+  // fichero de una instalación vieja sin el ajuste: default de la casa (continuo)
+  expect(saneaAjustes({ teleprompter: { wps: 2 } }).teleprompter.flujoContinuo).toBe(true);
+  // la elección guardada manda en ambos sentidos
+  expect(saneaAjustes({ teleprompter: { flujoContinuo: false } }).teleprompter.flujoContinuo).toBe(false);
+  expect(saneaAjustes({ teleprompter: { flujoContinuo: true } }).teleprompter.flujoContinuo).toBe(true);
+  // un valor roto vuelve al default, no rompe el arranque
+  expect(saneaAjustes({ teleprompter: { flujoContinuo: "sí" } }).teleprompter.flujoContinuo).toBe(true);
 });
 
 /* ---------------- bloque round-trip: leer/escribir con sandbox ---------------- */

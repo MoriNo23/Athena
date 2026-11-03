@@ -506,6 +506,19 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                   data-testid="config-tp-sound"
                 />
               </div>
+              {/* lectura continua: el cruce de página no se anuncia (flujo-continuo) */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="tp-continuo-switch">{t("config.tpContinuo")}</Label>
+                  <p className="text-xs text-muted-foreground">{t("config.tpContinuoHint")}</p>
+                </div>
+                <Switch
+                  id="tp-continuo-switch"
+                  checked={tpSet.flujoContinuo}
+                  onCheckedChange={(v) => setTeleprompter({ flujoContinuo: v })}
+                  data-testid="config-tp-continuo"
+                />
+              </div>
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="tp-auto-switch">{t("config.tpAuto")}</Label>

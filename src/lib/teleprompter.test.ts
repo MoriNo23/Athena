@@ -124,6 +124,16 @@ describe("step-timer: espera del paso", () => {
     expect(plannedStepDelay({ ...base, auto: true, allowCross: true })).toBe(50);
   });
 
+  test("flujo continuo: el cruce con Auto corre a ritmo normal, sin pausa de giro", () => {
+    const base = { lit: 100, firstLen: 100, hasNext: true, stepDelay: 50, turnMs: 2000 };
+    // en el borde de página con Auto, continuo NO paga los 2 s del giro
+    expect(plannedStepDelay({ ...base, auto: true, allowCross: false, continuo: true })).toBe(50);
+    // fuera del borde la opción es transparente
+    expect(plannedStepDelay({ ...base, lit: 99, auto: true, allowCross: false, continuo: true })).toBe(50);
+    // sin continuo, la pausa del giro manda (comportamiento clásico intacto)
+    expect(plannedStepDelay({ ...base, auto: true, allowCross: false })).toBe(2000);
+  });
+
   test("stepWait: un reinicio del motor no repite la espera completa", () => {
     const now = 5_000;
     const pending = { at: now + 900, lit: 3, win: {} };
