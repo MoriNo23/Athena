@@ -92,7 +92,7 @@ const defaultSettings: AppSettings = {
     tarjetasPorFrase: true,
     pausaImagen: true, // P2: el teleprompter se detiene a mostrar las figuras
     imagenHoldMs: TELEPROMPTER_IMAGEN_HOLD_DEFAULT,
-    flujoContinuo: true, // el texto que nunca termina: el cruce no se anuncia (flujo-continuo)
+    descansoMin: 0, // aviso de descanso: apagado por defecto (la dueña decide)
   },
 };
 
@@ -275,7 +275,7 @@ export const useSettings = create<SettingsStore>()(
     },
     {
       name: "riel-settings-v1",
-      version: 15,
+      version: 16,
       migrate: migrateSettings,
       // el vocabulario no persiste aquí: es data, vive en la BD (change
       // cfg-y-biblioteca-por-carpeta); el localStorage queda como caché de
@@ -405,7 +405,9 @@ export function migrateSettings(persisted: unknown, version: number) {
     // `teleprompter` (se conservan velocidad, sonido, auto y tamaño) · v13: los
     // presets se jubilan — el id guardado se traduce a palabras por segundo
     // · v14: + pausaImagen / imagenHoldMs · v15: + flujoContinuo
-    // (teleprompterMigrado rellena defaults en ambos casos)
+    // · v16: el flujo continuo es EL comportamiento (el ajuste se retira) y
+    // llega `descansoMin` (teleprompterMigrado rellena defaults y retira lo
+    // jubilado en ambos casos)
     teleprompter: teleprompterMigrado(state.vn ?? state.teleprompter),
   } as AppSettings & { modes: ModesSettings };
   // el estado viejo queda en `vn`: no debe volver a persistirse
@@ -467,7 +469,9 @@ export function migrateSettings(persisted: unknown, version: number) {
 }
 
 /** v13: presets → control directo. El `speedPreset` viejo (id) se traduce a
-    `wps` numérico; «instant» además enciende `instante`. Lo demás se conserva. */
+    `wps` numérico; «instant» además enciende `instante`. Lo demás se conserva.
+    v16: `flujoContinuo` se jubila — el continuo es el único camino (change
+    teleprompter-solo-continuo) y `descansoMin` entra con default de la casa. */
 function teleprompterMigrado(viejo: unknown): typeof defaultSettings.teleprompter {
   const base = { ...defaultSettings.teleprompter };
   const v = (viejo ?? {}) as Record<string, unknown>;
@@ -478,6 +482,7 @@ function teleprompterMigrado(viejo: unknown): typeof defaultSettings.teleprompte
     out.instante = idPreset === "instant";
   }
   delete out.speedPreset; // el ajuste viejo no debe volver a persistirse
+  delete out.flujoContinuo; // jubilado: el cruce ya no se anuncia, sin opción
   return out as unknown as typeof defaultSettings.teleprompter;
 }
 

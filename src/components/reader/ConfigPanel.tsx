@@ -22,8 +22,10 @@ import {
   RailPosition,
   RailTheme,
   RAIL_THEMES,
+  clampTeleprompterDescanso,
   clampTeleprompterFontScale,
   clampTeleprompterWps,
+  TELEPROMPTER_DESCANSO_OPCIONES,
   TELEPROMPTER_FONT_MAX,
   TELEPROMPTER_FONT_MIN,
   TELEPROMPTER_FONT_STEP,
@@ -83,6 +85,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
   const tpSet = useSettings((s) => s.teleprompter);
   const setTeleprompter = useSettings((s) => s.setTeleprompter);
   const tpFontScale = clampTeleprompterFontScale(tpSet.fontScale);
+  const descansoMin = clampTeleprompterDescanso(tpSet.descansoMin);
   const fondoInputRef = useRef<HTMLInputElement | null>(null);
   const [subiendoFondo, setSubiendoFondo] = useState(false);
   const [errorFondo, setErrorFondo] = useState<string | null>(null);
@@ -506,18 +509,28 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                   data-testid="config-tp-sound"
                 />
               </div>
-              {/* lectura continua: el cruce de página no se anuncia (flujo-continuo) */}
-              <div className="flex items-center justify-between">
+              {/* aviso de descanso (teleprompter-descanso-lectura): sugiere
+                  una pausa de 20 s tras minutos de lectura seguida */}
+              <div className="grid gap-2">
                 <div>
-                  <Label htmlFor="tp-continuo-switch">{t("config.tpContinuo")}</Label>
-                  <p className="text-xs text-muted-foreground">{t("config.tpContinuoHint")}</p>
+                  <Label htmlFor="tp-descanso-group">{t("config.tpDescanso")}</Label>
+                  <p className="text-xs text-muted-foreground">{t("config.tpDescansoHint")}</p>
                 </div>
-                <Switch
-                  id="tp-continuo-switch"
-                  checked={tpSet.flujoContinuo}
-                  onCheckedChange={(v) => setTeleprompter({ flujoContinuo: v })}
-                  data-testid="config-tp-continuo"
-                />
+                <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("config.tpDescanso")} id="tp-descanso-group">
+                  {TELEPROMPTER_DESCANSO_OPCIONES.map((m) => (
+                    <Button
+                      key={m}
+                      size="sm"
+                      variant={descansoMin === m ? "default" : "outline"}
+                      className="h-7 px-2.5 text-xs"
+                      onClick={() => setTeleprompter({ descansoMin: m })}
+                      aria-pressed={descansoMin === m}
+                      data-testid={`config-tp-descanso-${m}`}
+                    >
+                      {m === 0 ? t("config.tpDescansoOff") : `${m} min`}
+                    </Button>
+                  ))}
+                </div>
               </div>
               <div className="flex items-center justify-between">
                 <div>

@@ -75,7 +75,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     tarjetasPorFrase: true,
     pausaImagen: true,
     imagenHoldMs: TELEPROMPTER_IMAGEN_HOLD_DEFAULT,
-    flujoContinuo: true,
+    descansoMin: 0,
   },
 };
 
@@ -116,7 +116,7 @@ export function docPorDefecto(): Record<string, string> {
     immersion:
       'Inmersión: "enabled" esconde la UI si el mouse queda quieto · "idleSeconds" 2-12 · "toggleKey" la tecla que la muestra al instante.',
     teleprompter:
-      'Teleprompter: "wps" palabras por segundo (0.8-4, control directo sin presets) · "instante" todo de golpe · "sound" tic de tipeo · "auto" avanza solo al acabar la tarjeta · "fontScale" 0.8-1.6 · "fondo" tema|portada|imagen · "fondoRuta" ruta en /uploads/ de la imagen propia · "fondoFiltro" 0-100 (filtro de legibilidad sobre la imagen: a más alto, más oscura y desaturada) · "tarjetasPorFrase" parte los bloques largos en frases · "flujoContinuo" al acabar la página virtual el texto sigue sin pausa, sin giro y sin aviso (la columna nunca se interrumpe); en false el cruce se anuncia como antes.',
+      'Teleprompter: "wps" palabras por segundo (0.8-4, control directo sin presets) · "instante" todo de golpe · "sound" tic de tipeo · "auto" avanza solo al acabar la tarjeta · "fontScale" 0.8-1.6 · "fondo" tema|portada|imagen · "fondoRuta" ruta en /uploads/ de la imagen propia · "fondoFiltro" 0-100 (filtro de legibilidad sobre la imagen: a más alto, más oscura y desaturada) · "tarjetasPorFrase" parte los bloques largos en frases · "descansoMin" minutos de lectura seguida antes de sugerir un descanso de 20 s en un corte natural (0 = nunca; el cruce de página va siempre a ritmo normal, sin pausa ni aviso).',
     modes:
       'Modos de lectura: interruptores xray (fichas), naturalPauses, argumentSkeleton, lockedNotes, dualRead, outline, dictionary · "pauseMinutes" minutos de la pausa sugerida (5-120).',
     biblioteca:
@@ -221,7 +221,7 @@ export function saneaAjustes(raw: unknown): AppSettings & { modes: ModesFichero 
       fondoFiltro: numIn(T.fondoFiltro, base.teleprompter.fondoFiltro, 0, 100),
       tarjetasPorFrase: boolIn(T.tarjetasPorFrase, base.teleprompter.tarjetasPorFrase),
       pausaImagen: boolIn(T.pausaImagen, base.teleprompter.pausaImagen),
-      flujoContinuo: boolIn(T.flujoContinuo, base.teleprompter.flujoContinuo),
+      descansoMin: numIn(T.descansoMin, base.teleprompter.descansoMin, 0, 120),
       imagenHoldMs: numIn(
         typeof T.imagenHoldMs === "number" ? T.imagenHoldMs : base.teleprompter.imagenHoldMs,
         base.teleprompter.imagenHoldMs,

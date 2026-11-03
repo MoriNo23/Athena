@@ -1,18 +1,18 @@
 "use client";
 
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Tip } from "@/components/reader/ZoomControls";
-import { TeleprompterPageNotice } from "@/components/reader/TeleprompterPageNotice";
 import { TeleprompterSettingsSheet } from "@/components/reader/TeleprompterSettingsSheet";
 import { ShortcutGhost, type ShortcutGhostEntry } from "@/components/reader/ShortcutGhost";
 import {
   ChevronLeft,
   ChevronRight,
+  Coffee,
   Gauge,
   Maximize,
   Minimize2,
@@ -28,16 +28,17 @@ import {
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import { useFullscreen } from "@/hooks/use-fullscreen";
-import { useTheme } from "next-themes";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import {
   useTeleprompterWindow,
 } from "@/hooks/use-teleprompter-window";
 import { useTeleprompterPlayer } from "@/hooks/use-teleprompter-player";
 import {
+  clampTeleprompterDescanso,
   clampTeleprompterFontScale,
   clampTeleprompterImagenHold,
   clampTeleprompterWps,
+  TELEPROMPTER_DESCANSO_S,
   TELEPROMPTER_FONT_MAX,
   TELEPROMPTER_FONT_MIN,
   TELEPROMPTER_FONT_STEP,
@@ -48,7 +49,7 @@ import {
 } from "@/lib/types";
 import type { BookDTO } from "@/lib/types";
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { animarGiroPagina, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { StreamWindow } from "@/hooks/use-teleprompter-window";
 
 interface TeleprompterOverlayProps {
@@ -140,9 +141,6 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   const instante = tpSet.instante;
   const wpsActivo = instante ? null : wps;
   const auto = tpSet.auto;
-  // Lectura continua (flujo-continuo): el cruce de página virtual no es un
-  // evento — ni giro de columna, ni pausa del motor, ni aviso flotante.
-  const continuo = tpSet.flujoContinuo;
   const fontScale = clampTeleprompterFontScale(tpSet.fontScale);
   const speedLabel = instante
     ? t("tp.instantLabel")
@@ -168,8 +166,6 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   );
 
   const { isFullscreen, toggleFullscreen } = useFullscreen();
-  const { resolvedTheme } = useTheme();
-  const oscuro = resolvedTheme !== "light";
   const [uiHidden, setUiHidden] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(false);
   /** P4: ajustes del teleprompter DENTRO del modo (tecla A) */
@@ -249,29 +245,12 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     stageViewAnchor,
   } = tpWin;
 
-  // Cruce de página en AMBOS sentidos: la columna de la página nueva entra
-  // desde el lado del avance — derecha al avanzar, izquierda al retroceder
-  // (la dueña: «al volver a una página atrás que haya transición»). El mismo
-  // tratamiento que el lector (utils.animarGiroPagina), algo más lento porque
-  // el cruce del teleprompter es un momento mayor. La cámara y el ancla
-  // atómica siguen intactas: la animación no toca el layout ni el scroll.
-  // En LECTURA CONTINUA no hay transición alguna: el ancla atómica deja el
-  // texto donde estaba y la columna sigue subiendo — el cambio de página
-  // virtual no se anuncia (flujo-continuo).
-  const streamRef = useRef<HTMLDivElement | null>(null);
-  const lastPageRef = useRef<number | null>(null);
+  // El cruce de página virtual NO es un evento (teleprompter-solo-continuo):
+  // sin giro de columna, sin fundido, sin aviso — el ancla atómica del cambio
+  // de ventana deja el texto donde estaba y la columna sigue subiendo. La
+  // única espera con Auto es la del revelado instantáneo (pageDone), en el
+  // player: ahí no hay ritmo de letras que proteger.
   const curStart = win?.start ?? null;
-  useLayoutEffect(() => {
-    if (curStart == null) return;
-    const prev = lastPageRef.current;
-    lastPageRef.current = curStart;
-    // apertura: sin transición (la página ya viene encendida)
-    if (prev === null) return;
-    const el = streamRef.current;
-    if (!el || instante || continuo) return; // Instantánea y continua: sin giro
-    const direccion: 1 | -1 = curStart < prev ? -1 : 1;
-    animarGiroPagina(el, oscuro, direccion, 450);
-  }, [curStart, instante, oscuro, continuo]);
 
   const player = useTeleprompterPlayer({
     pageNum,
@@ -292,12 +271,95 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     scrollToChar: tpWin.scrollToChar,
     stageViewAnchor,
     auto,
-    continuo,
     wps: wps,
     tick: tpTick,
   });
 
   const { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne, stepForward, goToNextPage, goToPrevPage } = player;
+
+  // ---------- aviso de descanso (change teleprompter-descanso-lectura) ----------
+  // Lectura sostenida en pantalla se degrada: atención en piloto automático,
+  // más regresiones, fatiga ocular. Tras `descansoMin` minutos de LECTURA
+  // REAL (pausa no cuenta, pestaña oculta tampoco) el aviso se arma y aparece
+  // en el PRÓXIMO corte natural —pausa de la lectora o cruce de página—,
+  // nunca a mitad de frase. No pausa sola: sugiere. Aceptar detiene el flujo
+  // y abre 20 s de descanso (regla 20-20-20); al terminar, la reanudación es
+  // explícita (la lectora puede estar mirando por la ventana).
+  const descansoMin = clampTeleprompterDescanso(tpSet.descansoMin);
+  const [descansoSeg, setDescansoSeg] = useState(0);
+  const descansoSegRef = useRef(0);
+  const [descansoVisible, setDescansoVisible] = useState(false);
+  const [descansoActivo, setDescansoActivo] = useState(false);
+  const [descansoRestante, setDescansoRestante] = useState(TELEPROMPTER_DESCANSO_S);
+  const descansoActivoRef = useRef(false);
+  useEffect(() => {
+    descansoActivoRef.current = descansoActivo;
+  }, [descansoActivo]);
+
+  // contador de lectura real: corre solo en marcha y con la pestaña visible
+  useEffect(() => {
+    if (descansoMin <= 0 || !playing) return;
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      descansoSegRef.current += 1;
+      setDescansoSeg(descansoSegRef.current);
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [descansoMin, playing]);
+
+  const descansoArmado = descansoMin > 0 && descansoSeg >= descansoMin * 60;
+
+  // Cortes naturales: pausa de la lectora o cruce de página. Se detectan
+  // AJUSTANDO ESTADO DURANTE EL RENDER (patrón de la casa —ver el aviso de
+  // llegada que fue—): comparar lo que ya sabemos en render evita efectos
+  // que encadenen renders (react-hooks/set-state-in-effect). La apertura no
+  // cuenta como cruce y el descanso ya activo no reabre nada.
+  const [descansoPausaVisto, setDescansoPausaVisto] = useState(false);
+  const [descansoStartVisto, setDescansoStartVisto] = useState<number | null>(curStart);
+  if (descansoArmado && !playing && !descansoPausaVisto) {
+    // corte natural 1: la lectora ya se pausó (rueda arriba, rebobinado, botón)
+    setDescansoPausaVisto(true);
+    if (!descansoActivo) setDescansoVisible(true);
+  } else if ((!descansoArmado || playing) && descansoPausaVisto) {
+    setDescansoPausaVisto(false);
+  }
+  if (curStart !== descansoStartVisto) {
+    // corte natural 2: cruce de página con el aviso armado (prev == null: apertura)
+    setDescansoStartVisto(curStart);
+    if (curStart != null && descansoStartVisto != null && descansoArmado && !descansoActivo) {
+      setDescansoVisible(true);
+    }
+  }
+
+  /** cierra aviso y velo, y pone el contador a cero (se rearma al cumplir de nuevo) */
+  const descansoCerrar = useCallback(() => {
+    setDescansoVisible(false);
+    setDescansoActivo(false);
+    setDescansoRestante(TELEPROMPTER_DESCANSO_S);
+    descansoSegRef.current = 0;
+    setDescansoSeg(0);
+  }, []);
+
+  /** aceptar el descanso: el flujo se detiene y entra el velo con la cuenta */
+  const descansarAhora = useCallback(() => {
+    setPlaying(false);
+    setDescansoVisible(false);
+    setDescansoRestante(TELEPROMPTER_DESCANSO_S);
+    setDescansoActivo(true);
+  }, [setPlaying]);
+
+  /** terminar el descanso (cuenta completa, «terminar antes» o Esc): reanuda */
+  const descansoTerminar = useCallback(() => {
+    descansoCerrar();
+    setPlaying(true);
+  }, [descansoCerrar, setPlaying]);
+
+  // cuenta atrás del descanso activo (timeout encadenado: un tic por segundo)
+  useEffect(() => {
+    if (!descansoActivo || descansoRestante <= 0) return;
+    const id = window.setTimeout(() => setDescansoRestante((s) => s - 1), 1000);
+    return () => window.clearTimeout(id);
+  }, [descansoActivo, descansoRestante]);
 
   // ---------- el overlay toma el foco (bloquea los atajos del lector) ----------
   useEffect(() => {
@@ -338,6 +400,16 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   // ---------- teclado ----------
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // descanso activo: el teclado es del descanso — Esc lo termina antes
+      // (y reanuda); el resto de teclas no toca nada bajo el velo
+      if (descansoActivoRef.current) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          descansoTerminar();
+        }
+        return;
+      }
       // Jerarquía de Escape (change teleprompter-ajustes-inmode): con la sheet
       // de ajustes abierta, Esc LA CIERRA (Radix) y las demás teclas son suyas
       // — el overlay no debe salir del modo por debajo de la sheet.
@@ -390,7 +462,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [forward, rewindOne, stepForward, goToNextPage, goToPrevPage, onClose, pageDone, bookDone, changeFont, toggleFullscreen, setPlaying, scrollRef, cancelViewAnim]);
+  }, [forward, rewindOne, stepForward, goToNextPage, goToPrevPage, onClose, pageDone, bookDone, changeFont, toggleFullscreen, setPlaying, scrollRef, cancelViewAnim, descansoTerminar]);
 
   const stale = isStaleWindow(win, pageNum);
   const atEnd = isAtEnd(bookDone, win, lit, totalChars, numPages);
@@ -485,21 +557,27 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           la pestaña (ya no vigila el mouse, ver ShortcutGhost) */}
       <ShortcutGhost entries={tpGhostEntries} testId="tp-shortcut-ghost" />
 
-      {/* Aviso de cambio de página del Auto (no depende de la barra auto-oculta).
-          En lectura continua el cruce no es un evento: no se anuncia ni se
-          celebra — el texto sigue y nada compite con la lectura (flujo-continuo). */}
-      {!continuo && (
-        <TeleprompterPageNotice
-          auto={auto}
-          playing={playing}
-          pageDone={pageDone}
-          hasNext={!!win?.pages[1]}
-          start={curStart}
-          lit={lit}
-          firstLen={firstLen}
-          todayPages={todayPages}
-          todayGoal={todayGoal}
-        />
+      {/* Aviso de descanso (teleprompter-descanso-lectura): píldora con
+          acciones en un corte natural — nunca a mitad de frase; no pausa
+          sola, sugiere. Con acciones SÍ captura el puntero (.tp-rest-card). */}
+      {descansoVisible && !descansoActivo && descansoMin > 0 && (
+        <div
+          className="tp-notice tp-rest-card"
+          role="status"
+          aria-live="polite"
+          data-testid="tp-rest-notice"
+        >
+          <Coffee className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>
+            {t("tp.rest.suggest", { minutes: descansoMin })} · {t("tp.rest.ask")}
+          </span>
+          <Button size="sm" className="h-7 px-3 text-xs" onClick={descansarAhora} data-testid="tp-rest-take">
+            {t("tp.rest.take")}
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 px-3 text-xs" onClick={descansoCerrar} data-testid="tp-rest-skip">
+            {t("tp.rest.skip")}
+          </Button>
+        </div>
       )}
 
       {/* Barra superior: identidad + progreso + controles (auto-ocultable).
@@ -672,6 +750,40 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
         </Tip>
       </div>
 
+      {/* Descanso activo: velo con cuenta atrás (regla 20-20-20). La
+          reanudación es explícita: la lectora puede estar lejos del teclado. */}
+      {descansoActivo && (
+        <div
+          className="tp-rest-veil"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t("tp.rest.aria")}
+          data-testid="tp-rest-overlay"
+        >
+          <div className="flex max-w-sm flex-col items-center gap-4 px-6 text-center">
+            <Coffee className="h-6 w-6 text-primary" aria-hidden="true" />
+            {descansoRestante > 0 ? (
+              <>
+                <p
+                  className="font-display text-6xl font-semibold tabular-nums"
+                  data-testid="tp-rest-count"
+                >
+                  {descansoRestante}
+                </p>
+                <p className="text-sm text-foreground/90">{t("tp.rest.tip")}</p>
+              </>
+            ) : (
+              <p className="font-display text-lg font-semibold" data-testid="tp-rest-done">
+                {t("tp.rest.done")}
+              </p>
+            )}
+            <Button size="sm" onClick={descansoTerminar} data-testid="tp-rest-continue">
+              {t("tp.rest.continue")}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* P4: ajustes del teleprompter, en modo (tecla A). Radix lo saca a
           portal: la jerarquía de Escape la gobierna settingsOpenRef arriba. */}
       <TeleprompterSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} book={book} />
@@ -726,7 +838,6 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
             }}
           >
             <div
-              ref={streamRef}
               className="tp-stream mx-auto w-full max-w-[780px]"
               data-testid="tp-stream"
               data-page-start={win.start}

@@ -29,7 +29,7 @@ test("saneaAjustes(null): todo a defaults de la casa", () => {
       tarjetasPorFrase: true,
       pausaImagen: true,
       imagenHoldMs: 5000,
-      flujoContinuo: true,
+      descansoMin: 0,
     },
     modes: {
       toggles: {
@@ -123,14 +123,17 @@ test("saneaAjustes: migración de speedPreset antiguo a wps", () => {
   expect(saneaAjustes({ teleprompter: { wps: 3, speedPreset: "0-8" } }).teleprompter.wps).toBe(3);
 });
 
-test("saneaAjustes: flujoContinuo — la casa arranca en continuo y el fichero viejo se respeta", () => {
-  // fichero de una instalación vieja sin el ajuste: default de la casa (continuo)
-  expect(saneaAjustes({ teleprompter: { wps: 2 } }).teleprompter.flujoContinuo).toBe(true);
-  // la elección guardada manda en ambos sentidos
-  expect(saneaAjustes({ teleprompter: { flujoContinuo: false } }).teleprompter.flujoContinuo).toBe(false);
-  expect(saneaAjustes({ teleprompter: { flujoContinuo: true } }).teleprompter.flujoContinuo).toBe(true);
+test("saneaAjustes: descansoMin — apagado por defecto y la elección del fichero se respeta", () => {
+  // fichero de una instalación vieja sin el ajuste: default de la casa (off)
+  expect(saneaAjustes({ teleprompter: { wps: 2 } }).teleprompter.descansoMin).toBe(0);
+  // la elección guardada manda
+  expect(saneaAjustes({ teleprompter: { descansoMin: 20 } }).teleprompter.descansoMin).toBe(20);
+  expect(saneaAjustes({ teleprompter: { descansoMin: 45 } }).teleprompter.descansoMin).toBe(45);
+  // fuera de rango se recorta al dominio válido (0-120)
+  expect(saneaAjustes({ teleprompter: { descansoMin: 999 } }).teleprompter.descansoMin).toBe(120);
+  expect(saneaAjustes({ teleprompter: { descansoMin: -5 } }).teleprompter.descansoMin).toBe(0);
   // un valor roto vuelve al default, no rompe el arranque
-  expect(saneaAjustes({ teleprompter: { flujoContinuo: "sí" } }).teleprompter.flujoContinuo).toBe(true);
+  expect(saneaAjustes({ teleprompter: { descansoMin: "media hora" } }).teleprompter.descansoMin).toBe(0);
 });
 
 /* ---------------- bloque round-trip: leer/escribir con sandbox ---------------- */

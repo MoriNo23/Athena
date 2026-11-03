@@ -270,12 +270,10 @@ export interface TeleprompterSettings {
   pausaImagen: boolean;
   /** P2: cuánto se muestra cada figura (ms), independiente de la velocidad */
   imagenHoldMs: number;
-  /** Lectura continua (change teleprompter-flujo-continuo): al agotarse la
-      página virtual el flujo sigue a ritmo normal —sin pausa de giro, sin
-      animación de página y sin aviso— y el cruce atómico conserva la
-      posición: la columna nunca se interrumpe. Apagado, el cruce se anuncia
-      como hoy (pausa de 2 s + aviso + fundido de página). */
-  flujoContinuo: boolean;
+  /** Aviso de descanso (change teleprompter-descanso-lectura): minutos de
+      lectura seguida antes de sugerir una pausa de 20 s en un corte natural
+      (0 = desactivado). Solo cuenta lectura real: el tiempo en pausa no suma. */
+  descansoMin: number;
 }
 
 /** De dónde sale el fondo del escenario del teleprompter */
@@ -314,6 +312,17 @@ export const TELEPROMPTER_IMAGEN_HOLD_MIN = 2000;
 export const TELEPROMPTER_IMAGEN_HOLD_MAX = 30000;
 export const TELEPROMPTER_IMAGEN_HOLD_STEP = 500;
 export const TELEPROMPTER_IMAGEN_HOLD_DEFAULT = 5000;
+
+/** Aviso de descanso: minutos de lectura seguida que ofrece la interfaz
+    (0 = nunca) y duración del descanso en segundos (regla 20-20-20). */
+export const TELEPROMPTER_DESCANSO_OPCIONES = [0, 15, 20, 30, 45] as const;
+export const TELEPROMPTER_DESCANSO_S = 20;
+
+/** Saneo del aviso de descanso: minutos enteros 0-120 (0 = desactivado). */
+export function clampTeleprompterDescanso(v: number): number {
+  if (!Number.isFinite(v)) return 0;
+  return Math.min(120, Math.max(0, Math.round(v)));
+}
 
 export function clampTeleprompterImagenHold(v: number): number {
   const r = Math.round(v / TELEPROMPTER_IMAGEN_HOLD_STEP) * TELEPROMPTER_IMAGEN_HOLD_STEP;

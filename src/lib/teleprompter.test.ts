@@ -11,7 +11,7 @@ import {
   TELEPROMPTER_PERIOD_PAUSE_LETTERS,
   type TeleprompterBlock,
 } from "./teleprompter";
-import { plannedStepDelay, stepWait } from "./step-timer";
+import { stepWait } from "./step-timer";
 
 /**
  * Timeline en UNIDADES (change fluidez-velocidad): el flujo es el MISMO a
@@ -105,34 +105,9 @@ describe("tarjetas de imagen (P2)", () => {
 });
 
 describe("step-timer: espera del paso", () => {
-  test("cruce con Auto: la pausa del giro manda en el borde de página", () => {
-    const espera = plannedStepDelay({
-      lit: 100,
-      firstLen: 100,
-      hasNext: true,
-      auto: true,
-      allowCross: false,
-      stepDelay: 50,
-      turnMs: 2000,
-    });
-    expect(espera).toBe(2000);
-  });
-
-  test("sin Auto (o cruce autorizado): el retardo normal", () => {
-    const base = { lit: 100, firstLen: 100, hasNext: true, stepDelay: 50, turnMs: 2000 };
-    expect(plannedStepDelay({ ...base, auto: false, allowCross: false })).toBe(50);
-    expect(plannedStepDelay({ ...base, auto: true, allowCross: true })).toBe(50);
-  });
-
-  test("flujo continuo: el cruce con Auto corre a ritmo normal, sin pausa de giro", () => {
-    const base = { lit: 100, firstLen: 100, hasNext: true, stepDelay: 50, turnMs: 2000 };
-    // en el borde de página con Auto, continuo NO paga los 2 s del giro
-    expect(plannedStepDelay({ ...base, auto: true, allowCross: false, continuo: true })).toBe(50);
-    // fuera del borde la opción es transparente
-    expect(plannedStepDelay({ ...base, lit: 99, auto: true, allowCross: false, continuo: true })).toBe(50);
-    // sin continuo, la pausa del giro manda (comportamiento clásico intacto)
-    expect(plannedStepDelay({ ...base, auto: true, allowCross: false })).toBe(2000);
-  });
+  // Nota (teleprompter-solo-continuo): `plannedStepDelay` se jubiló con la
+  // pausa de giro del modo clásico — la espera del paso es la del carácter y
+  // aquí solo vive el mecanismo de reinicio sin pérdida (`stepWait`).
 
   test("stepWait: un reinicio del motor no repite la espera completa", () => {
     const now = 5_000;

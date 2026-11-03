@@ -7,6 +7,13 @@
  * re-render del lector (≈1 s: el cronómetro de sesión) nunca llegaría a
  * cumplirse y el Auto se quedaría clavado (síntoma: títulos). Por eso el paso
  * pendiente anota cuándo vence y, al reiniciar, solo espera lo que faltaba.
+ *
+ * Nota (change teleprompter-solo-continuo): antes vivía aquí la espera del
+ * cruce de página (`plannedStepDelay`, con la pausa de giro de 2 s del modo
+ * clásico). El cruce corre SIEMPRE a ritmo normal —la página no es un evento
+ * y la columna nunca se detiene—, así que la espera del paso es la del propio
+ * carácter (`use-teleprompter-player.delayAt`) y esta pieza solo guarda el
+ * mecanismo de reinicio sin pérdida.
  */
 export interface PendingStep<W> {
   /** instante (ms, performance.now) en que vence el paso */
@@ -31,27 +38,4 @@ export function stepWait<W>(
     return Math.max(MIN_STEP_WAIT_MS, Math.min(plannedWait, pending.at - now));
   }
   return plannedWait;
-}
-
-/**
- * Espera planeada del paso que empieza en la letra `lit`. Con Auto, al llegar
- * al final de la página (con página siguiente cargada) el paso es el CRUCE y
- * espera `turnMs` para que el cambio no sea brusco; las señales manuales
- * (`allowCross`) no esperan. En flujo continuo (`continuo`) el cruce TAMBIÉN
- * corre a ritmo normal: la página virtual no existe como evento y la columna
- * nunca se detiene. Fuera de ahí, el retardo normal del carácter.
- */
-export function plannedStepDelay(o: {
-  lit: number;
-  firstLen: number;
-  hasNext: boolean;
-  auto: boolean;
-  allowCross: boolean;
-  stepDelay: number;
-  turnMs: number;
-  /** flujo continuo: el cruce no paga la pausa del giro (change teleprompter-flujo-continuo) */
-  continuo?: boolean;
-}): number {
-  const atBoundary = o.hasNext && o.lit >= o.firstLen;
-  return atBoundary && o.auto && !o.allowCross && !o.continuo ? o.turnMs : o.stepDelay;
 }

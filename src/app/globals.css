@@ -762,6 +762,41 @@ html:not(.dark) .athena-hero .seal-glow {
   }
 }
 
+/* ---------- Aviso de descanso (teleprompter-descanso-lectura) ---------- */
+/* La píldora usa .tp-notice (misma forma y sitio); con acciones SÍ captura
+   el puntero: Descansar / Seguir leyendo. */
+.tp-rest-card {
+  pointer-events: auto;
+  gap: 0.65rem;
+  max-width: min(92vw, 44rem);
+  flex-wrap: wrap;
+  justify-content: center;
+  white-space: normal;
+}
+/* Velo del descanso activo: pantalla atenuada con la cuenta atrás del
+   20-20-20. Solo transiciona opacidad — con movimiento reducido, sin
+   animación (la quietud ES el descanso). */
+.tp-rest-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 75;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, black 74%, transparent);
+  backdrop-filter: blur(6px);
+  animation: tp-rest-in 240ms ease both;
+}
+@keyframes tp-rest-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tp-rest-veil {
+    animation: none;
+  }
+}
+
 /* ---------- Recordatorio de teclas fantasma (inmersiones) ---------- */
 /* Columna a la derecha, letras grandes y transparentes (marca de agua):
    cada tecla y qué hace. Aparece UNA vez al volver a la pestaña y se retira

@@ -12,9 +12,11 @@ import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
+  clampTeleprompterDescanso,
   clampTeleprompterFontScale,
   clampTeleprompterImagenHold,
   clampTeleprompterWps,
+  TELEPROMPTER_DESCANSO_OPCIONES,
   TELEPROMPTER_FONDO_FILTRO_DEFAULT,
   TELEPROMPTER_FONT_MAX,
   TELEPROMPTER_FONT_MIN,
@@ -55,6 +57,7 @@ export function TeleprompterSettingsSheet({ open, onOpenChange, book }: Teleprom
   const fondoInputRef = useRef<HTMLInputElement | null>(null);
   const [subiendoFondo, setSubiendoFondo] = useState(false);
   const [errorFondo, setErrorFondo] = useState<string | null>(null);
+  const descansoMin = clampTeleprompterDescanso(tpSet.descansoMin);
 
   const subirFondo = async (file: File) => {
     setSubiendoFondo(true);
@@ -296,17 +299,26 @@ export function TeleprompterSettingsSheet({ open, onOpenChange, book }: Teleprom
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {t("tp.sheet.comportamiento")}
           </p>
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <Label className="text-xs">{t("config.tpContinuo")}</Label>
-              <p className="text-[11px] text-muted-foreground">{t("config.tpContinuoHint")}</p>
+          <div className="grid gap-2">
+            <div>
+              <Label className="text-xs">{t("config.tpDescanso")}</Label>
+              <p className="text-[11px] text-muted-foreground">{t("config.tpDescansoHint")}</p>
             </div>
-            <Switch
-              checked={tpSet.flujoContinuo}
-              onCheckedChange={(v) => setTeleprompter({ flujoContinuo: v })}
-              aria-label={t("config.tpContinuo")}
-              data-testid="tp-sheet-continuo"
-            />
+            <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("config.tpDescanso")}>
+              {TELEPROMPTER_DESCANSO_OPCIONES.map((m) => (
+                <Button
+                  key={m}
+                  size="sm"
+                  variant={descansoMin === m ? "default" : "outline"}
+                  className="h-7 px-2.5 text-xs"
+                  onClick={() => setTeleprompter({ descansoMin: m })}
+                  aria-pressed={descansoMin === m}
+                  data-testid={`tp-sheet-descanso-${m}`}
+                >
+                  {m === 0 ? t("config.tpDescansoOff") : `${m} min`}
+                </Button>
+              ))}
+            </div>
           </div>
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
