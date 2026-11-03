@@ -3,6 +3,10 @@ import {
   buildTeleprompterStream,
   msPorUnidad,
   teleprompterCharCount,
+  teleprompterPageContaining,
+  teleprompterPageEnd,
+  teleprompterPageOffsets,
+  teleprompterPrunableLimit,
   teleprompterRewind,
   TELEPROMPTER_COMMA_PAUSE_LETTERS,
   TELEPROMPTER_HEADING_PAUSE_LETTERS,
@@ -118,5 +122,53 @@ describe("step-timer: espera del paso", () => {
     expect(stepWait(1000, pending, 4, pending.win, now)).toBe(1000);
     // sin pendiente: espera completa
     expect(stepWait(1000, null, 3, null, now)).toBe(1000);
+  });
+});
+
+describe("columna viva: offsets por página (teleprompter-cruce-sin-evento)", () => {
+  test("offsets acumulados; las ranuras null cargando aportan 0", () => {
+    expect(teleprompterPageOffsets([3, 5, 2])).toEqual([0, 3, 8, 10]);
+    expect(teleprompterPageOffsets([3, 0, 2])).toEqual([0, 3, 3, 5]);
+    expect(teleprompterPageOffsets([])).toEqual([0]);
+  });
+
+  test("pageContaining: página del carácter activo; las mudas no contienen a nadie", () => {
+    const offsets = teleprompterPageOffsets([10, 0, 10, 5]); // [0,10,10,20,25]
+    expect(teleprompterPageContaining(offsets, 0)).toBe(0);
+    expect(teleprompterPageContaining(offsets, 9)).toBe(0);
+    // al filo de una frontera el carácter activo pertenece a la página nueva
+    expect(teleprompterPageContaining(offsets, 10)).toBe(2);
+    expect(teleprompterPageContaining(offsets, 24)).toBe(3);
+    // al final del flujo cae en la última página con texto
+    expect(teleprompterPageContaining(offsets, 25)).toBe(3);
+  });
+
+  test("pageEnd: fin de la página que contiene al carácter activo", () => {
+    const offsets = teleprompterPageOffsets([10, 8, 7]); // [0,10,18,25]
+    expect(teleprompterPageEnd(offsets, 0)).toBe(10);
+    expect(teleprompterPageEnd(offsets, 9)).toBe(10);
+    expect(teleprompterPageEnd(offsets, 10)).toBe(18);
+    expect(teleprompterPageEnd(offsets, 24)).toBe(25);
+  });
+
+  test("prunableLimit: solo páginas superadas, medibles y con ancla donde podar", () => {
+    const offsets = teleprompterPageOffsets([10, 8, 7, 9]); // [0,10,18,25,34]
+    // leyendo la primera página: nada podable
+    expect(teleprompterPrunableLimit(offsets, 5)).toBe(0);
+    // al filo de la frontera (el activo es el primer carácter de la 2ª): la 1ª ya fue
+    expect(teleprompterPrunableLimit(offsets, 10)).toBe(1);
+    // dos leídas: poda en cadena mientras quede ancla con caracteres
+    expect(teleprompterPrunableLimit(offsets, 18)).toBe(2);
+    // la última página de la ventana NUNCA se poda
+    expect(teleprompterPrunableLimit(offsets, 34)).toBe(3);
+  });
+
+  test("prunableLimit: páginas mudas frenan la poda (sin pie que medir ni ancla)", () => {
+    // [10, 0, 8]: la muda (offsets iguales) no es podable y frena la cadena
+    const offsets = teleprompterPageOffsets([10, 0, 8]); // [0,10,10,18]
+    expect(teleprompterPrunableLimit(offsets, 12)).toBe(0);
+    // muda al final de la ventana: no hay ancla detrás — nada podable
+    const conCola = teleprompterPageOffsets([10, 8, 0]); // [0,10,18,18]
+    expect(teleprompterPrunableLimit(conCola, 18)).toBe(1);
   });
 });

@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { teleprompterRewind, teleprompterCharCount, msPorUnidad, type TeleprompterBlock } from "@/lib/teleprompter";
+import {
+  teleprompterRewind,
+  teleprompterCharCount,
+  teleprompterPageEnd,
+  teleprompterPageContaining,
+  teleprompterPrunableLimit,
+  msPorUnidad,
+  type TeleprompterBlock,
+} from "@/lib/teleprompter";
 import { TELEPROMPTER_PAGE_TURN_MS } from "@/lib/teleprompter";
 import { TELEPROMPTER_WPS_DEFAULT } from "@/lib/types";
 import type { StreamWindow } from "@/hooks/use-teleprompter-window";
@@ -25,7 +33,11 @@ interface UseTeleprompterPlayerOpts {
   /** gira la página real del lector (cuenta como lectura y hitos salvo `silent`) */
   onGoToPage: (page: number, opts?: { silent?: boolean }) => void;
   stream: ReturnType<typeof import("@/lib/teleprompter").buildTeleprompterStream>;
-  firstLen: number;
+  /** offsets acumulados de caracteres por página de la ventana (el mapa del
+      cruce sin evento: dónde empieza y acaba cada página en los spans) */
+  pageOffsets: number[];
+  /** mide cuántas páginas del frente de la ventana ya salieron del encuadre */
+  pruneMeasure: (limit: number) => number;
   totalChars: number;
   spansRef: React.RefObject<HTMLSpanElement[]>;
   scrollRef: React.RefObject<HTMLDivElement | null>;
@@ -45,14 +57,17 @@ interface UseTeleprompterPlayerOpts {
  * Control de reproducción del teleprompter (pausa/reanudar, rebobinado, cruce
  * de página y encadenado) más el motor de encendido letra a letra.
  *
- * La ventana (página actual + siguiente) se reconstruye al llegar a una página
- * fuera de ella y resetea la reproducción; al cruzar de página el flujo
- * «desliza» la ventana y precarga la siguiente en silencio. Sin Auto, el cruce
- * espera la orden explícita (allowCross); con Auto, el flujo lo cruza solo —
- * a ritmo normal, sin pausa ni aviso: la página virtual no es un evento
- * (teleprompter-solo-continuo). La única espera extra al agotar la página es
- * la del revelado instantáneo con Auto (pageDone): ahí no hay ritmo de letras
- * que proteger.
+ * CRUCE SIN EVENTO (teleprompter-cruce-sin-evento): la ventana es una columna
+ * viva. Al agotar una página NO se intercambia nada — la página nueva ya está
+ * debajo (appendNext la añade al entrar en la última cargada, por debajo de la
+ * vista) y el texto leído permanece encima: es el SCROLL el que lo saca de
+ * vista a ritmo de lectura. La poda frontal ocurre mucho después, cuando el
+ * pie de una página leída lleva fuera del encuadre un margen de respeto: el
+ * ancla compensa el scroll antes del pintado y ni un píxel salta. Sin Auto el
+ * flujo se detiene al final de cada página (pageDone) y espera la orden del
+ * lector; con Auto continúa a ritmo normal. La única espera extra al agotar
+ * la página es la del revelado instantáneo con Auto (pageDone): ahí no hay
+ * ritmo de letras que proteger.
  */
 export function useTeleprompterPlayer({
   pageNum,
@@ -66,7 +81,8 @@ export function useTeleprompterPlayer({
   hasSource,
   onGoToPage,
   stream,
-  firstLen,
+  pageOffsets,
+  pruneMeasure,
   totalChars,
   spansRef,
   scrollRef,
@@ -82,7 +98,12 @@ export function useTeleprompterPlayer({
   const [pageDone, setPageDone] = useState(false);
   const [bookDone, setBookDone] = useState(false);
   const litRef = useRef(0);
-  const allowCrossRef = useRef(false);
+  /** límites de página ya cruzados por el flujo (índice 0-based en la ventana):
+      la página que contiene el carácter activo YA fue anunciada */
+  const crossedRef = useRef(0);
+  /** última página real anunciada al lector: evita doble conteo al cruzar de
+      ida y vuelta por la misma frontera (rebobinado y re-lectura) */
+  const lastFiredRef = useRef<number | null>(null);
   // Velocidad ACTIVA leída por ref (change fluidez-velocidad): arrastrar el
   // slider de wps NO reinicia el motor — el efecto no depende de `wps` y el
   // ritmo nuevo entra con la letra siguiente. Solo el paso a Instantánea
@@ -95,7 +116,7 @@ export function useTeleprompterPlayer({
       del slider NO (ver deps del efecto de encendido) */
   const instante = wps == null;
   // El callback del lector se lee por ref: su identidad nunca debe reiniciar
-  // el motor ni recrear `slide` (defensa ante un padre que no lo memoice).
+  // el motor ni recrear `appendNext` (defensa ante un padre que no lo memoice).
   const onGoToPageRef = useRef(onGoToPage);
   useEffect(() => {
     onGoToPageRef.current = onGoToPage;
@@ -105,15 +126,16 @@ export function useTeleprompterPlayer({
   // transcurrida no se pierde: una pausa larga no puede quedar siempre a medias.
   const dueRef = useRef<PendingStep<StreamWindow> | null>(null);
 
-  // ---------- ventana: página actual + siguiente ----------
+  // ---------- ventana: reconstrucción solo si el lector sale de ella ----------
   useEffect(() => {
     const cur = winRef.current;
-    // el cruce interno ya movió la ventana: el lector solo va un paso por detrás
+    // la ventana viva cubre varias páginas (leídas + en curso + siguiente):
+    // mientras la página pedida viva dentro, la columna NO se reconstruye
     if (
       cur &&
       winSourceRef.current === sourceKey &&
       pageNum >= cur.start &&
-      pageNum <= cur.start + 1
+      pageNum <= cur.start + cur.pages.length - 1
     ) {
       return;
     }
@@ -142,6 +164,8 @@ export function useTeleprompterPlayer({
       winRef.current = opened;
       winSourceRef.current = sourceKey;
       litRef.current = 0;
+      crossedRef.current = 0;
+      lastFiredRef.current = start;
       setWin(opened);
       setLit(0);
       setPlaying(true);
@@ -155,43 +179,97 @@ export function useTeleprompterPlayer({
     };
   }, [pageNum, numPages, loadBlocks, sourceKey, hasSource, setWin, winRef, winSourceRef]);
 
-  // ---------- deslizar la ventana al cruzar de página ----------
-  // CRUCE ATÓMICO: la ventana nueva entra en el MISMO render que el rebase del
-  // encendido (fin de las órdenes de cámara contra el DOM viejo: nada de
-  // vaivén). La página siguiente se rellena después con un segundo setWin que
-  // conserva `start`; mientras tanto el motor lee solo la primera página y
-  // espera el relleno sin declarar el fin del libro. El ancla deja la vista
-  // en su sitio durante el intercambio (sin reacomodo visible).
-  const slide = useCallback(
-    (rebase: number) => {
+  // ---------- añadir la página siguiente DEBAJO de la columna ----------
+  /**
+   * El append es el cruce sin evento: la página nueva entra AL FINAL de la
+   * columna, por debajo de la vista — nada de lo visible se mueve ni un
+   * píxel. Se llama al ENTRAR en la última página cargada: la siguiente se
+   * carga mientras se lee la actual (mismo prefetch que el cruce antiguo,
+   * pero sin intercambio de ventana). El relleno usa la geometría VIVA de la
+   * ventana: una poda frontal en el ínterin no estropea la ranura.
+   */
+  const appendNext = useCallback(() => {
+    const cur = winRef.current;
+    if (!cur) return;
+    if (cur.pages[cur.pages.length - 1] == null) return; // ya hay una cargando
+    const nextPage = cur.start + cur.pages.length;
+    if (nextPage > numPages) return;
+    const opened: StreamWindow = { start: cur.start, pages: [...cur.pages, null] };
+    winRef.current = opened;
+    setWin(opened);
+    void loadBlocks(nextPage).then((blocks) => {
+      const live = winRef.current;
+      if (!live) return; // el lector saltó a otra parte: nada que rellenar
+      const idx = nextPage - live.start;
+      if (idx < 0 || idx >= live.pages.length || live.pages[idx] != null) return;
+      const pages = live.pages.slice();
+      pages[idx] = blocks;
+      const filled: StreamWindow = { start: live.start, pages };
+      winRef.current = filled;
+      setWin(filled);
+    });
+  }, [loadBlocks, numPages, setWin, winRef]);
+
+  // ---------- anuncio de progreso al entrar en una página nueva ----------
+  /**
+   * Cruce de página REAL: solo progreso y prefetch — ningún cambio de DOM.
+   * Cuenta los límites superados por el encendido y anuncia cada página
+   * nueva una sola vez (ida y vuelta por la misma frontera no duplica el
+   * conteo del lector). Al entrar en la última página cargada arma la carga
+   * de la siguiente.
+   */
+  const crossBoundaries = useCallback(
+    (i: number) => {
       const cur = winRef.current;
-      if (!cur || !cur.pages[1]) return;
-      const nextStart = cur.start + 1;
-      const first = cur.pages[1];
-      allowCrossRef.current = false;
-      // ancla: el primer carácter sin encender de la página nueva (índice
-      // `rebase` en la ventana nueva) queda donde está ahora en la columna
-      stageViewAnchor(firstLen + rebase, rebase);
-      litRef.current = rebase;
-      setLit(rebase);
-      setPageDone(false);
-      setBookDone(false);
-      onGoToPageRef.current(nextStart);
-      const opened: StreamWindow = { start: nextStart, pages: [first, null] };
-      winRef.current = opened;
-      setWin(opened);
-      void (async () => {
-        const nextBlocks = nextStart + 1 <= numPages ? await loadBlocks(nextStart + 1) : null;
-        if (winRef.current !== opened) return; // el lector ya rebobinó: no clobbers con la ventana vieja
-        const filled: StreamWindow = { start: nextStart, pages: [first, nextBlocks] };
-        winRef.current = filled;
-        setWin(filled);
-        // precarga silenciosa: el próximo cruce no espera extracción
-        if (nextStart + 2 <= numPages) void loadBlocks(nextStart + 2);
-      })();
+      if (!cur) return;
+      let crossed = crossedRef.current;
+      while (crossed < pageOffsets.length - 1 && i >= (pageOffsets[crossed + 1] ?? Infinity)) {
+        crossed += 1;
+        const page = cur.start + crossed;
+        if (lastFiredRef.current !== page) {
+          lastFiredRef.current = page;
+          onGoToPageRef.current(page);
+        }
+      }
+      crossedRef.current = crossed;
+      if (crossed >= cur.pages.length - 1) appendNext();
     },
-    [firstLen, loadBlocks, numPages, setWin, stageViewAnchor, winRef]
+    [appendNext, pageOffsets, winRef]
   );
+
+  // ---------- poda frontal invisible ----------
+  /**
+   * Quita del FRENTE las páginas leídas cuyo pie ya salió del encuadre (con
+   * margen de respeto): el texto leído se va porque el scroll lo escondió,
+   * NUNCA por un evento del flujo. El ancla deja el primer carácter retenido
+   * donde está y la compensación corre antes del pintado — la poda es
+   * imperceptible. Devuelve cuántas páginas se podaron (> 0: el motor se
+   * re-arranca con los índices ya reasentados, sin perder la espera pendiente).
+   */
+  const pruneFront = useCallback((): number => {
+    const cur = winRef.current;
+    if (!cur || cur.pages.length <= 1) return 0;
+    const limit = teleprompterPrunableLimit(pageOffsets, litRef.current);
+    const cut = pruneMeasure(limit);
+    if (cut <= 0) return 0;
+    const prunedLen = pageOffsets[cut] ?? 0;
+    // ancla: el primer carácter de la primera página retenida queda donde está
+    stageViewAnchor(prunedLen, 0);
+    litRef.current = Math.max(0, litRef.current - prunedLen);
+    setLit(litRef.current);
+    crossedRef.current = Math.max(0, crossedRef.current - cut);
+    const next: StreamWindow = { start: cur.start + cut, pages: cur.pages.slice(cut) };
+    winRef.current = next;
+    if (dueRef.current) {
+      dueRef.current = {
+        at: dueRef.current.at,
+        lit: Math.max(0, dueRef.current.lit - prunedLen),
+        win: next,
+      };
+    }
+    setWin(next);
+    return cut;
+  }, [pageOffsets, pruneMeasure, setWin, stageViewAnchor, winRef]);
 
   // ---------- motor de encendido ----------
   useEffect(() => {
@@ -215,13 +293,27 @@ export function useTeleprompterPlayer({
     if (instant) {
       const reveal = () => {
         if (cancelled) return;
-        const end = win.pages[1] ? firstLen : totalChars;
-        paint(end);
-        syncHeadings(end);
-        litRef.current = end;
-        setLit(end);
-        if (win.pages[1]) setPageDone(true);
-        else setBookDone(true);
+        const end = teleprompterPageEnd(pageOffsets, litRef.current);
+        if (end > litRef.current) {
+          // anunciar las páginas que entran a revelarse (el cruce sin evento
+          // también vive aquí) y armar la carga de la siguiente
+          crossBoundaries(end - 1);
+          paint(end);
+          syncHeadings(end);
+          litRef.current = end;
+          setLit(end);
+        } else if (
+          win.start + teleprompterPageContaining(pageOffsets, litRef.current) < numPages
+        ) {
+          // borde de la ventana con libro por delante: nada que revelar —
+          // traer la página siguiente (idempotente) y el relleno re-arma
+          appendNext();
+        }
+        if (win.start + teleprompterPageContaining(pageOffsets, litRef.current) < numPages) {
+          setPageDone(true);
+        } else {
+          setBookDone(true);
+        }
       };
       let cancelled = false;
       const timer = window.setTimeout(reveal, 0);
@@ -246,32 +338,37 @@ export function useTeleprompterPlayer({
     const headingAt = (idx: number) =>
       stream.blocks.find((b) => b.heading && idx >= b.start && idx < b.start + b.length);
 
-    // hueco del cruce atómico: la página siguiente aún no entró en la ventana
-    // pero el libro sigue — no declarar fin; el segundo setWin (relleno)
-    // relanza el motor desde donde quedó
-    const atWindowGap = () => !win.pages[1] && win.start < numPages;
+    // hueco al final de la ventana: la siguiente aún carga pero el libro sigue
+    // — no declarar fin; el relleno relanza el motor desde donde quedó
+    const atWindowGap = () =>
+      win.pages[win.pages.length - 1] == null && win.start + win.pages.length - 1 < numPages;
 
     const step = () => {
       if (cancelled) return;
       // un avance manual puede haber movido el encendido: el motor sigue desde
       // ahí en vez de volver a iluminar por detrás
       if (litRef.current > i) i = litRef.current;
-      // cruce ANTES de encender: si el flujo ya llegó al fin de la página, la
-      // ventana se desliza sin encender caracteres de la página nueva contra
-      // el DOM viejo (la orden de cámara del cruce la pone el ancla, no el motor)
-      if (win.pages[1] && i >= firstLen) {
-        if (!auto && !allowCrossRef.current) {
-          setPageDone(true);
-          return;
-        }
-        slide(i - firstLen);
-        return;
-      }
+      // poda invisible (solo fuera de encuadre): si podó, la ventana cambió de
+      // identidad y el efecto re-arranca con los índices ya reasentados
+      if (pruneFront() > 0) return;
       if (i >= spans.length) {
         if (atWindowGap()) return;
         setBookDone(true);
         return;
       }
+      // sin Auto: al alcanzar el final de la página el flujo espera la orden
+      // (el gesto de página es del lector — no se anuncia la siguiente hasta
+      // cruzar de verdad). La última página del libro no espera: bookDone arriba.
+      if (!auto) {
+        const end = pageOffsets[crossedRef.current + 1];
+        if (end != null && i >= end) {
+          setPageDone(true);
+          return;
+        }
+      }
+      // cruce de página: SOLO progreso y prefetch — la página nueva ya está
+      // debajo, el texto leído sigue encima y el scroll lo va escondiendo
+      crossBoundaries(i);
       // el título se enciende completo (fundido del bloque, no letra a letra)
       const heading = headingAt(i);
       const end = heading ? heading.start + heading.length : i + 1;
@@ -286,11 +383,6 @@ export function useTeleprompterPlayer({
       litRef.current = i;
       setLit(i);
 
-      if (i >= spans.length) {
-        if (atWindowGap()) return;
-        setBookDone(true);
-        return;
-      }
       schedule(delayAt(i));
     };
 
@@ -298,7 +390,7 @@ export function useTeleprompterPlayer({
         con el wps ACTIVO (leído por ref: la velocidad se cambia en vivo), o
         la espera absoluta de una tarjeta de imagen. El cruce de página NO
         paga espera extra: corre al ritmo del carácter (flujo continuo, la
-        página no es un evento — teleprompter-solo-continuo) */
+        página no es un evento — teleprompter-cruce-sin-evento) */
     function delayAt(idx: number) {
       const paso = stream.steps[idx];
       return (
@@ -313,25 +405,24 @@ export function useTeleprompterPlayer({
       timer = window.setTimeout(step, delay);
     }
     // arranque o reinicio del efecto: si el paso pendiente es el mismo, solo
-    // espera lo que le faltaba
+    // espera lo que faltaba
     schedule(stepWait(delayAt(i), dueRef.current, i, win, performance.now()));
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [win, stream, totalChars, firstLen, numPages, playing, pageDone, bookDone, auto, instante, tick, scrollToChar, slide]);
+  }, [win, stream, totalChars, pageOffsets, numPages, playing, pageDone, bookDone, auto, instante, tick, scrollToChar, pruneFront, crossBoundaries, scrollRef, spansRef]);
 
-  // ---------- Auto: el revelado instantáneo descansa antes de cruzar ----------
+  // ---------- Auto: el revelado instantáneo descansa antes de seguir ----------
   useEffect(() => {
     if (!auto || !playing || bookDone) return;
     if (!pageDone) return;
     // Instantánea con Auto: la página ya está revelada y no hay ritmo de
-    // letras que proteger — un compás de quietud antes de cruzar (único
-    // resto de la pausa de giro del modo clásico, jubilado en el cruce con
-    // ritmo de letras).
+    // letras que proteger — un compás de quietud antes de continuar. Con la
+    // columna viva no hay cruce que dar: pasado el compás, el motor sigue con
+    // los caracteres de la página siguiente, que ya están debajo.
     const delay = TELEPROMPTER_PAGE_TURN_MS;
     const timer = window.setTimeout(() => {
-      allowCrossRef.current = true;
       setPageDone(false);
     }, delay);
     return () => window.clearTimeout(timer);
@@ -347,7 +438,10 @@ export function useTeleprompterPlayer({
   const stepForward = useCallback(() => {
     const spans = spansRef.current;
     const cur = litRef.current;
-    if (spans.length === 0 || cur >= firstLen || cur >= spans.length) return;
+    // límite: el final de la página que el flujo tiene en curso — la frontera
+    // se cruza con Shift+→ (o forward), no letra a letra
+    const limit = pageOffsets[crossedRef.current + 1] ?? totalChars;
+    if (spans.length === 0 || cur >= limit || cur >= spans.length) return;
     setPlaying(false);
     const heading = stream.blocks.find((b) => b.heading && cur >= b.start && cur < b.start + b.length);
     const end = heading ? heading.start + heading.length : cur + 1;
@@ -356,15 +450,34 @@ export function useTeleprompterPlayer({
     litRef.current = end;
     setLit(end);
     scrollToChar(end - 1);
-  }, [firstLen, scrollToChar, spansRef, stream]);
+  }, [pageOffsets, scrollToChar, spansRef, stream, totalChars]);
 
-  /** `Shift+→`: salto a la página siguiente (el cruce atómico, sin esperar al motor) */
+  /** `Shift+→`: salto a la página siguiente. Sin cruce de DOM: enciende el
+      resto de la página en curso (ya está en la columna), anuncia la
+      siguiente y deja que el flujo continúe — la cámara lleva la vista al
+      primer carácter sin encender y el texto saltado se va por el scroll. */
   const goToNextPage = useCallback(() => {
     const cur = winRef.current;
-    if (!cur || !cur.pages[1]) return; // no hay página siguiente en la ventana
+    if (!cur) return;
+    // hueco de carga al final de la ventana: la orden se traga (como antes)
+    // y el relleno relanza el flujo — milisegundos, no una página
+    if (cur.pages[cur.pages.length - 1] == null && cur.start + cur.pages.length - 1 < numPages) {
+      return;
+    }
+    const spans = spansRef.current;
+    const end = Math.min(pageOffsets[crossedRef.current + 1] ?? totalChars, spans.length);
+    for (let k = litRef.current; k < end; k++) spans[k]?.classList.add("on");
+    for (const b of stream.blocks) {
+      if (b.heading && end > b.start && b.start >= litRef.current) {
+        spans[b.start]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
+      }
+    }
+    litRef.current = end;
+    setLit(end);
+    crossBoundaries(litRef.current);
+    setPageDone(false);
     setPlaying(true);
-    slide(0);
-  }, [slide, winRef]);
+  }, [crossBoundaries, numPages, pageOffsets, setLit, spansRef, stream, totalChars, winRef]);
 
   // ---------- rebobinado ----------
   const loadPreviousPage = useCallback(() => {
@@ -375,16 +488,22 @@ export function useTeleprompterPlayer({
     void (async () => {
       const blocks = await loadBlocks(prev);
       const all = teleprompterCharCount(blocks);
-      // ancla del prepend: el carácter activo (índice + prevLen en la ventana
-      // nueva) queda donde está — la columna no se reacomoda al retroceder
-      stageViewAnchor(litRef.current, litRef.current + all);
-      const next: StreamWindow = { start: prev, pages: [blocks, cur.pages[0]] };
+      // ancla del prepend: el PUNTO DE REANUDACIÓN (inicio de la página que
+      // estaba en curso, índice `all` en la ventana nueva) aterriza donde está
+      // ahora el carácter activo (zona cómoda) — la lectora vuelve una página
+      // y la ve desde arriba, con la anterior encendida para releer
+      stageViewAnchor(litRef.current, all);
+      const next: StreamWindow = { start: prev, pages: [blocks, ...cur.pages] };
       winRef.current = next;
       litRef.current = all;
       setWin(next);
       setLit(all);
       setPageDone(false);
       setBookDone(false);
+      // el flujo queda al inicio de la página 1 de la ventana (la anterior
+      // entera, encendida para releer): una frontera cruzada, la vista en prev
+      crossedRef.current = 1;
+      lastFiredRef.current = prev;
       onGoToPageRef.current(prev);
     })();
   }, [loadBlocks, setWin, stageViewAnchor, winRef]);
@@ -419,15 +538,22 @@ export function useTeleprompterPlayer({
     }
     litRef.current = to;
     setLit(to);
+    // el encendido volvió atrás: las fronteras que quedaron por delante del
+    // carácter activo se vuelven a cruzar (y a anunciar) al re-leerlas
+    while (crossedRef.current > 0 && to <= (pageOffsets[crossedRef.current] ?? 0)) {
+      crossedRef.current -= 1;
+    }
     // rebobinado: cámara directa, sin la animación del avance (ver design.md)
     scrollToChar(Math.max(0, to - 1), { instant: true });
-  }, [stream, loadPreviousPage, scrollToChar, spansRef, winRef]);
+  }, [stream, loadPreviousPage, scrollToChar, spansRef, winRef, pageOffsets]);
 
   // ---------- avance ----------
   const forward = useCallback(() => {
     if (bookDone) return;
     if (pageDone) {
-      allowCrossRef.current = true;
+      // orden de cruce del lector: se anuncia la página nueva (ya está debajo)
+      // y el flujo sigue — nada de DOM, nada de anclas
+      crossBoundaries(litRef.current);
       setPageDone(false);
       setPlaying(true);
       return;
@@ -436,9 +562,10 @@ export function useTeleprompterPlayer({
       setPlaying(true);
       return;
     }
-    // en marcha: completar la página actual de golpe
+    // en marcha: completar la página actual de golpe (el texto ya está en la
+    // columna — completar es encender, no traer nada)
     const spans = spansRef.current;
-    const end = win?.pages[1] ? firstLen : totalChars;
+    const end = Math.min(pageOffsets[crossedRef.current + 1] ?? totalChars, spans.length);
     for (let k = litRef.current; k < end; k++) spans[k]?.classList.add("on");
     for (const b of stream.blocks) {
       if (b.heading && end > b.start) {
@@ -448,11 +575,11 @@ export function useTeleprompterPlayer({
     litRef.current = end;
     setLit(end);
     // Revelado completo SIN orden de vista: el resto del texto se enciende
-    // donde está y la columna queda donde el lector lee — sin barrido al fondo
-    // de la página. El cruce posterior re-ancla la vista con el ancla atómica.
-    if (win?.pages[1]) setPageDone(true);
+    // donde está y la columna queda donde el lector lee. Con Auto viene el
+    // compás de quietud (pageDone) y el flujo sigue solo; sin Auto, espera.
+    if (win && win.start + crossedRef.current < numPages) setPageDone(true);
     else setBookDone(true);
-  }, [bookDone, pageDone, playing, win, firstLen, totalChars, stream, spansRef]);
+  }, [bookDone, pageDone, playing, win, crossBoundaries, numPages, pageOffsets, totalChars, stream, spansRef]);
 
   return { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne, stepForward, goToNextPage, goToPrevPage };
 }

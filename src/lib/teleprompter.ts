@@ -251,6 +251,58 @@ export function buildTeleprompterStream(
   return { steps, blocks: out, totalUnits };
 }
 
+// ---------- Ventana viva (offsets por página de la columna) ----------
+
+/** Offsets acumulados de caracteres por página de la ventana: `offsets[k]` es
+    la cantidad de caracteres encendibles ANTES de la página k de la ventana
+    (las ranuras null aún cargando aportan 0). `offsets.length === pages.length + 1`
+    y el último valor es el total del flujo. Con la columna viva
+    (teleprompter-cruce-sin-evento) la ventana puede llevar más de dos páginas:
+    las ya leídas permanecen encima hasta que el scroll las saca de vista. */
+export function teleprompterPageOffsets(charLens: number[]): number[] {
+  const out = [0];
+  for (const n of charLens) out.push(out[out.length - 1] + Math.max(0, n));
+  return out;
+}
+
+/** Índice (0-based) de la página de la ventana que contiene el carácter `lit`.
+    Las páginas mudas (0 caracteres) no contienen a nadie: el recorrido salta
+    a la primera con texto; `lit` al final del flujo cae en la última página. */
+export function teleprompterPageContaining(offsets: number[], lit: number): number {
+  for (let k = 0; k < offsets.length - 1; k++) {
+    if (lit < offsets[k + 1]) return k;
+  }
+  return Math.max(0, offsets.length - 2);
+}
+
+/** Fin (índice global, exclusivo) de la página de la ventana que contiene
+    `lit`: el límite natural del encendido «hasta aquí» de la página en curso. */
+export function teleprompterPageEnd(offsets: number[], lit: number): number {
+  const k = teleprompterPageContaining(offsets, lit);
+  return offsets[k + 1] ?? offsets[offsets.length - 1];
+}
+
+/** Cuántas páginas del FRENTE de la ventana son podables en principio: solo
+    las que ya quedaron superadas por el carácter activo (`lit >= ` su fin),
+    tienen caracteres medibles (su pie existe en el DOM) y dejan como primera
+    página retenida una con caracteres — el ancla de la poda necesita un span
+    donde apoyarse. NUNCA se poda la última página de la ventana. La condición
+    de pantalla (¿el pie ya salió del encuadre?) la mide el hook con spans
+    reales: esto es solo el techo teórico. */
+export function teleprompterPrunableLimit(offsets: number[], lit: number): number {
+  let cut = 0;
+  const last = offsets.length - 1;
+  while (
+    cut + 2 <= last &&
+    offsets[cut + 1] > offsets[cut] &&
+    lit >= offsets[cut + 1] &&
+    offsets[cut + 2] > offsets[cut + 1]
+  ) {
+    cut += 1;
+  }
+  return cut;
+}
+
 // ---------- Rebobinado (orden inverso y cruce de página) ----------
 
 /** Caracteres visibles de una página (misma normalización que el flujo).

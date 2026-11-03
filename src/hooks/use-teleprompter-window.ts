@@ -6,23 +6,33 @@ import {
   buildTeleprompterStream,
   extractPdfPageBlocksForTeleprompter,
   teleprompterCharCount,
+  teleprompterPageOffsets,
   type TeleprompterBlock,
 } from "@/lib/teleprompter";
 import { extractPdfPageImageBlocks } from "@/lib/teleprompter-images";
 import { createCameraController, type CameraController } from "@/lib/camera";
 
-/** Ventana de lectura: la página actual y la siguiente (DOM acotado a dos) */
+/**
+ * Ventana de lectura VIVA (teleprompter-cruce-sin-evento): la página en curso,
+ * la siguiente y las ya leídas que el scroll AÚN no sacó de vista. El cruce no
+ * es un evento de DOM: la página nueva se AÑADE debajo (nada de lo visible se
+ * mueve) y las leídas se PODAN por delante solo cuando su pie ya salió del
+ * encuadre, con compensación de scroll — el texto se va porque el scroll lo
+ * esconde, nunca porque el flujo lo borre.
+ */
 export interface StreamWindow {
-  /** primera página de la ventana (1-based) */
+  /** primera página de la ventana (1-based); crece con la poda frontal */
   start: number;
-  /** [página start, página start+1]; el segundo hueco puede no existir */
+  /** páginas start..start+n (la lectura avanza de la 0 hacia el final);
+      la última ranura puede ser null (cargando) */
   pages: (TeleprompterBlock[] | null)[];
 }
 
-/** Ancla de vista para un cambio de ventana: el carácter newIndex de la
-    ventana NUEVA debe quedar, tras el intercambio, en la misma posición
-    visual que tenía el ancla en la ventana vieja. Lo publica el jugador
-    justo antes de setWin y lo consume el layout effect sobre [win]. */
+/** Ancla de vista para un cambio de ventana (poda frontal o prepend manual):
+    el carácter newIndex de la ventana NUEVA debe quedar, tras el cambio, en
+    la misma posición visual que tenía el ancla en la ventana vieja. Lo
+    publica el jugador justo antes de setWin y lo consume el layout effect
+    sobre [win]. */
 export interface StreamViewAnchor {
   /** índice del ancla en la ventana VIEJA (trazabilidad del caso) */
   oldIndex: number;
@@ -50,10 +60,11 @@ interface UseTeleprompterWindowOpts {
 }
 
 /**
- * Capa de datos y DOM del teleprompter: carga de bloques con caché, ventana de
- * dos páginas (la actual y la siguiente), colección de spans del DOM y el
- * seguimiento de scroll que deja el carácter activo a ~40 % del alto visible.
- * El control de reproducción vive en `use-teleprompter-player`.
+ * Capa de datos y DOM del teleprompter: carga de bloques con caché, ventana
+ * viva (página en curso + siguiente precargada + las leídas aún a la vista),
+ * colección de spans del DOM y el seguimiento de scroll que deja el carácter
+ * activo a ~40 % del alto visible. El control de reproducción (motor, cruce,
+ * poda) vive en `use-teleprompter-player`.
  */
 export function useTeleprompterWindow({
   doc,
@@ -214,7 +225,7 @@ export function useTeleprompterWindow({
   );
 
   const windowBlocks = useMemo(
-    () => (win ? [...(win.pages[0] ?? []), ...(win.pages[1] ?? [])] : []),
+    () => (win ? win.pages.flatMap((p) => p ?? []) : []),
     [win]
   );
   // El timeline NO depende del wps (unidades de tempo): arrastrar el slider
@@ -223,7 +234,40 @@ export function useTeleprompterWindow({
     () => buildTeleprompterStream(windowBlocks, porFrase, imagenHoldMs),
     [windowBlocks, porFrase, imagenHoldMs]
   );
-  const firstLen = useMemo(() => teleprompterCharCount(win?.pages[0] ?? []), [win]);
+  // ---------- offsets por página de la ventana ----------
+  // El flujo es la concatenación de las páginas de la ventana; los offsets
+  // acumulados dicen dónde empieza y acaba cada una dentro de los spans
+  // globales. Es el mapa que usa el jugador para anunciar el cruce (progreso)
+  // sin tocar el DOM y para podar por delante sin tocar lo visible.
+  const pageLens = useMemo(
+    () => (win ? win.pages.map((p) => teleprompterCharCount(p ?? [])) : []),
+    [win]
+  );
+  const pageOffsets = useMemo(() => teleprompterPageOffsets(pageLens), [pageLens]);
+
+  /** Cuántas de las primeras `limit` páginas de la ventana están YA FUERA del
+      encuadre (su pie quedó por encima del borde superior, con margen de
+      respeto). Solo mide: la poda (estado + ancla + rebase de índices) la
+      ejecuta el jugador, dueño del encendido. Sin span medible, no hay poda. */
+  const pruneMeasure = useCallback(
+    (limit: number): number => {
+      const root = scrollRef.current;
+      if (!root || limit <= 0) return 0;
+      const rr = root.getBoundingClientRect();
+      const margin = root.clientHeight * 0.3;
+      const spans = spansRef.current;
+      let cut = 0;
+      while (cut < limit) {
+        const el = spans[pageOffsets[cut + 1] - 1];
+        if (!el) break;
+        if (el.getBoundingClientRect().bottom >= rr.top - margin) break;
+        cut += 1;
+      }
+      return cut;
+    },
+    [pageOffsets, scrollRef, spansRef]
+  );
+
   const totalChars = stream.steps.length;
 
   return {
@@ -239,7 +283,8 @@ export function useTeleprompterWindow({
     stageViewAnchor,
     windowBlocks,
     stream,
-    firstLen,
+    pageOffsets,
+    pruneMeasure,
     totalChars,
   };
 }

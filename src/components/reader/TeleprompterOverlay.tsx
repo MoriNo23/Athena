@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
+import { teleprompterPageContaining } from "@/lib/teleprompter";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import {
@@ -80,15 +81,24 @@ const TP_IDLE_MS = 3500;
 
 /** la página pedida aún no está en la ventana: abriendo (derivado, sin efectos) */
 function isStaleWindow(win: StreamWindow | null, pageNum: number): boolean {
-  return !win || pageNum < win.start || pageNum > win.start + 1;
+  return !win || pageNum < win.start || pageNum > win.start + win.pages.length - 1;
 }
 
-/** avance de la página actual en % (0 sin primera página medible) */
-function pagePct(lit: number, firstLen: number): number {
-  return firstLen > 0 ? Math.min(100, (lit / firstLen) * 100) : 0;
+/** avance DENTRO de la página que contiene el carácter activo, en % (0 sin
+    página medible). Con la columna viva el progreso es por página real: los
+    offsets dicen dónde empieza y acaba cada una dentro del flujo. Al filo del
+    final (o página muda contenedora) se camina atrás a la última con texto. */
+function pagePct(lit: number, offsets: number[]): number {
+  if (offsets.length < 2) return 0;
+  let k = teleprompterPageContaining(offsets, lit);
+  while (k > 0 && (offsets[k + 1] ?? 0) - (offsets[k] ?? 0) <= 0) k -= 1;
+  const from = offsets[k] ?? 0;
+  const len = (offsets[k + 1] ?? 0) - from;
+  if (len <= 0) return 0;
+  return Math.min(100, Math.max(0, ((lit - from) / len) * 100));
 }
 
-/** el flujo llegó al final del libro (última página sin siguiente encadenada) */
+/** el flujo llegó al final del libro (última página del libro ya encendida) */
 function isAtEnd(
   bookDone: boolean,
   win: StreamWindow | null,
@@ -98,9 +108,10 @@ function isAtEnd(
 ): boolean {
   if (bookDone) return true;
   if (!win) return false;
-  // hueco del cruce atómico: la siguiente aún no entró en la ventana pero existe
-  if (!win.pages[1] && win.start < numPages) return false;
-  return !win.pages[1] && lit >= totalChars && totalChars > 0;
+  const last = win.start + win.pages.length - 1;
+  // hueco de carga: la siguiente aún no entró en la ventana pero existe
+  if (win.pages[win.pages.length - 1] == null && last < numPages) return false;
+  return lit >= totalChars && totalChars > 0 && last >= numPages;
 }
 
 /** etiqueta del botón de avance según el estado de la reproducción */
@@ -112,11 +123,13 @@ function nextLabelFor(atEnd: boolean, pageDone: boolean, t: (k: string) => strin
 /**
  * Modo teleprompter continuo: la página se lee como una columna única que sube
  * sola mientras las letras se encienden, con el carácter activo a ~40 % del
- * alto. La ventana mantiene dos páginas en el DOM: la actual y la siguiente,
- * así el encadenado con Auto no corta y el rebobinado puede volver atrás.
+ * alto. La ventana es una COLUMNA VIVA (teleprompter-cruce-sin-evento): la
+ * página nueva se añade DEBAJO al cruzar —sin evento visual— y las ya leídas
+ * permanecen encima hasta que el scroll las saca de vista; la poda frontal
+ * (fuera de encuadre, con compensación de scroll) es imperceptible.
  *
  * Composición visual: la capa de datos/DOM vive en `use-teleprompter-window`
- * y el control de reproducción (motor, pausa, rebobinado, encadenado) en
+ * y el control de reproducción (motor, pausa, rebobinado, cruce, poda) en
  * `use-teleprompter-player`.
  */
 /** memo: el cronómetro del lector re-renderiza cada segundo; el overlay solo
@@ -239,18 +252,19 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     loadBlocks,
     scrollRef,
     stream,
-    firstLen,
+    pageOffsets,
+    pruneMeasure,
     totalChars,
     cancelViewAnim,
     stageViewAnchor,
   } = tpWin;
 
-  // El cruce de página virtual NO es un evento (teleprompter-solo-continuo):
-  // sin giro de columna, sin fundido, sin aviso — el ancla atómica del cambio
-  // de ventana deja el texto donde estaba y la columna sigue subiendo. La
-  // única espera con Auto es la del revelado instantáneo (pageDone), en el
-  // player: ahí no hay ritmo de letras que proteger.
-  const curStart = win?.start ?? null;
+  // El cruce de página virtual NO es un evento (teleprompter-cruce-sin-evento):
+  // la página nueva se AÑADE debajo de la columna y el texto leído permanece
+  // encima hasta que el scroll lo saca de vista; la poda frontal ocurre fuera
+  // de encuadre, con compensación de scroll imperceptible. La única espera con
+  // Auto es la del revelado instantáneo (pageDone), en el player: ahí no hay
+  // ritmo de letras que proteger.
 
   const player = useTeleprompterPlayer({
     pageNum,
@@ -264,7 +278,8 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     hasSource: !!doc || !!getPageBlocks,
     onGoToPage,
     stream,
-    firstLen,
+    pageOffsets,
+    pruneMeasure,
     totalChars,
     spansRef: tpWin.spansRef,
     scrollRef,
@@ -315,7 +330,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   // que encadenen renders (react-hooks/set-state-in-effect). La apertura no
   // cuenta como cruce y el descanso ya activo no reabre nada.
   const [descansoPausaVisto, setDescansoPausaVisto] = useState(false);
-  const [descansoStartVisto, setDescansoStartVisto] = useState<number | null>(curStart);
+  const [descansoPaginaVista, setDescansoPaginaVista] = useState<number | null>(pageNum);
   if (descansoArmado && !playing && !descansoPausaVisto) {
     // corte natural 1: la lectora ya se pausó (rueda arriba, rebobinado, botón)
     setDescansoPausaVisto(true);
@@ -323,10 +338,10 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   } else if ((!descansoArmado || playing) && descansoPausaVisto) {
     setDescansoPausaVisto(false);
   }
-  if (curStart !== descansoStartVisto) {
+  if (pageNum !== descansoPaginaVista) {
     // corte natural 2: cruce de página con el aviso armado (prev == null: apertura)
-    setDescansoStartVisto(curStart);
-    if (curStart != null && descansoStartVisto != null && descansoArmado && !descansoActivo) {
+    setDescansoPaginaVista(pageNum);
+    if (descansoPaginaVista != null && descansoArmado && !descansoActivo) {
       setDescansoVisible(true);
     }
   }
@@ -467,7 +482,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   const stale = isStaleWindow(win, pageNum);
   const atEnd = isAtEnd(bookDone, win, lit, totalChars, numPages);
   const nextLabel = nextLabelFor(atEnd, pageDone, t);
-  const pct = pagePct(lit, firstLen);
+  const pct = pagePct(lit, pageOffsets);
 
   const tpGhostEntries = useMemo<ShortcutGhostEntry[]>(
     () => [
@@ -484,42 +499,50 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     [t]
   );
 
-  const blocksJsx = useMemo(
-    () =>
-      stream.blocks.map((b, bi) => {
-        // tarjeta de imagen (P2): UN span revelable que contiene la figura;
-        // el encendido (.on) la desvela como el resto de letras
-        if (b.image) {
-          return (
-            <p key={bi} className="tp-block tp-img-block" data-block={bi}>
-              <span className="tp-ch tp-img">
-                <img src={b.image} alt="" draggable={false} decoding="async" />
-              </span>
-            </p>
-          );
-        }
-        const Tag = (b.heading ? (b.kind === "h4" ? "h4" : b.kind === "h3" ? "h3" : "h1" === b.kind ? "h1" : "h2") : "p") as
-          | "h1"
-          | "h2"
-          | "h3"
-          | "h4"
-          | "p";
-        return (
-          <Tag
-            key={bi}
-            className={cn("tp-block", b.heading && "tp-block-h font-display")}
-            data-block={bi}
-          >
-            {Array.from(b.text).map((ch, j) => (
-              <span key={j} className="tp-ch">
-                {ch}
-              </span>
-            ))}
-          </Tag>
-        );
-      }),
-    [stream.blocks]
-  );
+  /** La columna viva se renderiza POR PÁGINAS: cada página es un wrapper
+      (data-page) que el flujo añade debajo al cruzar y poda por delante
+      cuando su pie sale del encuadre. Las claves son el número de página
+      real — estables al añadir y al podar: los bloques NO se re-montan. */
+  const pagesJsx = useMemo(() => {
+    if (!win) return null;
+    return win.pages.map((blocks, k) => {
+      const pageNo = win.start + k;
+      return (
+        <div key={pageNo} className="tp-page" data-page={pageNo}>
+          {(blocks ?? []).map((b, bi) => {
+            // tarjeta de imagen (P2): UN span revelable que contiene la figura;
+            // el encendido (.on) la desvela como el resto de letras
+            if (b.image) {
+              return (
+                <p key={`${pageNo}-${bi}`} className="tp-block tp-img-block" data-block={bi}>
+                  <span className="tp-ch tp-img">
+                    <img src={b.image} alt="" draggable={false} decoding="async" />
+                  </span>
+                </p>
+              );
+            }
+            // h1-h4 son títulos (mismo criterio que buildTeleprompterStream):
+            // se presentan con su etiqueta y estilo de título
+            const esTitulo = b.kind === "h1" || b.kind === "h2" || b.kind === "h3" || b.kind === "h4";
+            const Tag = (esTitulo ? b.kind : "p") as "h1" | "h2" | "h3" | "h4" | "p";
+            return (
+              <Tag
+                key={`${pageNo}-${bi}`}
+                className={cn("tp-block", esTitulo && "tp-block-h font-display")}
+                data-block={bi}
+              >
+                {Array.from(b.text).map((ch, j) => (
+                  <span key={j} className="tp-ch">
+                    {ch}
+                  </span>
+                ))}
+              </Tag>
+            );
+          })}
+        </div>
+      );
+    });
+  }, [win]);
 
   return (
     <div
@@ -588,7 +611,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           <p className="truncate font-display text-sm font-semibold text-foreground/90">{book.title}</p>
           <p className="text-xs text-muted-foreground">
             {t("tp.status", {
-              page: win?.start ?? pageNum,
+              page: pageNum,
               total: numPages,
               speed: speedLabel,
             })}
@@ -841,9 +864,9 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
               className="tp-stream mx-auto w-full max-w-[780px]"
               data-testid="tp-stream"
               data-page-start={win.start}
-              data-pages={win.pages.filter(Boolean).length}
+              data-pages={win.pages.length}
             >
-              {blocksJsx}
+              {pagesJsx}
             </div>
           </div>
         )}
