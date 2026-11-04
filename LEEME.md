@@ -200,6 +200,13 @@ Garantías y detalles que conviene saber:
 - **En modo LAN / túnel**: la ruta es de la máquina que sirve la app. Si
   entras desde otro dispositivo, la app lee la carpeta del servidor.
 
+## ¿Quieres Athena como APP de Android (offline, sin servidor)?
+
+Hay una versión APK: la misma app dentro de un WebView con un motor offline
+que responde todo localmente (biblioteca, progreso y ficheros viven en el
+teléfono). Se compila sola en GitHub Actions — guía completa, límites y
+prueba de 15 minutos en [`docs/APK-OFFLINE.md`](docs/APK-OFFLINE.md).
+
 ## Problemas frecuentes
 
 | Síntoma | Remedio |

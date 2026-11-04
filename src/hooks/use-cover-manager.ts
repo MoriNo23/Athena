@@ -32,11 +32,15 @@ export function useCoverManager(opts: {
   const fileRef = useRef<HTMLInputElement>(null);
 
   /** La portada la sirve la app (change ficheros-servidos-por-la-app): el
-      estático de public/ no existe para ficheros creados tras el arranque. */
+      estático de public/ no existe para ficheros creados tras el arranque.
+      En la app APK el motor offline responde la subida con la portada como
+      data URL (las <img> no pasan por fetch): se usa tal cual. */
   const urlPortada = (coverPath: string | null, bust = false): string | null =>
-    coverPath && coverPath.startsWith("/uploads/")
-      ? `/api/books/${book?.id ?? ""}/cover${bust ? `?v=${Date.now()}` : ""}`
-      : coverPath;
+    coverPath && coverPath.startsWith("data:")
+      ? coverPath
+      : coverPath && coverPath.startsWith("/uploads/")
+        ? `/api/books/${book?.id ?? ""}/cover${bust ? `?v=${Date.now()}` : ""}`
+        : coverPath;
 
   // al abrir el diálogo, la portada parte de la actual del libro
   useEffect(() => {

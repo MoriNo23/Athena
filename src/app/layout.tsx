@@ -75,8 +75,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // ---- Modo APK (build estática, ATHENA_STATIC=1) -------------------------
+  // El flag se inyecta ANTES de cualquier bundle: window.__ATHENA_APK__ activa
+  // el motor offline (public/athena-offline.js), que intercepta fetch/XHR de
+  // /api/* y responde todo localmente (IndexedDB + OPFS). En self-host el
+  // bloque no existe: el archivo ni se carga.
+  const esApk = process.env.NEXT_PUBLIC_ATHENA_APK === "1";
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        {esApk && (
+          <>
+            <script dangerouslySetInnerHTML={{ __html: "window.__ATHENA_APK__=true;" }} />
+            {/* Síncrono a propósito: el motor debe estar instalado antes del
+                primer bundle de React (cualquier fetch de arranque va local). */}
+            {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+            <script src="/athena-offline.js" />
+          </>
+        )}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${literata.variable} ${ebGaramond.variable} ${atkinson.variable} antialiased bg-background text-foreground`}
       >

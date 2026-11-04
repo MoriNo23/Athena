@@ -15,9 +15,15 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
-    "test": "bun test"
+    "test": "bun test",
+    "apk:web": "node scripts/build-apk-web.mjs",
+    "apk:sync": "node scripts/build-apk-web.mjs && bunx cap sync android",
+    "apk:release": "bun run apk:sync && cd android && ./gradlew assembleRelease",
+    "apk:debug": "bun run apk:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^7",
+    "@capacitor/core": "^7",
     "@prisma/client": "^6.11.1",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -49,6 +55,7 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7",
     "@tailwindcss/postcss": "^4",
     "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^19",
