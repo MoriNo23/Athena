@@ -63,11 +63,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#131b28" },
-    { media: "(prefers-color-scheme: light)", color: "#eceff5" },
+    { media: "(prefers-color-scheme: dark)", color: "#211d16" },
+    { media: "(prefers-color-scheme: light)", color: "#f1eee6" },
   ],
   width: "device-width",
   initialScale: 1,
+  // viewportFit cover: las env(safe-area-inset-*) del teleprompter (notch,
+  // barra gestual del Android) dan padding real donde el sistema lo pide.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -98,6 +98,15 @@ export function useTeleprompterPlayer({
   const [pageDone, setPageDone] = useState(false);
   const [bookDone, setBookDone] = useState(false);
   const litRef = useRef(0);
+  /** Cuántos spans leading están encendidos en el DOM VIVO (última cifra que
+      `paint` dejó aplicada). Guardar la cifra evita el repaso masivo: cada
+      re-arranque del motor (append, pausa, poda) volvía a recorrer TODOS los
+      spans de la columna (miles) con classList.toggle y ese churn de estilos
+      en el WebView del APK borra el texto un instante — el parpadeo «las
+      letras desaparecen y vuelven» que se ve en el teléfono. Hoy el repaso
+      solo corre cuando la cifra real cambia; el DOM ya está correcto porque
+      las claves por página preservan los nodos (y sus clases) al podar. */
+  const paintedRef = useRef(-1);
   /** límites de página ya cruzados por el flujo (índice 0-based en la ventana):
       la página que contiene el carácter activo YA fue anunciada */
   const crossedRef = useRef(0);
@@ -164,6 +173,8 @@ export function useTeleprompterPlayer({
       winRef.current = opened;
       winSourceRef.current = sourceKey;
       litRef.current = 0;
+      // DOM nuevo (nodos recién montados, todo apagado): forzar un repaso
+      paintedRef.current = -1;
       crossedRef.current = 0;
       lastFiredRef.current = start;
       setWin(opened);
@@ -257,6 +268,10 @@ export function useTeleprompterPlayer({
     stageViewAnchor(prunedLen, 0);
     litRef.current = Math.max(0, litRef.current - prunedLen);
     setLit(litRef.current);
+    // La poda NO toca clases: los nodos retenidos conservan su encendido y sus
+    // índices se reasientan igual que litRef — el repaso del motor se puede
+    // saltar (guardia del paint) y la poda ni parpadea.
+    paintedRef.current = litRef.current;
     crossedRef.current = Math.max(0, crossedRef.current - cut);
     const next: StreamWindow = { start: cur.start + cut, pages: cur.pages.slice(cut) };
     winRef.current = next;
@@ -281,7 +296,14 @@ export function useTeleprompterPlayer({
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const instant = instante || reduced;
-    const paint = (n: number) => spans.forEach((s, k) => s.classList.toggle("on", k < n));
+    // Pintado con guardia: si la cifra del DOM vivo ya es `n`, no se toca un
+    // solo span. El parpadeo del APK era este repaso sin guardia en cada
+    // re-arranque del efecto (append/prune/pausa re-corren el efecto).
+    const paint = (n: number) => {
+      if (paintedRef.current === n) return;
+      spans.forEach((s, k) => s.classList.toggle("on", k < n));
+      paintedRef.current = n;
+    };
     const syncHeadings = (n: number) => {
       for (const b of stream.blocks) {
         if (!b.heading) continue;
@@ -375,6 +397,7 @@ export function useTeleprompterPlayer({
       for (let k = i; k < end; k++) spans[k]?.classList.add("on");
       if (heading) spans[i]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
       if (stream.steps[i]?.char.trim()) tick();
+      paintedRef.current = end;
 
       // la orden de vista de un título ancla el INICIO del bloque en la zona
       // cómoda: la cámara no se sumerge el alto del bloque entero
@@ -448,6 +471,7 @@ export function useTeleprompterPlayer({
     for (let k = cur; k < end; k++) spans[k]?.classList.add("on");
     if (heading) spans[heading.start]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
     litRef.current = end;
+    paintedRef.current = end;
     setLit(end);
     scrollToChar(end - 1);
   }, [pageOffsets, scrollToChar, spansRef, stream, totalChars]);
@@ -473,6 +497,7 @@ export function useTeleprompterPlayer({
       }
     }
     litRef.current = end;
+    paintedRef.current = end;
     setLit(end);
     crossBoundaries(litRef.current);
     setPageDone(false);
@@ -496,6 +521,9 @@ export function useTeleprompterPlayer({
       const next: StreamWindow = { start: prev, pages: [blocks, ...cur.pages] };
       winRef.current = next;
       litRef.current = all;
+      // página PREPENDIDA: sus nodos son nuevos y salen apagados — hay que
+      // encenderlos (relectura completa), forzar el repaso una vez
+      paintedRef.current = -1;
       setWin(next);
       setLit(all);
       setPageDone(false);
@@ -537,6 +565,7 @@ export function useTeleprompterPlayer({
       }
     }
     litRef.current = to;
+    paintedRef.current = to;
     setLit(to);
     // el encendido volvió atrás: las fronteras que quedaron por delante del
     // carácter activo se vuelven a cruzar (y a anunciar) al re-leerlas
@@ -573,6 +602,7 @@ export function useTeleprompterPlayer({
       }
     }
     litRef.current = end;
+    paintedRef.current = end;
     setLit(end);
     // Revelado completo SIN orden de vista: el resto del texto se enciende
     // donde está y la columna queda donde el lector lee. Con Auto viene el

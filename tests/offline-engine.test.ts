@@ -7,7 +7,8 @@
  * y efectos). Son los tests que permiten NO probar la biblioteca a mano.
  */
 import { describe, test, expect } from "bun:test";
-// @ts-expect-error — módulo JS plano sin tipos
+// Módulo JS plano: con allowJs el tsc infiere sus tipos (el JSDoc de
+// crearRouter clava la firma del router para el test tipado).
 import AthenaOffline from "../public/athena-offline.js";
 
 type Resp = { status: number; json?: any; blob?: Blob; headers?: Record<string, string> };

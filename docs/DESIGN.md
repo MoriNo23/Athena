@@ -1,35 +1,35 @@
 ---
 name: Athena
-description: Casa de lectura local-first que termina libros — neobrutalismo de tinta y azul egeo
+description: Casa de lectura local-first que termina libros — neobrutalismo de tinta y mármol cálido
 colors:
-  ink: "oklch(0.07 0.028 258)"
-  ink-day: "oklch(0.22 0.045 258)"
-  night-navy: "oklch(0.145 0.045 253)"
-  morning-marble: "oklch(0.965 0.018 235)"
-  card-night: "oklch(0.185 0.05 253)"
-  card-day: "oklch(0.995 0.008 240)"
-  focus-blue: "oklch(0.66 0.14 246)"
-  focus-blue-day: "oklch(0.55 0.155 250)"
-  focus-blue-contrast: "oklch(0.14 0.04 253)"
-  focus-blue-contrast-day: "oklch(0.985 0.008 240)"
-  focus-blue-on-tint: "oklch(0.78 0.12 246)"
-  focus-blue-on-tint-day: "oklch(0.45 0.155 250)"
-  panel-night: "oklch(0.26 0.05 252)"
-  panel-day: "oklch(0.915 0.035 240)"
-  text-hi: "oklch(0.93 0.02 250)"
-  text-hi-day: "oklch(0.24 0.05 258)"
-  text-soft: "oklch(0.68 0.03 250)"
-  text-soft-day: "oklch(0.46 0.05 255)"
-  hairline: "oklch(0.85 0.03 250 / 16%)"
-  hairline-day: "oklch(0.28 0.05 258 / 65%)"
-  reader-page: "oklch(0.185 0.05 253)"
-  reader-page-day: "oklch(0.985 0.012 235)"
-  reader-ink: "oklch(0.92 0.018 250)"
-  reader-ink-day: "oklch(0.26 0.05 258)"
-  reader-title: "oklch(0.97 0.02 250)"
-  reader-title-day: "oklch(0.2 0.055 258)"
-  reader-rule: "oklch(0.52 0.04 253)"
-  reader-rule-day: "oklch(0.58 0.045 250)"
+  ink: "oklch(0.08 0.012 70)"
+  ink-day: "oklch(0.24 0.02 70)"
+  night-umber: "oklch(0.16 0.012 75)"
+  morning-warm-marble: "oklch(0.968 0.008 85)"
+  card-night: "oklch(0.2 0.014 75)"
+  card-day: "oklch(0.995 0.004 85)"
+  focus-bronze: "oklch(0.77 0.11 80)"
+  focus-bronze-day: "oklch(0.55 0.13 65)"
+  focus-bronze-contrast: "oklch(0.17 0.02 75)"
+  focus-bronze-contrast-day: "oklch(0.985 0.005 85)"
+  focus-bronze-on-tint: "oklch(0.82 0.09 82)"
+  focus-bronze-on-tint-day: "oklch(0.44 0.13 65)"
+  panel-night: "oklch(0.27 0.015 75)"
+  panel-day: "oklch(0.93 0.015 85)"
+  text-hi: "oklch(0.93 0.008 85)"
+  text-hi-day: "oklch(0.25 0.02 70)"
+  text-soft: "oklch(0.7 0.015 80)"
+  text-soft-day: "oklch(0.46 0.025 75)"
+  hairline: "oklch(0.87 0.012 85 / 16%)"
+  hairline-day: "oklch(0.3 0.025 70 / 65%)"
+  reader-page: "oklch(0.19 0.014 75)"
+  reader-page-day: "oklch(0.987 0.005 85)"
+  reader-ink: "oklch(0.92 0.01 85)"
+  reader-ink-day: "oklch(0.27 0.02 70)"
+  reader-title: "oklch(0.96 0.012 85)"
+  reader-title-day: "oklch(0.22 0.025 70)"
+  reader-rule: "oklch(0.5 0.02 75)"
+  reader-rule-day: "oklch(0.6 0.03 80)"
   alert-red: "oklch(0.65 0.19 25)"
   alert-red-day: "oklch(0.55 0.19 25)"
 typography:
@@ -62,19 +62,19 @@ rounded:
   none: "0px"
 components:
   button-primary:
-    backgroundColor: "{colors.focus-blue}"
-    textColor: "{colors.focus-blue-contrast}"
+    backgroundColor: "{colors.focus-bronze}"
+    textColor: "{colors.focus-bronze-contrast}"
     rounded: "{rounded.none}"
     padding: "8px 16px"
     height: "36px"
   button-primary-day:
-    backgroundColor: "{colors.focus-blue-day}"
-    textColor: "{colors.focus-blue-contrast-day}"
+    backgroundColor: "{colors.focus-bronze-day}"
+    textColor: "{colors.focus-bronze-contrast-day}"
     rounded: "{rounded.none}"
     padding: "8px 16px"
     height: "36px"
   button-outline:
-    backgroundColor: "{colors.night-navy}"
+    backgroundColor: "{colors.night-umber}"
     textColor: "{colors.text-hi}"
     rounded: "{rounded.none}"
     padding: "8px 16px"
@@ -86,7 +86,7 @@ components:
     padding: "8px 16px"
     height: "36px"
   rail-fill:
-    backgroundColor: "{colors.focus-blue}"
+    backgroundColor: "{colors.focus-bronze}"
     height: "8px"
   book-card:
     backgroundColor: "{colors.card-night}"
@@ -99,13 +99,15 @@ components:
 
 ## Overview
 
-**Creative North Star: "La Casa de Tinta y Azul"**
+**Creative North Star: "La Casa de Tinta y Mármol Cálido"**
 
-Athena es una casa de lectura brutalista: tinta sólida, azul de enfoque y cero
+Athena es una casa de lectura brutalista: tinta sólida, bronce de enfoque y cero
 curvas. La letra manda — Fraunces para los títulos, Literata para el libro — y
 todo lo demás se aparta: sin degradados decorativos, sin sombras de humo, sin
-esquinas que invitan a descansar. La calma no viene de la blandura sino del
-azul profundo: una madrugada de estudio que sostiene el foco.
+esquinas que invitan a descansar. La calma no viene de la blandura sino de la
+piedra cálida: una sala de lectura con sol de mañana que sostiene el foco.
+(La casa vistió azul hasta la versión 1.1: la dueña pidió menos azul y el
+tema vistió mármol cálido con acento bronce.)
 
 El mundo es editorial, no de aplicación: los botones y las tarjetas se comportan
 como piezas de un cartel bien impreso — borde de tinta de 2px, sombra offset
@@ -117,31 +119,31 @@ casi fantasma, nunca como motivo decorativo de componentes.
 **Key Characteristics:**
 - Cero radio en todo (`--radius: 0`); las esquinas son siempre rectas.
 - Tinta única para bordes y sombras (`--ink`), nunca grises genéricos.
-- Azul de enfoque escaso y estructural: interacción, progreso, riel.
-- Dos caras del mismo azul: noche egea (default) y mañana de mármol.
+- Bronce de enfoque escaso y estructural: interacción, progreso, riel.
+- Dos caras del mismo mármol cálido: noche de bronce (default) y mañana cálida.
 - Superficie de lectura con tokens propios (`--reader-*`), impermeable al tema.
 
 ## Colors
 
-Paleta de un solo matiz con oficio: azules profundos que sostienen el foco,
+Paleta de un solo matiz con oficio: bronces cálidos que sostienen el foco,
 una tinta casi negra que dibuja, y rojo solo para destruir. Los valores son
 oklch — el formato canónico del proyecto — y cada rol tiene su cara nocturna
 (default) y su cara `-day`.
 
 ### Primary
-- **Focus Blue** (`oklch(0.66 0.14 246)`; día `oklch(0.55 0.155 250)`): el azul
-  de la interacción — botones primarios, riel, progreso, ring de foco. Escaso
-  a propósito: donde aparece, es una invitación a actuar.
-- **Focus Blue on Tint** (`oklch(0.78 0.12 246)`; día `oklch(0.45 0.155 250)`):
-  la pareja «azul sobre tinte» — el texto azul de enfoque que vive ENCIMA de
-  un tinte del mismo azul (botón «Pantalla completa», badges y chips activos
-  sobre `primary/10–20%`). El azul global no llega a AA contra su propio
-  tinte (4.0:1 claro, 3.4–3.5:1 oscuro móvil); esta cara medida sube cada
-  combinación sobre 4.5:1 sin mover `--primary` (riel, progreso y focos
-  quedan intactos). (contraste medido a mano al tocar tokens).
+- **Focus Bronze** (`oklch(0.77 0.11 80)`; día `oklch(0.55 0.13 65)`): el
+  bronce de la interacción — botones primarios, riel, progreso, ring de foco.
+  Escaso a propósito: donde aparece, es una invitación a actuar.
+- **Focus Bronze on Tint** (`oklch(0.82 0.09 82)`; día `oklch(0.44 0.13 65)`):
+  la pareja «bronce sobre tinte» — el texto bronce de enfoque que vive ENCIMA
+  de un tinte del mismo bronce (botón «Pantalla completa», badges y chips
+  activos sobre `primary/10–20%`). El bronce global no llega a AA contra su
+  propio tinte; esta cara medida sube cada combinación sobre 4.5:1 sin mover
+  `--primary` (riel, progreso y focos quedan intactos). (contraste medido a
+  mano al tocar tokens).
 
 ### Secondary
-- **Panel** (`oklch(0.26 0.05 252)`; día `oklch(0.915 0.035 240)`): superficie
+- **Panel** (`oklch(0.27 0.015 75)`; día `oklch(0.93 0.015 85)`): superficie
   secundaria para chips, estados y contenedores quietos que no piden clic.
 
 ### Tertiary
@@ -149,28 +151,29 @@ oklch — el formato canónico del proyecto — y cada rol tiene su cara nocturn
   acciones destructivas. Nunca decorativo.
 
 ### Neutral
-- **Ink** (`oklch(0.07 0.028 258)`; día `oklch(0.22 0.045 258)`): la tinta del
+- **Ink** (`oklch(0.08 0.012 70)`; día `oklch(0.24 0.02 70)`): la tinta del
   brutalismo — bordes de 2px y sombras offset. Más negra que el texto.
-- **Night Navy** (`oklch(0.145 0.045 253)`): fondo de la app de noche (default).
-- **Morning Marble** (`oklch(0.965 0.018 235)`): fondo de la app de día.
-- **Card** (`oklch(0.185 0.05 253)`; día `oklch(0.995 0.008 240)`): tarjeta y
+- **Night Umber** (`oklch(0.16 0.012 75)`): fondo de la app de noche (default).
+- **Morning Warm Marble** (`oklch(0.968 0.008 85)`): fondo de la app de día.
+- **Card** (`oklch(0.2 0.014 75)`; día `oklch(0.995 0.004 85)`): tarjeta y
   popover, un paso por encima del fondo.
-- **Text Hi / Text Soft** (`oklch(0.93 0.02 250)` / `oklch(0.68 0.03 250)`;
-  día `oklch(0.24 0.05 258)` / `oklch(0.46 0.05 255)`): texto principal y
+- **Text Hi / Text Soft** (`oklch(0.93 0.008 85)` / `oklch(0.7 0.015 80)`;
+  día `oklch(0.25 0.02 70)` / `oklch(0.46 0.025 75)`): texto principal y
   secundario de la interfaz.
-- **Hairline** (`oklch(0.85 0.03 250 / 16%)`; día `oklch(0.28 0.05 258 / 65%)`):
+- **Hairline** (`oklch(0.87 0.012 85 / 16%)`; día `oklch(0.3 0.025 70 / 65%)`):
   separadores y bordes sin peso.
-- **Reader Page** (`oklch(0.185 0.05 253)`; día `oklch(0.985 0.012 235)`): el
-  papel donde vive el libro — noche egea elevada de noche, mármol limpio de día.
-- **Reader Ink / Title / Rule** (`oklch(0.92 0.018 250)`, `oklch(0.97 0.02 250)`,
-  `oklch(0.52 0.04 253)`; día `oklch(0.26 0.05 258)`, `oklch(0.2 0.055 258)`,
-  `oklch(0.58 0.045 250)`): cuerpo, títulos y filetes del libro. Contrastes AA+
+- **Reader Page** (`oklch(0.19 0.014 75)`; día `oklch(0.987 0.005 85)`): el
+  papel donde vive el libro — noche cálida de lámpara de noche, mármol cálido
+  de día.
+- **Reader Ink / Title / Rule** (`oklch(0.92 0.01 85)`, `oklch(0.96 0.012 85)`,
+  `oklch(0.5 0.02 75)`; día `oklch(0.27 0.02 70)`, `oklch(0.22 0.025 70)`,
+  `oklch(0.6 0.03 80)`): cuerpo, títulos y filetes del libro. Contrastes AA+
   medidos a mano.
 
 ### Named Rules
-**The Focus-Blue Rule.** El azul es foco, no decoración: aparece solo donde hay
-una acción o progreso real (botón primario, riel, ring, eslabón activo) y su
-rareza es el punto. Si una pantalla necesita más azul, el problema es de
+**The Focus-Bronze Rule.** El bronce es foco, no decoración: aparece solo donde
+hay una acción o progreso real (botón primario, riel, ring, eslabón activo) y
+su rareza es el punto. Si una pantalla necesita más bronce, el problema es de
 jerarquía, no de paleta.
 
 **The Ink Rule.** Bordes y sombras se dibujan siempre con `--ink`; jamás con

@@ -974,6 +974,15 @@
 
     // ------------------------------------------------------------- router
 
+    /**
+     * Punto de entrada del motor: reparte (método, ruta, search, ctx) a las
+     * rutas de la API replicadas. El JSDoc clava el tipo para el tsc (con
+     * allowJs el test lo consume tipado: Promise<{status, json?, blob?,
+     * headers?}>) — no cambia nada en runtime.
+     *
+     * @param {{ fetchImpl?: (input: any, init?: any) => Promise<any> }} depsRouter
+     * @returns {(metodo: string, pathname: string, search: string, ctx: any) => Promise<{status: number, json?: any, blob?: Blob, headers?: Record<string, string>}>}
+     */
     function crearRouter(depsRouter) {
       var diccionario = crearBuscadorDiccionario(depsRouter.fetchImpl || (typeof fetch !== "undefined" ? fetch : function () {
         return Promise.reject(new Error("sin red"));

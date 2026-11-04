@@ -45,10 +45,12 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ---------- Casa Athena: la psicología del azul hecha tema ----------
-   El azul sostiene el enfoque (calma + profundidad). Dos caras:
-   · Oscura: noche egea profunda — la calma de la madrugada de estudio.
-   · Clara: mañana de mármol azul — luz serena de sala de lectura.
+/* ---------- Casa Athena: mármol cálido y bronce ----------
+   Antes todo era azul (hue 250): la dueña pidió quitar tanto azul. La casa
+   nueva viste piedra cálida de mármol con acento bronce/oro — la misma
+   calma de sala de lectura, sin la frialdad monocroma. Dos caras:
+   · Oscura: noche de aceite y bronce — lámpara de estudio, no pantalla.
+   · Clara: mañana de mármol cálido — luz de sala con sol de mañana.
    Neobrutalismo: esquinas rectas, tinta sólida, sombras duras desplazadas. */
 :root {
   /* Neobrutalismo: cero redondeos */
@@ -59,57 +61,57 @@
   --radius-xl: 0rem;
 
   /* Tinta dura del brutalismo (bordes y sombras offset) */
-  --ink: oklch(0.22 0.045 258);
-  --brutal-shadow: 4px 4px 0 0 oklch(0.22 0.045 258 / 85%);
-  --brutal-shadow-lg: 7px 7px 0 0 oklch(0.22 0.045 258 / 78%);
+  --ink: oklch(0.24 0.02 70);
+  --brutal-shadow: 4px 4px 0 0 oklch(0.24 0.02 70 / 85%);
+  --brutal-shadow-lg: 7px 7px 0 0 oklch(0.24 0.02 70 / 78%);
 
-  --background: oklch(0.965 0.018 235);
-  --foreground: oklch(0.24 0.05 258);
-  --card: oklch(0.995 0.008 240);
-  --card-foreground: oklch(0.24 0.05 258);
-  --popover: oklch(0.995 0.008 240);
-  --popover-foreground: oklch(0.24 0.05 258);
-  --primary: oklch(0.55 0.155 250);
-  --primary-foreground: oklch(0.985 0.008 240);
-  /* Pareja «azul sobre tinte»: texto azul de enfoque sobre tinte del mismo
-     azul (p. ej. botón «Pantalla completa»). Azul más oscuro bajando L y
+  --background: oklch(0.968 0.008 85);
+  --foreground: oklch(0.25 0.02 70);
+  --card: oklch(0.995 0.004 85);
+  --card-foreground: oklch(0.25 0.02 70);
+  --popover: oklch(0.995 0.004 85);
+  --popover-foreground: oklch(0.25 0.02 70);
+  --primary: oklch(0.55 0.13 65);
+  --primary-foreground: oklch(0.985 0.005 85);
+  /* Pareja «bronce sobre tinte»: texto bronce de enfoque sobre tinte del
+     mismo bronce (p. ej. botón «Pantalla completa»). Más oscuro bajando L y
      conservando hue/croma: ≥ 4.5:1 contra el tinte real (10–20 %) en claro.
-     Medido en scripts/audit-reader-contrast.py; --primary global no se mueve. */
-  --primary-on-tint: oklch(0.45 0.155 250);
-  --secondary: oklch(0.915 0.035 240);
-  --secondary-foreground: oklch(0.3 0.055 258);
-  --muted: oklch(0.93 0.02 235);
-  --muted-foreground: oklch(0.46 0.05 255);
-  --accent: oklch(0.9 0.05 240);
-  --accent-foreground: oklch(0.26 0.055 258);
+     El blanco del botón primario da 4.8:1 sobre este bronce. */
+  --primary-on-tint: oklch(0.44 0.13 65);
+  --secondary: oklch(0.93 0.015 85);
+  --secondary-foreground: oklch(0.3 0.03 70);
+  --muted: oklch(0.94 0.01 85);
+  --muted-foreground: oklch(0.46 0.025 75);
+  --accent: oklch(0.92 0.025 85);
+  --accent-foreground: oklch(0.28 0.03 70);
   --destructive: oklch(0.55 0.19 25);
-  --border: oklch(0.28 0.05 258 / 65%);
-  --input: oklch(0.28 0.05 258 / 80%);
-  --ring: oklch(0.55 0.155 250 / 55%);
-  --chart-1: oklch(0.55 0.155 250);
+  --border: oklch(0.3 0.025 70 / 65%);
+  --input: oklch(0.3 0.025 70 / 80%);
+  --ring: oklch(0.55 0.13 65 / 55%);
+  --chart-1: oklch(0.55 0.13 65);
   --chart-2: oklch(0.68 0.14 35);
   --chart-3: oklch(0.6 0.13 150);
   --chart-4: oklch(0.6 0.14 310);
   --chart-5: oklch(0.62 0.11 200);
-  --sidebar: oklch(0.98 0.012 235);
-  --sidebar-foreground: oklch(0.24 0.05 258);
-  --sidebar-primary: oklch(0.55 0.155 250);
-  --sidebar-primary-foreground: oklch(0.985 0.008 240);
-  --sidebar-accent: oklch(0.9 0.05 240);
-  --sidebar-accent-foreground: oklch(0.26 0.055 258);
-  --sidebar-border: oklch(0.28 0.05 258 / 65%);
-  --sidebar-ring: oklch(0.55 0.155 250 / 55%);
+  --sidebar: oklch(0.98 0.006 85);
+  --sidebar-foreground: oklch(0.25 0.02 70);
+  --sidebar-primary: oklch(0.55 0.13 65);
+  --sidebar-primary-foreground: oklch(0.985 0.005 85);
+  --sidebar-accent: oklch(0.92 0.025 85);
+  --sidebar-accent-foreground: oklch(0.28 0.03 70);
+  --sidebar-border: oklch(0.3 0.025 70 / 65%);
+  --sidebar-ring: oklch(0.55 0.13 65 / 55%);
 
   /* Scroll + teleprompter (el teleprompter comparte el fondo del lector) */
-  --scroll-thumb: oklch(0.72 0.03 245);
+  --scroll-thumb: oklch(0.74 0.03 80);
 
-  /* Tokens de lectura: la superficie donde vive el libro — mármol de la
-     mañana en claro, fría y limpia, con el texto flotando directo encima.
+  /* Tokens de lectura: la superficie donde vive el libro — mármol cálido de
+     mañana, papel de sala de lectura, con el texto flotando directo encima.
      Contrastes medidos en scripts/audit-reader-contrast.py (AA+). */
-  --reader-bg: oklch(0.985 0.012 235);
-  --reader-ink: oklch(0.26 0.05 258);
-  --reader-title: oklch(0.2 0.055 258);
-  --reader-rule: oklch(0.58 0.045 250);
+  --reader-bg: oklch(0.987 0.005 85);
+  --reader-ink: oklch(0.27 0.02 70);
+  --reader-title: oklch(0.22 0.025 70);
+  --reader-rule: oklch(0.6 0.03 80);
   --tp-bg: var(--reader-bg);
 
   /* Fuente del texto reflowable: la elige el lector (selector en la cabecera) */
@@ -119,55 +121,55 @@
 }
 
 .dark {
-  --background: oklch(0.145 0.045 253);
-  --foreground: oklch(0.93 0.02 250);
-  --card: oklch(0.185 0.05 253);
-  --card-foreground: oklch(0.93 0.02 250);
-  --popover: oklch(0.18 0.05 253);
-  --popover-foreground: oklch(0.93 0.02 250);
-  --primary: oklch(0.66 0.14 246);
-  --primary-foreground: oklch(0.14 0.04 253);
-  /* Pareja «azul sobre tinte» nocturna: el peor caso medido era el oscuro
+  --background: oklch(0.16 0.012 75);
+  --foreground: oklch(0.93 0.008 85);
+  --card: oklch(0.2 0.014 75);
+  --card-foreground: oklch(0.93 0.008 85);
+  --popover: oklch(0.205 0.014 75);
+  --popover-foreground: oklch(0.93 0.008 85);
+  --primary: oklch(0.77 0.11 80);
+  --primary-foreground: oklch(0.17 0.02 75);
+  /* Pareja «bronce sobre tinte» nocturna: el peor caso medido era el oscuro
      móvil (3.4–3.5:1 por píxel). Se sube la luminancia del texto y se
      suaviza el croma: ≥ 4.5:1 con margen incluso en tinte 20 % (hover). */
-  --primary-on-tint: oklch(0.78 0.12 246);
-  --secondary: oklch(0.26 0.05 252);
-  --secondary-foreground: oklch(0.93 0.02 250);
-  --muted: oklch(0.24 0.04 252);
-  --muted-foreground: oklch(0.68 0.03 250);
-  --accent: oklch(0.28 0.05 250);
-  --accent-foreground: oklch(0.93 0.02 250);
+  --primary-on-tint: oklch(0.82 0.09 82);
+  --secondary: oklch(0.27 0.015 75);
+  --secondary-foreground: oklch(0.93 0.008 85);
+  --muted: oklch(0.25 0.012 75);
+  --muted-foreground: oklch(0.7 0.015 80);
+  --accent: oklch(0.29 0.018 75);
+  --accent-foreground: oklch(0.93 0.008 85);
   --destructive: oklch(0.65 0.19 25);
-  --border: oklch(0.85 0.03 250 / 16%);
-  --input: oklch(0.85 0.03 250 / 20%);
-  --ring: oklch(0.66 0.14 246 / 60%);
-  --chart-1: oklch(0.66 0.14 246);
+  --border: oklch(0.87 0.012 85 / 16%);
+  --input: oklch(0.87 0.012 85 / 20%);
+  --ring: oklch(0.77 0.11 80 / 60%);
+  --chart-1: oklch(0.77 0.11 80);
   --chart-2: oklch(0.8 0.13 85);
   --chart-3: oklch(0.72 0.14 150);
   --chart-4: oklch(0.72 0.14 310);
   --chart-5: oklch(0.78 0.12 200);
-  --sidebar: oklch(0.17 0.045 253);
-  --sidebar-foreground: oklch(0.93 0.02 250);
-  --sidebar-primary: oklch(0.66 0.14 246);
-  --sidebar-primary-foreground: oklch(0.14 0.04 253);
-  --sidebar-accent: oklch(0.28 0.05 250);
-  --sidebar-accent-foreground: oklch(0.93 0.02 250);
-  --sidebar-border: oklch(0.85 0.03 250 / 16%);
-  --sidebar-ring: oklch(0.66 0.14 246 / 60%);
+  --sidebar: oklch(0.185 0.012 75);
+  --sidebar-foreground: oklch(0.93 0.008 85);
+  --sidebar-primary: oklch(0.77 0.11 80);
+  --sidebar-primary-foreground: oklch(0.17 0.02 75);
+  --sidebar-accent: oklch(0.29 0.018 75);
+  --sidebar-accent-foreground: oklch(0.93 0.008 85);
+  --sidebar-border: oklch(0.87 0.012 85 / 16%);
+  --sidebar-ring: oklch(0.77 0.11 80 / 60%);
 
   /* Neobrutalismo nocturno: tinta casi negra, sombra más honda */
-  --ink: oklch(0.07 0.028 258);
-  --brutal-shadow: 4px 4px 0 0 oklch(0.03 0.02 258 / 70%);
-  --brutal-shadow-lg: 7px 7px 0 0 oklch(0.03 0.02 258 / 65%);
+  --ink: oklch(0.08 0.012 70);
+  --brutal-shadow: 4px 4px 0 0 oklch(0.03 0.008 70 / 70%);
+  --brutal-shadow-lg: 7px 7px 0 0 oklch(0.03 0.008 70 / 65%);
 
-  --scroll-thumb: oklch(0.4 0.04 258);
+  --scroll-thumb: oklch(0.42 0.02 75);
 
-  /* Tokens de lectura: noche egea elevada sobre el fondo de la app — azul
-     profundo y sereno, sin el papel cálido de antes. */
-  --reader-bg: oklch(0.185 0.05 253);
-  --reader-ink: oklch(0.92 0.018 250);
-  --reader-title: oklch(0.97 0.02 250);
-  --reader-rule: oklch(0.52 0.04 253);
+  /* Tokens de lectura: noche cálida elevada sobre el fondo de la app —
+     penumbra de lámpara, sin el papel cálido de antes en claro. */
+  --reader-bg: oklch(0.19 0.014 75);
+  --reader-ink: oklch(0.92 0.01 85);
+  --reader-title: oklch(0.96 0.012 85);
+  --reader-rule: oklch(0.5 0.02 75);
   --tp-bg: var(--reader-bg);
 
   color-scheme: dark;
@@ -187,20 +189,21 @@
     @apply bg-background text-foreground;
     background-attachment: fixed;
   }
-  /* Halo azul del focus: una sola respiración de luz arriba, un asiento abajo */
+  /* Halo del focus: una sola respiración de luz arriba, un asiento abajo —
+     ahora en bronce cálido (antes azul) */
   .dark body {
     background-image:
-      radial-gradient(1200px 500px at 70% -10%, oklch(0.66 0.14 246 / 7%), transparent 60%),
-      radial-gradient(900px 420px at 10% 110%, oklch(0.72 0.12 220 / 4%), transparent 55%);
+      radial-gradient(1200px 500px at 70% -10%, oklch(0.77 0.11 80 / 7%), transparent 60%),
+      radial-gradient(900px 420px at 10% 110%, oklch(0.7 0.09 70 / 4%), transparent 55%);
   }
   html:not(.dark) body {
     background-image:
-      radial-gradient(1200px 500px at 70% -10%, oklch(0.85 0.06 240 / 34%), transparent 60%),
-      radial-gradient(900px 420px at 10% 110%, oklch(0.88 0.05 230 / 26%), transparent 55%);
+      radial-gradient(1200px 500px at 70% -10%, oklch(0.85 0.06 80 / 30%), transparent 60%),
+      radial-gradient(900px 420px at 10% 110%, oklch(0.88 0.05 70 / 22%), transparent 55%);
   }
 }
 
-/* ---------- Scrollbars finas y azules ---------- */
+/* ---------- Scrollbars finas y cálidas ---------- */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--scroll-thumb) transparent;
@@ -516,6 +519,9 @@ html:not(.dark) .athena-hero .seal-glow {
    letra. El texto flota directo sobre el escenario, en una columna continua. */
 .tp-overlay {
   background: var(--tp-bg);
+  /* Tacto (APK): fuera el retardo de 300 ms y el zoom por doble toque —
+     el tap del escenario pausa al primer toque. */
+  touch-action: manipulation;
 }
 .tp-progress-fill {
   background: var(--primary);
@@ -532,6 +538,12 @@ html:not(.dark) .athena-hero .seal-glow {
   font-size: calc(clamp(1.35rem, 1.05rem + 0.9vw, 1.78rem) * var(--tp-font-scale, 1));
   line-height: 1.9;
   color: var(--reader-ink);
+}
+/* Cada página de la columna aísla su layout/estilo: el recálculo de miles de
+   spans de una página no arrastra al resto (el WebView del APK repinta menos
+   por cuadro — parte del fix del parpadeo «las letras desaparecen»). */
+.tp-page {
+  contain: layout style;
 }
 .tp-block {
   margin: 0 0 1.1em;
@@ -626,8 +638,9 @@ html:not(.dark) .athena-hero .seal-glow {
    lectura — la barra flota sobre una banda del color de lectura que se funde
    hacia abajo, para que el texto no compita con el libro. El UI es legible a
    proposito y se puede ocultar a voluntad: cuando la inmersion se lo lleva,
-   la banda se va con el. */
+   la banda se va con el. El padding respeta el notch (safe-area) del móvil. */
 .tp-header {
+  padding-top: max(12px, env(safe-area-inset-top));
   background: linear-gradient(
     to bottom,
     color-mix(in oklab, var(--reader-bg) 96%, transparent) 0%,
@@ -642,6 +655,7 @@ html:not(.dark) .athena-hero .seal-glow {
 /* Misma banda abajo (peticion de la duena: armonia arriba y abajo): el
    gradiente sube desde el borde y el filete corona la barra de controles. */
 .tp-footer {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
   background: linear-gradient(
     to top,
     color-mix(in oklab, var(--reader-bg) 96%, transparent) 0%,
@@ -651,6 +665,46 @@ html:not(.dark) .athena-hero .seal-glow {
   backdrop-filter: blur(4px);
   border-top: 1px solid color-mix(in oklab, var(--reader-ink) 12%, transparent);
   box-shadow: 0 -10px 26px -20px color-mix(in oklab, var(--reader-ink) 55%, transparent);
+}
+/* ---------- APK/WebView: fix del parpadeo del teleprompter ----------
+   En el teléfono las letras «desaparecían y volvían». Tres causas corrigen
+   aquí: (1) backdrop-filter obliga al WebView a re-muestrear el fondo en
+   CADA cuadro de scroll y en Android eso tira teselas — checkerboarding que
+   se ve como texto que se borra y vuelve; (2) la transición de color por
+   letra duplica el pintado; (3) seleccionar texto con long-press estorba el
+   gesto de lectura. En puntero grueso (móvil/APK) los tres fuera: el
+   gradiente de la banda ya separa el texto del contenido. */
+@media (pointer: coarse) {
+  .tp-header,
+  .tp-footer {
+    backdrop-filter: none;
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--reader-bg) 98%, transparent) 0%,
+      color-mix(in oklab, var(--reader-bg) 88%, transparent) 62%,
+      transparent 100%
+    );
+  }
+  .tp-footer {
+    background: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--reader-bg) 98%, transparent) 0%,
+      color-mix(in oklab, var(--reader-bg) 88%, transparent) 62%,
+      transparent 100%
+    );
+  }
+  .tp-ch.on {
+    /* solo opacity: el color va directo, sin transición extra que repinte */
+    transition: opacity 130ms ease-out;
+  }
+  .tp-stage {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* El recordatorio de teclas no aplica al tacto */
+  .shortcut-ghost {
+    display: none;
+  }
 }
 .tp-immersed .tp-chrome {
   opacity: 0;

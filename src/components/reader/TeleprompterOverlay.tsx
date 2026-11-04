@@ -28,6 +28,7 @@ import {
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import { teleprompterPageContaining } from "@/lib/teleprompter";
+import { direccionArrastre, esTap, iniciarGesto, type GestoActivo } from "@/lib/touch-gestures";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import {
@@ -192,6 +193,13 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const speedOpenRef = useRef(false);
   const settingsOpenRef = useRef(false);
+  // ---------- tacto (APK): tap = pausa/reanuda, arrastrar atrás = pausa -----
+  // Decisiones puras en lib/touch-gestures (testeado); aquí solo registro
+  // puntos. El tap NUNCA avanza página (regla de la dueña) — es el equivalente
+  // táctil de la barra espaciadora. La cámara cede ante el dedo (mismo
+  // contrato que con la rueda: el desplazamiento manual manda).
+  const gestoRef = useRef<GestoActivo | null>(null);
+  const ultimoYRef = useRef(0);
 
   useEffect(() => {
     settingsOpenRef.current = settingsOpen;
@@ -617,17 +625,20 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
             })}
           </p>
         </div>
-        {/* Hoy de ESTE libro: mismo conteo que la cabecera del lector, vivo */}
+        {/* Hoy de ESTE libro: mismo conteo que la cabecera del lector, vivo.
+            En móvil se esconde (el dato vive en el lector y la barra no cabe). */}
         <span
-          className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground"
+          className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground sm:flex"
           title={t("reader.goalBookTitle")}
           data-testid="tp-today"
         >
           <Target className="h-3.5 w-3.5" />
           {todayPages}/{todayGoal}
         </span>
+        {/* Tamaño de letra vive en la sheet de ajustes (tecla A / botón): en
+            móvil el par A−/A+ sobra y despeja la barra para el tacto. */}
         <Tip label={t("tp.fontTip", { pct: Math.round(fontScale * 100) })}>
-          <div className="flex items-center" data-testid="tp-font-group">
+          <div className="hidden items-center sm:flex" data-testid="tp-font-group">
             <Button
               variant="ghost"
               size="icon"
@@ -676,11 +687,12 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </Button>
         </Tip>
+        {/* Auto también vive en la sheet: en móvil fuera de la barra */}
         <Tip label={auto ? t("tp.autoOnTip") : t("tp.autoOffTip")}>
           <Button
             variant={auto ? "secondary" : "ghost"}
             size="sm"
-            className={cn("h-8 gap-1.5 text-xs", auto && "text-primary")}
+            className={cn("hidden h-8 gap-1.5 text-xs sm:inline-flex", auto && "text-primary")}
             onClick={() => setTeleprompter({ auto: !tpSet.auto })}
             aria-pressed={auto}
             aria-label={auto ? t("tp.autoOnAria") : t("tp.autoOffAria")}
@@ -738,12 +750,12 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-10 w-10 sm:h-8 sm:w-8"
             onClick={() => setPlaying((v) => !v)}
             aria-label={playing ? t("tp.pauseAria") : t("tp.playAria")}
             data-testid="tp-play"
           >
-            {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+            {playing ? <Pause className="h-5 w-5 sm:h-4 sm:w-4" /> : <Play className="h-5 w-5 sm:h-4 sm:w-4" />}
           </Button>
         </Tip>
         <Tip label={t("tp.settingsTip")}>
@@ -828,8 +840,48 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
       {/* Escenario: columna única con scroll real */}
       {/* El escenario NO avanza al hacer click (la dueña: «que no salte a la
           siguiente página»): avanzar es cosa del botón, la barra espaciadora
-          o las flechas. Clickear en el texto es para seleccionar/pausar. */}
-      <div className="tp-stage absolute inset-0 z-10" data-testid="tp-stage">
+          o las flechas. En táctil: un TAP pausa/reanuda y arrastrar hacia
+          atrás (releer) pausa — la simetría de la rueda hacia arriba. */}
+      <div
+        className="tp-stage absolute inset-0 z-10"
+        data-testid="tp-stage"
+        onPointerDown={(e) => {
+          gestoRef.current = iniciarGesto(e.clientX, e.clientY, e.timeStamp);
+        }}
+        onPointerUp={(e) => {
+          const g = gestoRef.current;
+          gestoRef.current = null;
+          if (!g) return;
+          if (esTap(g, e.clientX, e.clientY, e.timeStamp)) {
+            // mismo contrato que la barra espaciadora: en el corte de página
+            // (pageDone) el tap CRUZA como el botón; fuera de él, pausa/reanuda
+            if (pageDone || bookDone) forward();
+            else setPlaying((v) => !v);
+          }
+        }}
+        onPointerCancel={() => {
+          gestoRef.current = null;
+        }}
+        onTouchStart={(e) => {
+          const t0 = e.touches[0];
+          if (!t0) return;
+          ultimoYRef.current = t0.clientY;
+          // el dedo agarra la columna: la cámara en vuelo se detiene (cede)
+          cancelViewAnim();
+        }}
+        onTouchMove={(e) => {
+          const t = e.touches[0];
+          if (!t) return;
+          const dy = t.clientY - ultimoYRef.current;
+          ultimoYRef.current = t.clientY;
+          // releer hacia atrás pausa el flujo (mismo contrato que la rueda
+          // arriba en PC); arrastrar adelante deja seguir
+          if (direccionArrastre(dy) === "atras") setPlaying(false);
+        }}
+        onTouchCancel={() => {
+          gestoRef.current = null;
+        }}
+      >
         {stale ? (
           <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
             {t("tp.opening")}
@@ -873,23 +925,39 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
       </div>
 
       {/* Controles inferiores (auto-ocultables). Con la misma banda que la
-          cabecera (peticion de la duena: armonia arriba y abajo) */}
+          cabecera (peticion de la duena: armonia arriba y abajo). En el centro,
+          pausa/reanudar GRANDE: en el APK es el gesto del día a día y el botón
+          pequeño de la cabecera se quedaba corto para el pulgar (44 px+). */}
       <div className="tp-chrome tp-footer absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-2 px-5 pb-4">
         <Button
           variant="outline"
           size="icon"
-          className="h-9 w-9"
+          className="h-11 w-11 sm:h-9 sm:w-9"
           onClick={rewindOne}
           disabled={!win || (win.start <= 1 && lit <= 0)}
           aria-label={t("tp.rewind")}
           data-testid="tp-prev"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4" />
+        </Button>
+        <Button
+          size="icon"
+          className="h-14 w-14 shadow-[var(--brutal-shadow)] sm:h-11 sm:w-11"
+          onClick={() => {
+            // barra espaciadora táctil: en corte de página o final, AVANZA
+            if (pageDone || bookDone) forward();
+            else setPlaying((v) => !v);
+          }}
+          disabled={atEnd}
+          aria-label={playing && !pageDone && !bookDone ? t("tp.pauseAria") : t("tp.nextPageAria")}
+          data-testid="tp-play-footer"
+        >
+          {playing ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
         </Button>
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-1.5 text-xs"
+          className="h-11 gap-1.5 px-4 text-xs sm:h-9 sm:px-3"
           onClick={forward}
           disabled={atEnd}
           aria-label={atEnd ? t("tp.end") : pageDone ? t("tp.nextPageAria") : t("tp.nextAria")}
