@@ -86,7 +86,7 @@ export function ModeDock({
 
   return (
     <aside
-      className="flex w-[352px] shrink-0 flex-col border-l-2 border-[var(--ink)] bg-card"
+      className="flex w-full shrink-0 flex-col border-l-0 border-[var(--ink)] bg-card sm:w-[352px] sm:border-l-2"
       data-dock="modes"
       data-testid="mode-dock"
       aria-label={t("dock.title")}
@@ -98,11 +98,11 @@ export function ModeDock({
           <div className="flex items-center gap-1">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={t("dock.optionsAria")} title={t("dock.optionsTitle")}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" aria-label={t("dock.optionsAria")} title={t("dock.optionsTitle")}>
                   <Settings2 className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent side="bottom" align="end" className="w-80 p-3" data-testid="mode-options">
+              <PopoverContent side="bottom" align="end" className="w-80 max-w-[calc(100vw-1.5rem)] p-3" data-testid="mode-options">
                 <div className="grid gap-2.5">
                   <p className="text-xs font-medium text-muted-foreground">
                     {t("dock.allOptional")}
@@ -127,7 +127,7 @@ export function ModeDock({
                 </div>
               </PopoverContent>
             </Popover>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label={t("dock.closeAria")} title={t("dock.closeTitle")}>
+            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" onClick={onClose} aria-label={t("dock.closeAria")} title={t("dock.closeTitle")}>
               <PanelRightClose className="h-4 w-4" />
             </Button>
           </div>
@@ -148,7 +148,7 @@ export function ModeDock({
         <TooltipProvider delayDuration={300}>
           <Tabs defaultValue={defaultTab} className="flex min-h-0 flex-1 flex-col gap-0">
             <div className="border-b border-border/60 px-2 pt-2">
-              <TabsList className="h-8 w-full justify-start overflow-x-auto rounded-none bg-transparent p-0">
+              <TabsList className="h-10 w-full justify-start overflow-x-auto rounded-none bg-transparent p-0 sm:h-8">
                 {activeKeys.map((key) => {
                   const ui = TOGGLE_UI[key];
                   const Icon = ui.icon;
@@ -156,7 +156,7 @@ export function ModeDock({
                     <TabsTrigger
                       key={key}
                       value={key}
-                      className="gap-1.5 rounded-t-md px-2.5 py-1.5 text-[11px] data-[state=active]:bg-card data-[state=active]:shadow-none"
+                      className="gap-1.5 rounded-t-md px-2.5 py-2 text-xs data-[state=active]:bg-card data-[state=active]:shadow-none sm:py-1.5 sm:text-[11px]"
                       title={t(`mode.${key}.label`)}
                     >
                       <Icon className="h-3.5 w-3.5" />

@@ -977,6 +977,12 @@ html:not(.dark) .athena-hero .seal-glow {
   border-width: 0;
   overflow: hidden;
 }
+/* Hoja inferior móvil del dock: el panel llena la hoja (columna) y sus
+   pestañas scrollan dentro — en escritorio este selector no aplica */
+[data-dock-sheet] [data-dock="modes"] {
+  flex: 1 1 0;
+  min-height: 0;
+}
 .chrome-immersed [data-viewport="pdf"] {
   cursor: none;
 }

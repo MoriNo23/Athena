@@ -43,10 +43,21 @@ export function RailTrack({
 }: RailTrackProps) {
   return (
     <div
-      ref={trackRef}
-      className={cn("rail-track w-full", sizeClass, interactive && "cursor-pointer")}
-      {...handlers}
+      className={cn(
+        "relative",
+        // Zona táctil: la pista de 10px es invisible para un pulgar. El
+        // wrapper extiende el área de captura ±16px (padding compensado con
+        // margen negativo) SIN mover el dibujo: el mapeo página↔posición
+        // sigue midiendo la pista interior (trackRef). touch-none evita que
+        // el scroll de la página se pelee con el arrastre del dedo.
+        interactive && (vertical ? "touch-none px-4 -mx-4" : "touch-none py-4 -my-4")
+      )}
+      {...(interactive ? handlers : {})}
     >
+      <div
+        ref={trackRef}
+        className={cn("rail-track w-full", sizeClass, interactive && "cursor-pointer")
+      }>
       <div
         className="rail-fill"
         style={{
@@ -90,6 +101,7 @@ export function RailTrack({
           aria-hidden
         />
       )}
+      </div>
     </div>
   );
 }

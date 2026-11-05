@@ -19,6 +19,7 @@ import { useWakeLock } from "@/hooks/use-wake-lock";
 import { useEmbeddedFocus } from "@/hooks/use-embedded-focus";
 import { useScrollStep } from "@/hooks/use-scroll-step";
 import { usePdfTextMode } from "@/hooks/use-pdf-text-mode";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { RailBar } from "@/components/rail/RailBar";
 import { PdfViewport } from "@/components/reader/PdfViewport";
 import { EpubViewport } from "@/components/reader/EpubViewport";
@@ -177,12 +178,12 @@ function ReaderRail({
     );
   if (edge === "top")
     return (
-      <div data-chrome data-chrome-kind="railbar" className="border-b border-border/60 bg-card/40 px-10 pb-4 pt-3">
+      <div data-chrome data-chrome-kind="railbar" className="border-b border-border/60 bg-card/40 px-4 pb-4 pt-3 sm:px-10">
         {children}
       </div>
     );
   return (
-    <div data-chrome data-chrome-kind="railbar" className="border-t border-border/60 bg-card/40 px-10 pb-4 pt-2">
+    <div data-chrome data-chrome-kind="railbar" className="border-t border-border/60 bg-card/40 px-4 pb-4 pt-2 sm:px-10">
       {children}
     </div>
   );
@@ -191,6 +192,7 @@ function ReaderRail({
 export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   const { toast } = useToast();
   const { t, lang } = useI18n();
+  const esMovil = useIsMobile();
   const rail = useSettings((s) => s.rail);
   const dailyGoal = useSettings((s) => s.reading.dailyGoal);
   const scrollStepPct = useSettings((s) => s.reading.scrollStepPct);
@@ -210,6 +212,12 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
 
   // Hitos individuales del libro (null → hereda el global)
   const segments = Math.max(2, Math.min(40, book.milestones ?? rail.segments));
+
+  // En móvil el riel lateral (64px de columna + %) se come la pantalla y el
+  // pulgar no lo alcanza: la posición left/right se recoloca ARRIBA en
+  // horizontal. El ajuste del riel manda en escritorio (≥768px).
+  const railPos: RailPosition =
+    esMovil && (rail.position === "left" || rail.position === "right") ? "top" : rail.position;
 
   // Estado del visor de PDF: para EPUB se deriva del hook (sin espejos en efectos)
   const [pdfNumPages, setPdfNumPages] = useState(book.totalPages);
@@ -639,11 +647,11 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
       )}
     >
       {/* Riel superior (se retira a null si el ajuste lo pone en otro lado) */}
-      <ReaderRail edge="top" position={rail.position} pct={pct}>{railNode}</ReaderRail>
+      <ReaderRail edge="top" position={railPos} pct={pct}>{railNode}</ReaderRail>
 
       <div className="flex min-h-0 flex-1">
-        {/* Riel lateral izquierdo */}
-        <ReaderRail edge="left" position={rail.position} pct={pct}>{railNode}</ReaderRail>
+        {/* Riel lateral izquierdo (en móvil el ajuste lateral recala arriba) */}
+        <ReaderRail edge="left" position={railPos} pct={pct}>{railNode}</ReaderRail>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <ReaderHeader
@@ -701,8 +709,11 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
               onOpenPause={() => openPauseDialog(() => extrasRef.current.pause?.recap ?? "")}
             />
 
-            {/* Dock de modos de lectura */}
-            {dockVisible && (
+            {/* Dock de modos de lectura: en escritorio, panel lateral de la
+                casa; en móvil, hoja inferior a pantalla ancha — el panel de
+                352px empujaba el libro fuera del viewport del teléfono y el
+                teleprompter quedaba inalcanzable. */}
+            {dockVisible && !esMovil && (
               <div data-chrome data-chrome-kind="dock" className="flex min-h-0 shrink-0">
                 <ModeDock
                   book={book}
@@ -719,15 +730,41 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
                 />
               </div>
             )}
+            {dockVisible && esMovil && (
+              <div data-chrome data-dock-sheet className="fixed inset-0 z-50 flex items-end" role="dialog" aria-label={t("dock.title")} data-testid="mode-dock-sheet">
+                <button
+                  className="absolute inset-0 cursor-default bg-black/45"
+                  onClick={() => setDockOpen(false)}
+                  aria-label={t("dock.closeAria")}
+                  tabIndex={-1}
+                />
+                <div className="relative flex h-[85dvh] w-full flex-col overflow-hidden rounded-t-2xl border-t-2 border-[var(--ink)] bg-card pb-[env(safe-area-inset-bottom)] shadow-2xl">
+                  <div className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30" aria-hidden />
+                  <ModeDock
+                    book={book}
+                    onBookChange={onBookChange}
+                    extras={extras}
+                    onPatch={patchExtras}
+                    goToPage={silentJumpTo}
+                    pageNum={pageNum}
+                    numPages={numPages}
+                    doc={isEpub ? null : doc}
+                    epubChapters={isEpub ? epub.chapters : undefined}
+                    sessionSeconds={sessionSeconds}
+                    onClose={() => setDockOpen(false)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Riel lateral derecho */}
-        <ReaderRail edge="right" position={rail.position} pct={pct}>{railNode}</ReaderRail>
+        {/* Riel lateral derecho (en móvil el ajuste lateral recala arriba) */}
+        <ReaderRail edge="right" position={railPos} pct={pct}>{railNode}</ReaderRail>
       </div>
 
       {/* Riel inferior */}
-      <ReaderRail edge="bottom" position={rail.position} pct={pct}>{railNode}</ReaderRail>
+      <ReaderRail edge="bottom" position={railPos} pct={pct}>{railNode}</ReaderRail>
 
       {/* Zona caliente inferior: presionar + arrastrar hacia arriba = hojear páginas */}
       <div

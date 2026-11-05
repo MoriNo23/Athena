@@ -18,6 +18,7 @@ import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { BookDTO, ReadingFont, ZoomPresetId } from "@/lib/types";
 import {
+  ALargeSmall,
   ArrowLeft,
   BookOpenText,
   Check,
@@ -25,6 +26,7 @@ import {
   ChevronRight,
   Clock3,
   Flame,
+  History,
   Languages,
   Maximize,
   Minimize2,
@@ -230,6 +232,37 @@ export function ReaderHeader({
                 </DropdownMenuItem>
               </>
             )}
+            {/* Móvil: letra ± y sync viven aquí arriba — en un teléfono la
+                fila 2 no da para más y TODO debe alcanzarse con el pulgar. */}
+            {(isEpub || pdfMode === "text") && (
+              <>
+                <DropdownMenuItem
+                  onClick={() => onEpubFontDelta?.(-1)}
+                  className="gap-2 sm:hidden"
+                  data-testid="reader-font-minus-menu"
+                >
+                  <ALargeSmall className="h-4 w-4" />
+                  {t("epub.fontMinusTip")}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onEpubFontDelta?.(1)}
+                  className="gap-2 sm:hidden"
+                  data-testid="reader-font-plus-menu"
+                >
+                  <ALargeSmall className="h-4 w-4" />
+                  {t("epub.fontPlusTip")}
+                </DropdownMenuItem>
+              </>
+            )}
+            <DropdownMenuSeparator className="sm:hidden" />
+            <DropdownMenuItem
+              onClick={() => onSyncOpenChange(true)}
+              className="gap-2 sm:hidden"
+              data-testid="sync-open-menu"
+            >
+              <History className="h-4 w-4" />
+              {t("sync.openAria")}
+            </DropdownMenuItem>
             <DropdownMenuSeparator className={cn(pdfMode && "sm:hidden")} />
             <DropdownMenuItem onClick={onOpenVocabulary} className="gap-2" data-testid="open-vocabulary">
               <Languages className="h-4 w-4" />
@@ -309,16 +342,19 @@ export function ReaderHeader({
             </Button>
           </Tip>
 
-          {/* Sincronizar progreso: lo leía en otro lado (papel/otra app) */}
-          <SyncProgressPopover
-            open={syncOpen}
-            onOpenChange={onSyncOpenChange}
-            numPages={numPages}
-            currentPageRef={currentPageRef}
-            onSilentJump={onSilentJump}
-            onCancelScheduledSave={onCancelScheduledSave}
-            onFlushSave={onFlushSave}
-          />
+          {/* Sincronizar progreso: lo leía en otro lado (papel/otra app).
+              En móvil vive en el menú «⋯» — la fila no da para más. */}
+          <div className="hidden items-center sm:flex">
+            <SyncProgressPopover
+              open={syncOpen}
+              onOpenChange={onSyncOpenChange}
+              numPages={numPages}
+              currentPageRef={currentPageRef}
+              onSilentJump={onSilentJump}
+              onCancelScheduledSave={onCancelScheduledSave}
+              onFlushSave={onFlushSave}
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-1">
