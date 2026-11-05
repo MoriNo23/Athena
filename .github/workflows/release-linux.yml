@@ -1,0 +1,53 @@
+# Athena · paquete Linux (Debian/Ubuntu) para el release
+#
+# Construye la web de producción y la empaqueta con el código fuente en un
+# tarball listo para: descomprimir → bun install → bun run start. El tarball
+# queda adjunto al release v<$versión de package.json> como
+# Athena-<versión>-linux-x64.tar.gz.
+#
+# Se dispara: manual (Actions → Athena Linux → Run) o al pushear un tag v*.
+
+name: Athena Linux
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Dependencias
+        run: bun install
+
+      - name: Tests (puerta de calidad)
+        run: bun test
+
+      - name: Build de producción
+        run: bun run build
+
+      - name: Empaquetar Linux x64
+        run: bash scripts/package-linux.sh
+
+      - name: Adjuntar al release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(bun -e "console.log(require('./package.json').version)")
+          TAG="v${VERSION}"
+          TAR="dist/Athena-${VERSION}-linux-x64.tar.gz"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+                 --title "Athena $TAG" --generate-notes
+          gh release upload "$TAG" "$TAR" --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Adjuntado $TAR al release $TAG"

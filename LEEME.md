@@ -13,6 +13,19 @@ se encadenan como un solo texto y se encienden letra a letra), modo texto
 inmersión sin márgenes e interfaz en español, inglés o portugués. Todo corre en
 TU máquina, TU biblioteca es TUYA.
 
+## Descargar para PC sin clonar (Debian/Ubuntu/Linux)
+
+En la [página de releases](https://github.com/MoriNo23/Athena/releases) hay un
+tarball con el **build de producción ya hecho**:
+`Athena-<versión>-linux-x64.tar.gz`. Descomprime, entra en la carpeta y sigue
+el `COMO-ARRANCAR.txt` que viene dentro — es el mismo arranque de 4 comandos
+de abajo, terminando en `bun run start` (no recompila nada).
+
+```bash
+tar -xzf Athena-*-linux-x64.tar.gz && cd Athena-*-linux-x64
+cat COMO-ARRANCAR.txt
+```
+
 ## Requisitos
 
 - **[Bun](https://bun.sh)** instalado (`curl -fsSL https://bun.sh/install | bash`
