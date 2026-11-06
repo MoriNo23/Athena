@@ -50,7 +50,8 @@ diario con ritmo propio.
   riel con hitos/racha/ETA, insignias, sesiones de lectura, interfaz es/en/pt.
 - Restricciones vinculantes confirmadas: **offline** y **local-first** — la
   biblioteca y el progreso nunca salen de la máquina; no hay cuentas, ni nube,
-  ni sincronización.
+  ni sincronización (para la excepción entre dispositivos propios, ver
+  Enmienda 1).
 - Stack existente (no negociable en la práctica): Bun, Next.js 16 + React 19 +
   TypeScript + Tailwind 4, Prisma + SQLite, PDF.js.
 - Apertura decidida y hecha: **repo público bajo licencia MIT** (`LICENSE`) —
@@ -73,8 +74,11 @@ diario con ritmo propio.
 - Libros reales de la dueña cargados en la biblioteca (Sofia, Quijote,
   Meditaciones, cuaderno escaneado).
 - README/LEEME con capturas vivas y reglas de la casa escritas.
-- Auditorías medibles: `docs/auditoria-impeccable.md` (baselines antes/después
-  con capturas y JSON del detector), contrastes AA+ verificados por script.
+- Auditorías medibles: archivadas en el historial del repo (commit `b66f614`:
+  `DESIGN.md`, `.impeccable/design.json`, `docs/auditoria-impeccable.md` y las
+  baselines JSON antes/después); se retiraron del árbol en la limpieza de
+  2026-10-24 (commit `ad82e5e`) y se pueden recuperar con
+  `git checkout b66f614 -- <ruta>`. Contrastes AA+ verificados por script.
 - Ausencias que el trabajo futuro no debe inventar: no hay usuarias externas,
   testimonios, prensa ni métricas de adopción.
 
@@ -90,3 +94,22 @@ diario con ritmo propio.
    inmersión van antes que la decoración; la casa se nota en los detalles.
 5. **Números honestos.** Progreso, racha y ETA se calculan de lectura real,
    nunca inflados ni decorativos.
+
+## Enmiendas
+
+### Enmienda 1 — sincronización entre dispositivos propios (2026-11-06)
+
+Se mantienen intactas la prohibición de nube, cuentas y telemetría, y el
+principio 3 («tu biblioteca es tuya»). Queda explícitamente **permitida** la
+sincronización directa entre los dispositivos de la dueña (Athena ↔ Athena)
+por red local o por fichero exportado/importado, entendida como una copia
+entre máquinas de la misma dueña: los datos siguen viviendo en cada
+dispositivo y jamás en servidores de terceros. Condiciones vinculantes para
+cualquier función de sync:
+
+- Debe funcionar sin internet (LAN) y degradar en silencio si no hay pareja
+  de sincronización: nunca bloquear la lectura.
+- La copia es bidireccional bajo control de la dueña (elegir qué dispositivo
+  manda), nunca automática en segundo plano sin consentimiento.
+- No introduce cuentas: la confianza es «estar en la misma red de casa»,
+  igual que el modo `dev:lan`/`start:lan` que ya existe.

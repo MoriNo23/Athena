@@ -33,6 +33,11 @@ offline que vive DENTRO de la app:
 Ni una línea de la interfaz cambia: la misma Athena que ya conoces, pero la
 «base de datos» y «el disco del servidor» son ahora privados de tu teléfono.
 
+**Regla de la casa:** el motor espeja los contratos de `src/app/api/**` con
+la misma forma de respuesta `{ ok, data?, error? }`. Cambiar un contrato
+significa cambiar los DOS lados y sus tests (`tests/offline-engine.test.ts`)
+en el MISMO PR. Las reglas completas viven en `AGENTS.md`.
+
 ## Conseguir el APK (sin instalar nada en tu máquina)
 
 GitHub lo compila solo:
@@ -102,7 +107,8 @@ escala sin despeinarse.
   dedupe, diccionario sin conexión y los errores de las rutas que no aplican
   en móvil.
 - El **workflow de GitHub** corre `bun test` ANTES de compilar: un APK no se
-  genera con tests rojos.
+  genera con tests rojos. Desde la gobernanza de 2026-11, además, el
+  workflow **CI** corre tipos + lint + tests en cada PR.
 
 ### 2. Prueba de humo ya hecha (navegador real, sin servidor, sin red)
 
@@ -165,7 +171,6 @@ motor correspondiente (cada punto mapea a un handler del motor, no es
 - **¿Quito el candado/multas del modo lan?** La APK no tiene candado ni
   contraseñas: es tu dispositivo.
 - **¿Dónde está la llave de firma?** `android/keystore/athena.keystore`
-  (contraseñas en `athena.properties`, al lado). Son de tu repo personal:
-  si lo haces público algún día y te preocupa, genera otro keystore privado
-  y no lo subas — pero entonces guarda copia, porque cambiar de firma
-  obliga a desinstalar (y perdería la biblioteca) al actualizar.
+  (contraseñas en `athena.properties`, al lado). Está en el repo a propósito
+  para que GitHub Actions firme sin secretos añadidos; el riesgo exacto y
+  las mitigaciones están escritos en `docs/SECURITY.md`.

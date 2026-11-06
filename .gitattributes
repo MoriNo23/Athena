@@ -1,0 +1,20 @@
+# Normalize line endings: LF everywhere (Bun, Linux CI, Gradle).
+* text=auto eol=lf
+
+# Windows-only files
+*.bat text eol=crlf
+
+# Binary files: never touch
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.keystore binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
+*.epub binary
+*.db binary
+*.jar binary
