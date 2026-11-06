@@ -19,6 +19,8 @@ node_modules
 
 # production
 /build
+# empaquetado Linux (package-linux.sh / package-deb.sh)
+/dist/
 
 # misc
 .DS_Store

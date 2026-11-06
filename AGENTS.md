@@ -32,7 +32,9 @@ a leer hoy.
   (dev/legacy); instalaciones fuera del repo: `bin/athena init` (migrate deploy)
 - APK: `bun run apk:sync` y luego `android/gradlew assembleRelease`
   (o dejar que lo compile GitHub Actions: workflow «Athena APK»)
-- Linux: `bash scripts/package-linux.sh` (workflow «Athena Linux», tags v*)
+- Linux: `bash scripts/package-linux.sh` (.tar.gz) y
+  `bash scripts/package-deb.sh` (.deb Debian/Ubuntu) — workflow «Athena
+  Linux» (tags v* o manual)
 
 ## Idioma
 
@@ -65,7 +67,8 @@ a leer hoy.
   Bash puro, sin dependencias; comparte la resolución de rutas con
   `src/lib/data-home.ts` (si cambias una, cambia la otra).
 - `scripts/` — recetas de build/empaquetado (`build-apk-web.mjs`,
-  `package-linux.sh`). Sin lógica de negocio aquí.
+  `package-linux.sh` tarball, `package-deb.sh` paquete Debian). Sin
+  lógica de negocio aquí.
 - `android/` — proyecto Capacitor/Gradle del APK. `android/keystore/` —
   firma del APK (riesgo y mitigaciones en `docs/SECURITY.md`).
 - `docs/` — documentación de la casa (PRODUCT es la constitución).
@@ -112,7 +115,8 @@ a leer hoy.
 6. ¿Tocaste UI de lectura? → prueba de humo en el APK (o emulador),
    no solo en el navegador del escritorio.
 7. ¿Tocaste el empaquetado? → `bun run apk:sync` (web estática del APK) o
-   `bash scripts/package-linux.sh` (tarball Linux) según el destino.
+   `bash scripts/package-linux.sh` (tarball Linux) o
+   `bash scripts/package-deb.sh` (.deb) según el destino.
 
 ## Prohibido
 

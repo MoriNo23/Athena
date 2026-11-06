@@ -133,6 +133,10 @@ cmd_start() {
   }
   export ATHENA_HOME="${CASA:-}"
   export DATABASE_URL="${DATABASE_URL:-file:$DB}"
+  # El log del servidor va a la casa de datos (escribible por la persona;
+  # imprescindible cuando la app vive en /opt/athena tras instalar el .deb).
+  # En modo legacy queda en el repo como siempre (tee server.log).
+  if [ -n "$CASA" ]; then export ATHENA_LOG="$CASA/server.log"; fi
   if [ "$lan" = 1 ]; then
     exec bun run start:lan
   else

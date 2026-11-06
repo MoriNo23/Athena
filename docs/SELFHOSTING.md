@@ -66,6 +66,7 @@ Desde el change `athena-home-cli`, una instalación nueva guarda TODO fuera del
 | BD SQLite | `<casa>/db/custom.db` | `db/custom.db` |
 | Config (`config.json`), candado, papelera deshacer | `<casa>/db/` | `db/` |
 | Libros subidos, portadas, fondos | `<casa>/uploads/` | `public/uploads/` |
+| Log del servidor (`athena start`) | `<casa>/server.log` | `server.log` |
 
 `<casa>` = `ATHENA_HOME` si la defines, o `$XDG_DATA_HOME/athena`, o por defecto
 `~/.local/share/athena`. Reglas de resolución (primera que aplica): `ATHENA_HOME`
@@ -80,6 +81,33 @@ moverla a su casa (recomendado antes de una actualización de versión):
 ./bin/athena migrate-home     # mueve db/ y public/uploads/ a la casa, sin tocar la BD
 ./bin/athena doctor           # comprueba que todo está en orden
 ```
+
+## 3a. Camino paquete .deb (Debian/Ubuntu)
+
+Para las máquinas Debian/Ubuntu/Mint hay instalador `.deb` en la página de
+releases (`athena_<versión>_amd64.deb`):
+
+```bash
+sudo apt install ./athena_<versión>_amd64.deb
+athena init      # primera vez: casa de datos + esquema (migrate deploy)
+athena start     # → http://localhost:3000  (en tu red: athena start --lan)
+```
+
+Qué hace el paquete:
+
+- **App en `/opt/athena`** con el build de producción dentro, y el CLI como
+  `/usr/bin/athena` (symlink). No recompila nada al arrancar.
+- **postinst**: si detecta Bun, deja las dependencias de producción
+  instaladas (`bun install --production`); si no, imprime la orden exacta
+  para hacerlas después. Sin red o sin Bun la instalación igualmente
+  termina bien: nunca rompe el `apt`.
+- **Los datos NO van en el paquete**: la biblioteca vive en la casa de
+  datos (`~/.local/share/athena` o `ATHENA_HOME`), así que actualizar
+  (instalar el `.deb` encima) y desinstalar (`sudo apt remove athena`)
+  no toca ni un libro. El `postrm` limpia solo `/opt/athena`.
+- **Logs**: `athena start` escribe el log del servidor en la casa de datos
+  (`<casa>/server.log`) porque `/opt` es del root y la app corre con tu
+  usuario. En modo legacy el log sigue siendo el `server.log` del repo.
 
 ## 3b. Mantenimiento con el CLI
 
@@ -124,7 +152,7 @@ Notas de seguridad si abres fuera de tu red:
 - **Backup**: para `athena-db` (BD + config + candado) y `athena-uploads`
   (ficheros). Con volúmenes con nombre:
   `docker run --rm -v athena-db:/data -v "$PWD":/bk alpine tar czf /bk/athena-db.tgz -C /data .`
-- **Logs**: `docker logs athena` (o `server.log` en modo nativo).
+- **Logs**: `docker logs athena` (o `<casa>/server.log` en modo nativo; `server.log` del repo en modo legacy).
 - **Esquema de BD**: las actualizaciones hacen `db push` al arrancar; si un
   cambio pidiera recortar datos, Prisma lo avisa y pide confirmación — en
   Docker se ve en los logs y se arregla siguiendo la nota del release.

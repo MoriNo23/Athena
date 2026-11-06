@@ -15,11 +15,27 @@ TU máquina, TU biblioteca es TUYA.
 
 ## Descargar para PC sin clonar (Debian/Ubuntu/Linux)
 
-En la [página de releases](https://github.com/MoriNo23/Athena/releases) hay un
-tarball con el **build de producción ya hecho**:
-`Athena-<versión>-linux-x64.tar.gz`. Descomprime, entra en la carpeta y sigue
-el `COMO-ARRANCAR.txt` que viene dentro — es el mismo arranque de 4 comandos
-de abajo, terminando en `bun run start` (no recompila nada).
+En la [página de releases](https://github.com/MoriNo23/Athena/releases) hay
+dos caminos, ambos con el **build de producción ya hecho** (no recompilan
+nada):
+
+**Instalador .deb (Debian, Ubuntu, Mint…)** — `athena_<versión>_amd64.deb`:
+
+```bash
+sudo apt install ./athena_<versión>_amd64.deb   # app en /opt/athena + comando «athena»
+athena init      # solo la primera vez: casa de datos + esquema
+athena start     # → http://localhost:3000   (en tu red: athena start --lan)
+```
+
+Necesita [Bun](https://bun.sh) en la máquina; el instalador lo detecta y te
+da la orden exacta si falta. Tus datos viven en `~/.local/share/athena`
+(personalizable con `ATHENA_HOME`): sobreviven a las actualizaciones del
+paquete y a desinstalarlo. Actualizar = instalar el `.deb` nuevo encima.
+
+**Tarball** — `Athena-<versión>-linux-x64.tar.gz`. Descomprime, entra en la
+carpeta y sigue el `COMO-ARRANCAR.txt` que viene dentro — es el mismo
+arranque de 4 comandos de abajo, terminando en `bun run start` (no
+recompila nada):
 
 ```bash
 tar -xzf Athena-*-linux-x64.tar.gz && cd Athena-*-linux-x64
