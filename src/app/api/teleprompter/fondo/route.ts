@@ -4,6 +4,7 @@ import { createReadStream } from "fs";
 import { Readable } from "stream";
 import path from "path";
 import { escribirAjustes, leerAjustes } from "@/lib/config-file";
+import { raizUploads } from "@/lib/data-home";
 
 /**
  * Fondo propio del teleprompter (change teleprompter-ritmo-y-fondo):
@@ -12,7 +13,7 @@ import { escribirAjustes, leerAjustes } from "@/lib/config-file";
  * de db/config.json. La legibilidad la garantiza el filtro en runtime del
  * overlay, no la edición de la imagen.
  */
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+const UPLOAD_DIR = raizUploads(); // <casa>/uploads con ATHENA_HOME (data-home.ts)
 const MAX_BYTES = 8 * 1024 * 1024;
 const MIME_OK = new Set(["image/png", "image/jpeg", "image/webp", "image/avif"]);
 const MIME_IMG: Record<string, string> = {

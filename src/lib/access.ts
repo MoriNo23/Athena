@@ -11,10 +11,20 @@
  */
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { mkdirSync, openSync, readFileSync, writeSync, closeSync } from "node:fs";
+import path from "node:path";
+import { raizDatos } from "@/lib/data-home";
 
 export const COOKIE_SESION = "athena_session";
-export const ARCHIVO_CONTRASEÑA = "db/athena-lock";
-const ARCHIVO_LEGADO = "db/atena-lock";
+
+/** fichero del candado: relativo en modo legacy ("db/athena-lock") o
+    absoluto bajo ATHENA_HOME (<casa>/db/athena-lock) — ver data-home.ts. */
+export function archivoContraseña(): string {
+  return path.join(raizDatos(), "athena-lock");
+}
+
+function archivoLegado(): string {
+  return path.join(raizDatos(), "atena-lock");
+}
 const SEMILLA_COOKIE = "atena-cookie-v1";
 
 /** valor de cookie que deriva de la contraseña (hex) */
@@ -35,12 +45,13 @@ export function igualEnTiempoConstante(a: string, b: string): boolean {
  * se lee el archivo, así varios arranques concurrentes convergen en una sola.
  */
 export function garantizaContraseña(): string {
-  const nueva = lee(ARCHIVO_CONTRASEÑA);
+  const fichero = archivoContraseña();
+  const nueva = lee(fichero);
   if (nueva) return nueva;
-  const legada = lee(ARCHIVO_LEGADO);
-  mkdirSync("db", { recursive: true });
+  const legada = lee(archivoLegado());
+  mkdirSync(raizDatos(), { recursive: true });
   try {
-    const fd = openSync(ARCHIVO_CONTRASEÑA, "wx", 0o600);
+    const fd = openSync(fichero, "wx", 0o600);
     try {
       writeSync(fd, legada ?? randomBytes(9).toString("base64url"));
     } finally {
@@ -49,7 +60,7 @@ export function garantizaContraseña(): string {
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
   }
-  return lee(ARCHIVO_CONTRASEÑA) ?? "";
+  return lee(fichero) ?? "";
 }
 
 function lee(ruta: string): string | null {

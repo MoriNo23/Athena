@@ -4,12 +4,13 @@ import { Readable } from "stream";
 import { stat } from "fs/promises";
 import path from "path";
 import { db } from "@/lib/db";
+import { raizUploads } from "@/lib/data-home";
 
 export const runtime = "nodejs";
 
 type Params = { params: Promise<{ id: string }> };
 
-const UPLOADS_DIR = path.join(process.cwd(), "public", "uploads");
+const UPLOADS_DIR = raizUploads(); // <casa>/uploads con ATHENA_HOME (data-home.ts)
 
 /**
  * La portada del libro, servida por la APP (change ficheros-servidos-por-la-app).

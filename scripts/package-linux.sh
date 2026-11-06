@@ -27,14 +27,22 @@ REQUISITO: Bun (sustituye a Node y npm). Instalación:
   curl -fsSL https://bun.sh/install | bash
 
 ARRANQUE (dentro de esta carpeta):
-  1) cp .env.example .env
-  2) bun install          # instala dependencias y genera el cliente de BD
-  3) bunx prisma db push  # solo la primera vez: crea la BD vacía en db/
-  4) bun run start        # abre http://localhost:3000 y a leer
+  1) bun install          # instala dependencias y genera el cliente de BD
+  2) ./bin/athena init    # crea la casa de datos (~/.local/share/athena)
+                          # y aplica el esquema de la BD (migrate deploy)
+  3) ./bin/athena start   # abre http://localhost:3000 y a leer
 
-El build de producción YA VIENE HECHO (.next/): «bun run start» no
-recompila nada y arranca directo. Modo normal = solo localhost; para
-abrirlo en tu red: bun run start:lan (candado opcional, ver LEEME.md).
+Modo normal = solo localhost. Para abrirlo en tu red:
+  ./bin/athena start --lan   (candado opcional, ver LEEME.md)
+
+Otros comandos: ./bin/athena doctor · backup · home
+Los datos viven FUERA del paquete (sobreviven a actualizaciones):
+  \$XDG_DATA_HOME/athena o ~/.local/share/athena
+  (personalizable con la variable ATHENA_HOME; el método antiguo de tener
+  los datos dentro de la carpeta sigue funcionando si ya los tenías así)
+
+El build de producción YA VIENE HECHO (.next/): «athena start» no
+recompila nada y arranca directo.
 
 Guía completa: LEEME.md · Auto-alojamiento: docs/SELFHOSTING.md
 EOF

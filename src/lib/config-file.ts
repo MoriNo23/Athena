@@ -1,5 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
+import { raizDatos } from "@/lib/data-home";
 import {
   AppSettings,
   FilterPreset,
@@ -39,8 +40,9 @@ import {
 
 // rutas relativas a propósito: se resuelven contra el cwd EN CADA LLAMADA (no
 // al importar), lo que deja que los tests apunten a sandbox con chdir.
-const DATA_DIR = "db";
-const CONFIG_PATH = path.join(DATA_DIR, "config.json");
+// Con ATHENA_HOME (change athena-home-cli), raizDatos() devuelve la ruta
+// absoluta de <casa>/db y la config vive ahí — ver src/lib/data-home.ts.
+const rutaConfig = () => path.join(raizDatos(), "config.json");
 const MAX_SIZE = 256 * 1024; // un config a mano no pasa de esto; es guardia, no regla
 
 /** Bloques de modos (mismo shape que el store: toggles + pauseMinutes). */
@@ -259,7 +261,7 @@ export async function leerAjustes(): Promise<ConfigCompleto & { created: boolean
 
 async function leerAjustesInterno(): Promise<ConfigCompleto & { created: boolean }> {
   try {
-    const txt = await readFile(CONFIG_PATH, "utf8");
+    const txt = await readFile(rutaConfig(), "utf8");
     if (txt.length > MAX_SIZE) throw new Error("config demasiado grande");
     const raw = JSON.parse(txt) as { _doc?: Record<string, unknown>; biblioteca?: Record<string, unknown> } & Record<string, unknown>;
     const doc: Record<string, string> = {};
@@ -281,7 +283,7 @@ async function leerAjustesInterno(): Promise<ConfigCompleto & { created: boolean
     const roto = err.code !== "ENOENT"; // existe pero no parseó (o el fs tronó)
     if (roto) {
       try {
-        await rename(CONFIG_PATH, CONFIG_PATH + ".roto-" + Date.now());
+        await rename(rutaConfig(), rutaConfig() + ".roto-" + Date.now());
       } catch {
         /* nada que respaldar */
       }
@@ -306,7 +308,7 @@ export async function escribirAjustes(
   biblioteca: { carpeta: string },
   doc: Record<string, string>
 ): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
+  await mkdir(raizDatos(), { recursive: true });
   const cuerpo: Record<string, unknown> = {
     _doc: doc && Object.keys(doc).length > 0 ? doc : docPorDefecto(),
     lang: settings.lang,
@@ -321,9 +323,9 @@ export async function escribirAjustes(
   };
   const txt = JSON.stringify(cuerpo, null, 2) + "\n";
   // pid + hora: dos escrituras concurrentes no pisan el mismo tmp
-  const tmp = CONFIG_PATH + `.tmp-${process.pid}-${Date.now()}`;
+  const tmp = rutaConfig() + `.tmp-${process.pid}-${Date.now()}`;
   await writeFile(tmp, txt, "utf8");
-  await rename(tmp, CONFIG_PATH);
+  await rename(tmp, rutaConfig());
 }
 
 /** server-only: este fichero toca el disco (fs de node). */

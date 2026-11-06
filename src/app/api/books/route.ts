@@ -4,8 +4,9 @@ import path from "path";
 import { db } from "@/lib/db";
 import { archivoUrlDe } from "@/lib/types";
 import { sweepExpiredUndo } from "@/lib/undo-store";
+import { raizUploads } from "@/lib/data-home";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+const UPLOAD_DIR = raizUploads(); // <casa>/uploads con ATHENA_HOME (data-home.ts)
 
 export async function GET() {
   try {

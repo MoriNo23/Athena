@@ -25,8 +25,11 @@ a leer hoy.
 
 - Dev PC: `bun run dev` (offline, 127.0.0.1) / `bun run dev:lan` (0.0.0.0)
 - Producción: `bun run build` + `bun run start` (o `start:lan`)
+- CLI de la casa: `bun run athena init|start|doctor|backup|home|migrate-home`
+  (o `./bin/athena`); gestiona ATHENA_HOME — ver `src/lib/data-home.ts`
 - Calidad: `bunx tsc --noEmit` · `bun run lint` · `bun test`
 - DB: `bun run db:migrate` · `bun run db:push` · `bun run db:generate`
+  (dev/legacy); instalaciones fuera del repo: `bin/athena init` (migrate deploy)
 - APK: `bun run apk:sync` y luego `android/gradlew assembleRelease`
   (o dejar que lo compile GitHub Actions: workflow «Athena APK»)
 - Linux: `bash scripts/package-linux.sh` (workflow «Athena Linux», tags v*)
@@ -52,8 +55,15 @@ a leer hoy.
   contratos de `src/app/api/**` sobre IndexedDB/OPFS. No tocar sin
   actualizar `tests/offline-engine.test.ts` en el mismo PR.
 - `tests/` — tests de integración (motor offline, contratos de API).
-- `prisma/schema.prisma` — única fuente de verdad de la DB (SQLite en `db/`).
-- `db/` y `public/uploads/` — estado real de la biblioteca. Jamás se commitean.
+- `prisma/schema.prisma` — única fuente de verdad de la DB (SQLite). Cambios
+  de schema = migración versionada en `prisma/migrations/`.
+- `db/` y `public/uploads/` — estado real de la biblioteca en modo legacy
+  (dentro del repo). Jamás se commitean. Con `ATHENA_HOME` (default
+  `~/.local/share/athena`) los datos viven FUERA del repo: la resolución
+  completa y sus reglas viven en `src/lib/data-home.ts`.
+- `bin/athena` — CLI de la casa (init/start/doctor/backup/migrate-home).
+  Bash puro, sin dependencias; comparte la resolución de rutas con
+  `src/lib/data-home.ts` (si cambias una, cambia la otra).
 - `scripts/` — recetas de build/empaquetado (`build-apk-web.mjs`,
   `package-linux.sh`). Sin lógica de negocio aquí.
 - `android/` — proyecto Capacitor/Gradle del APK. `android/keystore/` —
@@ -66,7 +76,8 @@ a leer hoy.
 
 - TypeScript strict, Bun como runtime, Next.js App Router.
 - Tailwind para estilos; **sin objetos de estilo inline**.
-- El schema de Prisma manda sobre la DB; todo cambio lleva su migración.
+- El schema de Prisma manda sobre la DB; todo cambio lleva su migración
+  (nunca editar `prisma/migrations/*` a mano; `bunx prisma migrate dev`).
 - Toda respuesta API sigue `{ ok: boolean, data?: T, error?: string }`.
   El motor offline replica ESTE contrato: si cambias una ruta API, cambias
   su espejo en `public/athena-offline.js` y sus tests en el mismo PR.

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 import { db } from "@/lib/db";
+import { raizUploads } from "@/lib/data-home";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+const UPLOAD_DIR = raizUploads(); // <casa>/uploads con ATHENA_HOME (data-home.ts)
 
 type Params = { params: Promise<{ id: string }> };
 

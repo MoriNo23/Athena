@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+# Athena · CLI de la casa (change athena-home-cli)
+#
+# Orquesta la casa de datos (ATHENA_HOME) y el arranque del servidor:
+#
+#   athena init          crea la casa de datos y aplica el esquema (migrate deploy)
+#   athena start [--lan] arranca Athena (offline o lan) con los datos en su casa
+#   athena doctor        revisa bun, casa de datos, BD, uploads y permisos
+#   athena backup [dest] copia de seguridad completa (db + uploads) en un tar.gz
+#   athena home          imprime las rutas resueltas
+#   athena migrate-home  mueve una instalación legacy (datos dentro del repo) a la casa
+#
+# Resolución de la casa (misma lógica que src/lib/data-home.ts):
+#   1. ATHENA_HOME definida → esa carpeta
+#   2. datos legacy en el repo (db/custom.db) → el repo MANDA (no se mueve solo)
+#   3. Docker → legacy (el compose fija sus volúmenes)
+#   4. default XDG: $XDG_DATA_HOME/athena o ~/.local/share/athena
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
+cd "$ROOT"
+
+# --- resolución de la casa -------------------------------------------------
+casa() {
+  local explicita="${ATHENA_HOME:-}"
+  if [ -n "${explicita// /}" ]; then
+    mkdir -p "$explicita"
+    readlink -f "$explicita"
+    return
+  fi
+  if [ -f "$ROOT/db/custom.db" ]; then echo ""; return; fi      # legacy: repo manda
+  if [ -f /.dockerenv ]; then echo ""; return; fi               # docker: compose manda
+  echo "${XDG_DATA_HOME:-$HOME/.local/share}/athena"
+}
+
+CASA="$(casa)"
+if [ -n "$CASA" ]; then
+  DB="$CASA/db/custom.db"
+  UPLOADS="$CASA/uploads"
+else
+  DB="$ROOT/db/custom.db"
+  UPLOADS="$ROOT/public/uploads"
+fi
+
+prisma_ok() { [ -d "$ROOT/node_modules/prisma" ]; }
+
+con_db() { # ejecuta bunx prisma <args> apuntando a la BD de la casa
+  (cd "$ROOT" && DATABASE_URL="file:$DB" bunx prisma "$@")
+}
+
+# --- comandos ---------------------------------------------------------------
+cmd_home() {
+  echo "casa:    ${CASA:-<repo> (modo legacy)}${ATHENA_HOME:+  (ATHENA_HOME definida)}"
+  echo "db:      $DB"
+  echo "uploads: $UPLOADS"
+  [ -n "$CASA" ] || echo "nota:    datos legacy dentro del repo; «athena migrate-home» los lleva a su casa"
+}
+
+cmd_init() {
+  if [ -z "$CASA" ]; then
+    echo "Athena corre en modo legacy (datos dentro del repo): nada que iniciar."
+    [ -f "$DB" ] && echo "BD lista: $DB"
+    exit 0
+  fi
+  if [ -f "$ROOT/db/custom.db" ]; then
+    echo "⚠ Hay datos legacy dentro del repo (db/custom.db). Ejecuta antes:"
+    echo "    bin/athena migrate-home"
+    exit 2
+  fi
+  mkdir -p "$CASA/db" "$CASA/uploads"
+  prisma_ok || { echo "Falta el cliente Prisma: ejecuta «bun install» en $ROOT"; exit 1; }
+  echo "Casa de datos: $CASA"
+  echo "Aplicando esquema (prisma migrate deploy)…"
+  con_db migrate deploy
+  echo "Listo. Arranca con: bin/athena start"
+}
+
+cmd_migrate_home() {
+  [ -n "$CASA" ] || { echo "Ya estás en modo legacy con datos en el repo: nada que migrar."; exit 0; }
+  if [ -f "$DB" ]; then
+    echo "La casa ya tiene BD ($DB): no se pisa nada. Abortado."; exit 2
+  fi
+  local hay=0
+  for f in "$ROOT"/db/*; do
+    [ -e "$f" ] || continue
+    [ "$(basename "$f")" = ".gitkeep" ] && continue
+    hay=1
+  done
+  local hay_up=0
+  for f in "$ROOT"/public/uploads/*; do
+    [ -e "$f" ] || continue
+    [ "$(basename "$f")" = ".gitkeep" ] && continue
+    hay_up=1
+  done
+  if [ "$hay" = 0 ] && [ "$hay_up" = 0 ]; then
+    echo "No hay datos legacy en el repo: nada que migrar. Usa «athena init»."
+    exit 0
+  fi
+  mkdir -p "$CASA/db" "$CASA/uploads"
+  echo "Moviendo datos del repo → $CASA"
+  if [ "$hay" = 1 ]; then
+    for f in "$ROOT"/db/*; do
+      [ "$(basename "$f")" = ".gitkeep" ] && continue
+      mv "$f" "$CASA/db/"
+      echo "  db/$(basename "$f")"
+    done
+  fi
+  if [ "$hay_up" = 1 ]; then
+    for f in "$ROOT"/public/uploads/*; do
+      [ "$(basename "$f")" = ".gitkeep" ] && continue
+      mv "$f" "$CASA/uploads/"
+      echo "  uploads/$(basename "$f")"
+    done
+  fi
+  prisma_ok || { echo "Falta el cliente Prisma: ejecuta «bun install» y relanza."; exit 1; }
+  echo "Registrando la migración base como aplicada (no se toca tu BD)…"
+  con_db migrate resolve --applied 0001_init \
+    || echo "  (la migración base ya estaba registrada: nada que hacer)"
+  echo "Hecho. Tu biblioteca vive ahora en $CASA"
+  echo "Arranca con: bin/athena start   (bun run start también la encuentra)"
+}
+
+cmd_start() {
+  local lan=0
+  [ "${1:-}" = "--lan" ] && lan=1
+  [ -f "$DB" ] || {
+    echo "No hay BD en $DB. Ejecuta primero: bin/athena init"
+    exit 1
+  }
+  [ -d "$ROOT/.next" ] || {
+    echo "No hay build de producción ($ROOT/.next). Ejecuta: bun run build"
+    exit 1
+  }
+  export ATHENA_HOME="${CASA:-}"
+  export DATABASE_URL="${DATABASE_URL:-file:$DB}"
+  if [ "$lan" = 1 ]; then
+    exec bun run start:lan
+  else
+    exec bun run start
+  fi
+}
+
+cmd_doctor() {
+  local fallos=0
+  di() { echo "  ✅ $1"; }
+  dw() { echo "  ⚠️  $1"; }
+  df() { echo "  ❌ $1"; fallos=$((fallos+1)); }
+  echo "Athena doctor"
+  echo "· Bun"
+  command -v bun >/dev/null && di "bun $(bun --version)" || df "bun no está en el PATH"
+  echo "· Casa de datos"
+  if [ -n "$CASA" ]; then
+    di "modo home: $CASA"
+    [ -d "$CASA/db" ] && di "db/ existe" || dw "db/ no existe aún (athena init la crea)"
+    [ -d "$UPLOADS" ] && di "uploads/ existe" || dw "uploads/ no existe aún (athena init la crea)"
+    if [ -d "$CASA/db" ]; then
+      touch "$CASA/db/.escribe-test" 2>/dev/null && rm -f "$CASA/db/.escribe-test" \
+        && di "db/ es escribible" || df "db/ NO es escribible"
+    fi
+  else
+    dw "modo legacy (datos dentro del repo) — considera «athena migrate-home»"
+  fi
+  echo "· Biblioteca"
+  if [ -f "$DB" ]; then
+    di "BD: $DB ($(du -h "$DB" | cut -f1))"
+  else
+    df "sin BD en $DB (athena init | migrate-home)"
+  fi
+  if [ -d "$UPLOADS" ]; then
+    local n
+    n=$(find "$UPLOADS" -type f ! -name ".gitkeep" | wc -l)
+    di "uploads: $n fichero(s) ($(du -sh "$UPLOADS" | cut -f1))"
+  fi
+  [ -f "$(dirname "$DB")/config.json" ] && di "config.json presente" || dw "config.json aún no existe (se crea al primer uso)"
+  echo "· Servidor"
+  prisma_ok && di "cliente Prisma instalado" || dw "sin node_modules (bun install)"
+  [ -d "$ROOT/.next" ] && di "build de producción presente" || dw "sin build (.next) — bun run build"
+  echo ""
+  if [ "$fallos" = 0 ]; then echo "Todo en orden (o nada bloqueante)."; else echo "$fallos problema(s) bloqueante(s)."; exit 1; fi
+}
+
+cmd_backup() {
+  [ -n "$CASA" ] || { echo "En modo legacy: copia a mano db/ y public/uploads/ (ver docs/SELFHOSTING.md)."; exit 2; }
+  local dest="${1:-$CASA/backups}"
+  [ -f "$DB" ] || { echo "No hay BD que respaldar ($DB). ¿athena init?"; exit 1; }
+  mkdir -p "$dest"
+  local fichero="$dest/athena-backup-$(date +%Y%m%d-%H%M%S).tar.gz"
+  tar czf "$fichero" -C "$CASA" db uploads
+  echo "Copia completa (BD + config + candado + ficheros):"
+  echo "  $fichero ($(du -h "$fichero" | cut -f1))"
+}
+
+case "${1:-}" in
+  init) cmd_init ;;
+  start) shift; cmd_start "$@" ;;
+  doctor) cmd_doctor ;;
+  backup) shift; cmd_backup "$@" ;;
+  home) cmd_home ;;
+  migrate-home) cmd_migrate_home ;;
+  ""|-h|--help|help)
+    sed -n '2,14p' "$(readlink -f "$0")" | sed 's/^# \{0,1\}//'
+    ;;
+  *) echo "Comando desconocido: $1 (athena --help)"; exit 1 ;;
+esac

@@ -45,16 +45,47 @@ seguridad: para los dos volúmenes (o montalos sobre carpetas del host en el
 ## 3. Camino sin Docker (Bun nativo)
 
 ```bash
-cp .env.example .env          # DATABASE_URL; ATHENA_PASSWORD opcional
 bun install                   # genera el cliente Prisma (postinstall)
-bunx prisma db push           # crea db/custom.db (solo la primera vez)
-bun run build
-bun run start:lan             # 0.0.0.0:3000 con candado
+./bin/athena init             # casa de datos (~/.local/share/athena) + esquema
+./bin/athena start --lan      # 0.0.0.0:3000 con candado
 ```
 
-- `start` (normal): solo `127.0.0.1`, sin candado — para usarlo en el mismo equipo.
-- `start:lan` (lan): `0.0.0.0`, con candado — para tablet/móvil/otro PC del WiFi.
-- La contraseña autogenerada queda en `db/athena-lock` (no se regenera en cada boot).
+- `athena start` (normal): solo `127.0.0.1`, sin candado — para el mismo equipo.
+- `athena start --lan`: `0.0.0.0`, con candado — para tablet/móvil/otro PC del WiFi.
+- La contraseña autogenerada queda en `<casa>/db/athena-lock` (no se regenera en cada boot).
+- El método clásico sigue funcionando (`cp .env.example .env && bun run build && bun run start`):
+  sin `ATHENA_HOME`, si `db/custom.db` ya existe en el repo se usa como siempre.
+
+### La casa de los datos (ATHENA_HOME)
+
+Desde el change `athena-home-cli`, una instalación nueva guarda TODO fuera del
+árbol del programa:
+
+| Qué | Dónde (modo home) | Dónde (modo legacy, dentro del repo) |
+|---|---|---|
+| BD SQLite | `<casa>/db/custom.db` | `db/custom.db` |
+| Config (`config.json`), candado, papelera deshacer | `<casa>/db/` | `db/` |
+| Libros subidos, portadas, fondos | `<casa>/uploads/` | `public/uploads/` |
+
+`<casa>` = `ATHENA_HOME` si la defines, o `$XDG_DATA_HOME/athena`, o por defecto
+`~/.local/share/athena`. Reglas de resolución (primera que aplica): `ATHENA_HOME`
+explícita → datos legacy en el repo (se respetan, nunca se mueven solos) → Docker
+(el compose fija sus volúmenes) → default XDG. El código vive en
+`src/lib/data-home.ts`; el CLI en `bin/athena` comparte la misma lógica.
+
+¿Instalación antigua con los datos dentro del repo? Se respeta tal cual. Para
+moverla a su casa (recomendado antes de una actualización de versión):
+
+```bash
+./bin/athena migrate-home     # mueve db/ y public/uploads/ a la casa, sin tocar la BD
+./bin/athena doctor           # comprueba que todo está en orden
+```
+
+## 3b. Mantenimiento con el CLI
+
+- `./bin/athena backup [dest]` — tar.gz completo (BD + config + candado + ficheros).
+- `./bin/athena doctor` — bun, permisos, BD, uploads, build: qué falta y qué sobra.
+- `./bin/athena home` — imprime las rutas resueltas de esta instalación.
 
 ## 4. Exponer a internet con TLS (Caddy)
 
