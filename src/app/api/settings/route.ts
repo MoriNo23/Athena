@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { escribirAjustes, leerAjustes, saneaAjustes, docPorDefecto } from "@/core/config-file";
+import { preflightSync, cabecerasSync } from "@/lib/cors";
 
 /**
  * Fuente única de ajustes: `db/config.json` (change cfg-y-biblioteca-por-carpeta).
@@ -10,15 +11,22 @@ import { escribirAjustes, leerAjustes, saneaAjustes, docPorDefecto } from "@/cor
  * PUT → escribe lo llegado (ya saneado) y devuelve el mismo estado: el panel
  *       nunca manda basura al fichero. El vocabulario NO pasa por aquí.
  */
-export async function GET() {
+export async function OPTIONS(req: NextRequest) {
+  return preflightSync(req);
+}
+
+export async function GET(req: NextRequest) {
   try {
     const cfg = await leerAjustes();
-    return NextResponse.json({
-      settings: cfg.settings,
-      biblioteca: cfg.biblioteca,
-      _doc: Object.keys(cfg._doc).length > 0 ? cfg._doc : docPorDefecto(),
-      created: cfg.created,
-    });
+    return NextResponse.json(
+      {
+        settings: cfg.settings,
+        biblioteca: cfg.biblioteca,
+        _doc: Object.keys(cfg._doc).length > 0 ? cfg._doc : docPorDefecto(),
+        created: cfg.created,
+      },
+      { headers: cabecerasSync(req) }
+    );
   } catch (e) {
     console.error("GET /api/settings", e);
     return NextResponse.json({ error: "No se pudo leer la configuración" }, { status: 500 });

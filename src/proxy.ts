@@ -29,7 +29,14 @@ export function proxy(req: NextRequest) {
   const ruta = req.nextUrl.pathname.replace(/\/+$/, "") || "/";
   if (!password || ruta === "/api" || ruta === "/api/auth/login") return NextResponse.next();
 
-  const recibida = req.cookies.get(COOKIE_SESION)?.value ?? "";
+  // preflight CORS de la copia (Enmienda 1): no lleva cookie ni token, no
+  // transporta datos — la respuesta 204 la arma cada ruta con sus cabeceras.
+  if (req.method === "OPTIONS") return NextResponse.next();
+
+  // sesión por cookie (navegador) o por cabecera (la copia desde el APK:
+  // cross-origin sin credenciales — mismo derivado, misma comparación).
+  const recibida =
+    req.cookies.get(COOKIE_SESION)?.value ?? req.headers.get("x-athena-token") ?? "";
   const entra = igualEnTiempoConstante(recibida, cookieDe(password));
 
   if (ruta.startsWith("/api/")) {

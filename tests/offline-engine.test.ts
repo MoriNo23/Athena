@@ -59,6 +59,7 @@ function adaptador(opts?: { ahora?: Date }) {
   const handle = nucleo.crearRouter({});
   return {
     handle,
+    nucleo,
     files,
     avanzar: (ms: number) => {
       reloj = new Date(reloj.getTime() + ms);
@@ -523,3 +524,136 @@ describe("motor offline · rutas sueltas", () => {
     expect(libro404.status).toBe(404);
   });
 });
+
+describe("motor offline · copia de la casa (Enmienda 1)", () => {
+  /** estado remoto con la forma exacta de GET /api/books + settings + vocab */
+  function estadoRemoto(extra?: { id?: string; currentPage?: number; coverPath?: string; coverUrl?: string }) {
+    return {
+      books: [
+        {
+          id: extra?.id ?? "bserver000000001",
+          title: "El mundo de Sofía",
+          author: "Jostein Gaarder",
+          fileName: "sofia.pdf",
+          filePath: `/uploads/${extra?.id ?? "bserver000000001"}.pdf`,
+          coverPath: extra?.coverPath ?? null,
+          totalPages: 670,
+          currentPage: extra?.currentPage ?? 300,
+          milestones: null,
+          dailyGoal: null,
+          companionPath: null,
+          companionPages: null,
+          extras: null,
+          finishedAt: null,
+          readCount: 0,
+          badge: null,
+          createdAt: "2026-11-01T10:00:00.000Z",
+          lastReadAt: "2026-11-05T23:00:00.000Z",
+          origin: "subido",
+          archivoUrl: `/api/books/${extra?.id ?? "bserver000000001"}/file`,
+          coverUrl: extra?.coverUrl ?? null,
+          sessions: [{ pagesRead: 40, minutes: 65, date: "2026-11-05T12:00:00" }],
+        },
+      ],
+      settings: { lang: "pt", rail: { position: "bottom" } },
+      vocabulary: [
+        { id: "v1", word: "Effluvium", lang: "es", short: "gas desagradable", bookId: "", bookTitle: "Sofía", page: 33, createdAt: "2026-11-05T10:00:00.000Z" },
+        { id: "v2", word: "effluvium", lang: "es", short: "duplicada" },
+      ],
+    };
+  }
+
+  test("aplicar: crea el libro nuevo del servidor con sesiones, ajustes y vocab", async () => {
+    const a = adaptador();
+    const informe = await a.nucleo.sync.aplicar(estadoRemoto());
+    expect(informe.nuevos).toBe(1);
+    expect(informe.actualizados).toBe(0);
+    expect(informe.ficheros).toHaveLength(1); // sin fichero local: hay que bajarlo
+    expect(informe.ficheros[0].archivoUrl).toBe("/api/books/bserver000000001/file");
+
+    const lista: Resp = await a.handle("GET", "/api/books", "", ctxJson({}));
+    expect(lista.json.books).toHaveLength(1);
+    expect(lista.json.books[0].id).toBe("bserver000000001"); // id seguro y libre: se conserva
+    expect(lista.json.books[0].currentPage).toBe(300);
+    expect(lista.json.books[0].sessions).toEqual([
+      { pagesRead: 40, minutes: 65, date: "2026-11-05T12:00:00" },
+    ]);
+    // ajustes: el que manda gana (lang pt), la biblioteca es de ESTA máquina
+    const cfg: Resp = await a.handle("GET", "/api/settings", "", ctxJson({}));
+    expect(cfg.json.settings.lang).toBe("pt");
+    // vocab: reemplazo limpio con dedupe palabra+idioma sin caja
+    const vocab: Resp = await a.handle("GET", "/api/vocab", "", ctxJson({}));
+    expect(vocab.json.vocabulary).toHaveLength(1);
+    expect(vocab.json.vocabulary[0].short).toBe("gas desagradable");
+  });
+
+  test("aplicar: el ordenador manda sobre el libro emparejado y el id local se queda", async () => {
+    const a = adaptador();
+    const subida = await subirLibro(a.handle, { title: "Sofía local", pages: 670, fileName: "sofia.pdf" });
+    const idLocal = subida.json.book.id as string;
+    await a.handle("PATCH", `/api/books/${idLocal}`, "", ctxJson({ currentPage: 50, pagesRead: 10, minutes: 15 }));
+
+    const informe = await a.nucleo.sync.aplicar(estadoRemoto());
+    expect(informe.actualizados).toBe(1);
+    expect(informe.nuevos).toBe(0);
+    expect(informe.ficheros).toHaveLength(0); // el fichero ya está en OPFS
+
+    const lista: Resp = await a.handle("GET", "/api/books", "", ctxJson({}));
+    expect(lista.json.books).toHaveLength(1); // sin duplicados
+    expect(lista.json.books[0].id).toBe(idLocal); // identidad local intacta
+    expect(lista.json.books[0].title).toBe("El mundo de Sofía"); // el que manda gana
+    expect(lista.json.books[0].currentPage).toBe(300);
+    expect(lista.json.books[0].sessions).toEqual([
+      { pagesRead: 40, minutes: 65, date: "2026-11-05T12:00:00" },
+    ]);
+  });
+
+  test("aplicar: segunda copia por id no duplica y los libros solo locales se quedan", async () => {
+    const a = adaptador();
+    await a.nucleo.sync.aplicar(estadoRemoto());
+    await a.nucleo.sync.aplicar(estadoRemoto()); // la misma copia, dos veces
+    const lista: Resp = await a.handle("GET", "/api/books", "", ctxJson({}));
+    expect(lista.json.books).toHaveLength(1);
+
+    // y un libro que solo vive en el APK no lo borra la copia del servidor
+    const extra = await subirLibro(a.handle, { title: "Solo en el APK", pages: 30, fileName: "local.pdf" });
+    await a.nucleo.sync.aplicar(estadoRemoto());
+    const tras: Resp = await a.handle("GET", "/api/books", "", ctxJson({}));
+    expect(tras.json.books.map((b: any) => b.id)).toContain(extra.json.book.id);
+  });
+
+  test("aplicar: libro roto (sin nombre o sin páginas) se ignora sin romper la casa", async () => {
+    const a = adaptador();
+    const informe = await a.nucleo.sync.aplicar({
+      books: [
+        { id: "bx", fileName: "", totalPages: 10, title: "sin nombre" },
+        { id: "by", fileName: "y.pdf", totalPages: 0, title: "sin páginas" },
+        null,
+      ],
+    });
+    expect(informe.nuevos).toBe(0);
+    const lista: Resp = await a.handle("GET", "/api/books", "", ctxJson({}));
+    expect(lista.json.books).toHaveLength(0);
+  });
+
+  test("exportar: estado completo con sesiones por día, portada data URL y ajustes", async () => {
+    const a = adaptador();
+    const subida = await subirLibro(a.handle, { cover: true, fileName: "meditaciones.pdf" });
+    const idLocal = subida.json.book.id as string;
+    await a.handle("PATCH", `/api/books/${idLocal}`, "", ctxJson({ currentPage: 4, pagesRead: 3, minutes: 9 }));
+    await a.handle("POST", "/api/vocab", "", ctxJson({ word: "Perenne", lang: "es", short: "que dura siempre", bookTitle: "Meditaciones", page: 5 }));
+
+    const estado = await a.nucleo.sync.exportar();
+    expect(estado.books).toHaveLength(1);
+    const b = estado.books[0];
+    expect(b.id).toBe(idLocal);
+    expect(b.currentPage).toBe(4);
+    expect(b.sessions).toEqual([{ pagesRead: 3, minutes: 9, date: "2026-11-04T12:00:00" }]);
+    expect(b.cover).toEqual(expect.stringMatching(/^data:image\/png;base64,/));
+    expect(b.badge).toBeNull();
+    expect(estado.settings.rail.segments).toBe(10); // ajustes por defecto
+    expect(estado.vocab).toHaveLength(1);
+    expect(estado.vocab[0].word).toBe("Perenne");
+  });
+});
+

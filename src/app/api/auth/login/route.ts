@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { COOKIE_SESION, cookieDe, contraseñaEfectiva, igualEnTiempoConstante } from "@/core/access";
+import { cabecerasSync, preflightSync } from "@/lib/cors";
 
 /** rate limit en memoria de proceso (design §3): 10 fallos/min por IP */
 const MAX = 10;
@@ -12,6 +13,10 @@ const fallos = new Map<string, { n: number; reset: number }>();
  * derivada que el guard espera. Sin contraseña efectiva (modo normal abierto)
  * responde 400: no hay candado que abrir.
  */
+export async function OPTIONS(req: NextRequest) {
+  return preflightSync(req);
+}
+
 export async function POST(req: NextRequest) {
   const password = contraseñaEfectiva();
   if (!password) {
@@ -47,7 +52,9 @@ export async function POST(req: NextRequest) {
   }
 
   fallos.delete(ip);
-  const res = NextResponse.json({ ok: true });
+  // el token viaja en la respuesta para la copia de la casa (Enmienda 1): el
+  // APK lo manda luego como X-Athena-Token (cross-origin, sin cookies).
+  const res = NextResponse.json({ ok: true, token: cookieDe(password) }, { headers: cabecerasSync(req) });
   res.cookies.set({
     name: COOKIE_SESION,
     value: cookieDe(password),

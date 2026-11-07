@@ -5,10 +5,16 @@ import { db } from "@/lib/db";
 import { archivoUrlDe } from "@/core/types";
 import { sweepExpiredUndo } from "@/core/undo-store";
 import { raizUploads } from "@/core/data-home";
+import { preflightSync, cabecerasSync } from "@/lib/cors";
 
 const UPLOAD_DIR = raizUploads(); // <casa>/uploads con ATHENA_HOME (data-home.ts)
 
-export async function GET() {
+/** OPTIONS: preflight de la copia de la casa (el APK lee la biblioteca por LAN) */
+export async function OPTIONS(req: NextRequest) {
+  return preflightSync(req);
+}
+
+export async function GET(req: NextRequest) {
   try {
     await sweepExpiredUndo(); // purga papelera vencida al ver la biblioteca
     const books = await db.book.findMany({
@@ -37,17 +43,20 @@ export async function GET() {
         date: `${r.day}T12:00:00`,
       });
     }
-    return NextResponse.json({
-      books: books.map((b) => ({
-        ...b,
-        sessions: porLibro.get(b.id) ?? [],
-        // URLs servidas por la app (nunca estáticos de public/): un fichero
-        // creado tras el arranque del servidor no existía en el momento de
-        // enumerar public/ y daría 404 hasta reiniciar.
-        archivoUrl: archivoUrlDe(b),
-        coverUrl: b.coverPath && b.coverPath.startsWith("/uploads/") ? `/api/books/${b.id}/cover` : b.coverPath,
-      })),
-    });
+    return NextResponse.json(
+      {
+        books: books.map((b) => ({
+          ...b,
+          sessions: porLibro.get(b.id) ?? [],
+          // URLs servidas por la app (nunca estáticos de public/): un fichero
+          // creado tras el arranque del servidor no existía en el momento de
+          // enumerar public/ y daría 404 hasta reiniciar.
+          archivoUrl: archivoUrlDe(b),
+          coverUrl: b.coverPath && b.coverPath.startsWith("/uploads/") ? `/api/books/${b.id}/cover` : b.coverPath,
+        })),
+      },
+      { headers: cabecerasSync(req) }
+    );
   } catch (e) {
     console.error("GET /api/books", e);
     return NextResponse.json({ error: "No se pudo listar la biblioteca" }, { status: 500 });

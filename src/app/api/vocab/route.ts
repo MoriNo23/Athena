@@ -1,29 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { preflightSync, cabecerasSync } from "@/lib/cors";
 
 /**
  * Vocabulario en la BD (es data de la dueña, no configuración).
  * GET → lista (500 máx, como siempre en la casa), más nuevas primero.
  * POST → inserta si no existe ya (palabra+idioma); devuelve la entrada viva.
  */
-export async function GET() {
+export async function OPTIONS(req: NextRequest) {
+  return preflightSync(req);
+}
+
+export async function GET(req: NextRequest) {
   try {
     const rows = await db.vocab.findMany({
       orderBy: { createdAt: "desc" },
       take: 500,
     });
-    return NextResponse.json({
-      vocabulary: rows.map((v) => ({
-        id: v.id,
-        word: v.word,
-        lang: v.lang === "en" ? "en" : "es",
-        short: v.short,
-        bookId: v.bookId ?? "",
-        bookTitle: v.bookTitle,
-        page: v.page,
-        createdAt: v.createdAt.toISOString(),
-      })),
-    });
+    return NextResponse.json(
+      {
+        vocabulary: rows.map((v) => ({
+          id: v.id,
+          word: v.word,
+          lang: v.lang === "en" ? "en" : "es",
+          short: v.short,
+          bookId: v.bookId ?? "",
+          bookTitle: v.bookTitle,
+          page: v.page,
+          createdAt: v.createdAt.toISOString(),
+        })),
+      },
+      { headers: cabecerasSync(req) }
+    );
   } catch (e) {
     console.error("GET /api/vocab", e);
     return NextResponse.json({ error: "No se pudo leer el vocabulario" }, { status: 500 });

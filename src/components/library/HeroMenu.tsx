@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Check, Languages, MoreHorizontal, RotateCcw, Sun } from "lucide-react";
 import { LANGUAGES, useI18n } from "@/lib/i18n";
+import { SyncDialog } from "@/components/library/SyncDialog";
 
 const emptySubscribe = () => () => {};
 
@@ -36,6 +38,13 @@ export function HeroMenu({ onResetAll }: { onResetAll: () => void }) {
   const { resolvedTheme, setTheme } = useTheme();
   const mounted = useMounted();
   const isDark = !mounted || resolvedTheme !== "light";
+  const [syncOpen, setSyncOpen] = useState(false);
+  // la copia de la casa solo existe en la build del APK (motor offline instalado)
+  const esApk =
+    mounted &&
+    typeof window !== "undefined" &&
+    !!(window as unknown as { __ATHENA_APK__?: boolean }).__ATHENA_APK__ &&
+    !!(window as unknown as { __athenaOffline?: { sync?: unknown } }).__athenaOffline?.sync;
 
   return (
     <DropdownMenu>
@@ -98,6 +107,16 @@ export function HeroMenu({ onResetAll }: { onResetAll: () => void }) {
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
+        {/* Copia de la casa: solo en la app, siempre a mano (Enmienda 1) */}
+        {esApk && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setSyncOpen(true)} data-testid="sync-open">
+              <span className="flex-1">{t("copia.menu")}</span>
+            </DropdownMenuItem>
+          </>
+        )}
 
         {/* Destructivo de baja frecuencia: un paso aparte, con su confirmación */}
         <DropdownMenuSeparator />

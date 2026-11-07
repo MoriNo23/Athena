@@ -21,6 +21,7 @@ TU biblioteca es TUYA: **sin nube, sin cuentas, sin telemetría**.
 | [Biblioteca por carpeta](biblioteca-por-carpeta.md) | Registra una carpeta entera sin subir nada: garantías y detalles |
 | [Ajustes](ajustes.md) | `db/config.json`: tus ajustes en un fichero legible y editable a mano |
 | [Auto-alojamiento](auto-alojamiento.md) | Modos normal/lan, candado, casa de datos, CLI `athena`, Caddy, backups |
+| [Copiar con el ordenador](sincronizar.md) | La copia de la casa: biblioteca y progreso entre el APK y el servidor por la red de casa |
 | [APK Android](apk-android.md) | La versión offline para el teléfono y cómo se compila |
 | [Solución de problemas](solucion-de-problemas.md) | Síntomas, remedios y los scripts de la mesa |
 

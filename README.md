@@ -48,6 +48,9 @@ instrument, tuned for consistency.
 - **EPUBs & PDFs** paginated the same way (~320 words/virtual page); rail and header track real pages.
 - **Literature settings** — X-ray, outline, dictionary, natural pauses, argument skeleton, locked notes, dual read.
 - **ES / EN / PT** — interface, dates, everything switches.
+- **Home copy** — pull/push your library and progress between the Android app
+  and your own server over your home network, always by hand (Amendment 1:
+  no cloud, no accounts, silent degradation).
 - **Neo-brutalist UI** — zero radius, hard 2px borders, offset shadows, buttons that press.
 - **Offline-first** — your library lives on your machine (data home at
   `~/.local/share/athena`), never on someone else's server.
@@ -90,7 +93,9 @@ the `COMO-ARRANCAR.txt` inside — no compilation, straight to reading.
 
 `Athena-v<version>.apk` from
 [releases](https://github.com/MoriNo23/Athena/releases): the same app in a
-WebView with an offline engine that mirrors the whole experience on-device.
+WebView with an offline engine that mirrors the whole experience on-device —
+including the **home copy**: pull or push your library and progress to your
+own computer over the home network, always by hand.
 Guide and limits in [docs/APK-OFFLINE.md](docs/APK-OFFLINE.md) (Spanish).
 
 ### From source

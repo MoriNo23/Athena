@@ -49,8 +49,8 @@ a leer hoy.
 ## Estructura de directorios
 
 - `src/app/` — páginas Next.js (App Router) y rutas API en `src/app/api/**`
-  (auth, books, dictionary, library, progress, settings, teleprompter, vocab).
-  Handlers finos: validan y delegan; las reglas viven en `src/core/`.
+  (auth, books, dictionary, library, progress, settings, sync, teleprompter,
+  vocab). Handlers finos: validan y delegan; las reglas viven en `src/core/`.
 - `src/core/` — el núcleo único: reglas y contratos de la casa (tipos del
   dominio, riel/racha/ETA, candado, casa de datos, contrato `db/config.json`,
   papelera con deshacer, motores EPUB y PDF-texto, timing del teleprompter,
@@ -64,7 +64,10 @@ a leer hoy.
 - `src/components/`, `src/hooks/` — UI reutilizable (shadcn/ui + Tailwind).
 - `public/athena-offline.js` — **motor offline del APK**. Espeja los
   contratos de `src/app/api/**` sobre IndexedDB/OPFS. No tocar sin
-  actualizar `tests/offline-engine.test.ts` en el mismo PR.
+  actualizar `tests/offline-engine.test.ts` en el mismo PR. Lleva además el
+  módulo `sync` de la copia de la casa (Enmienda 1): NO es un contrato del
+  API sino el puente APK ↔ servidor; sus reglas de fusión viven espejadas en
+  `src/core/sync.ts` y se testean en ambos lados.
 - `tests/` — tests de integración (motor offline, contratos de API).
 - `prisma/schema.prisma` — única fuente de verdad de la DB (SQLite). Cambios
   de schema = migración versionada en `prisma/migrations/`.

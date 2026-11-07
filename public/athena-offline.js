@@ -16,6 +16,13 @@
  * src/app/api (mismos JSON, mismos códigos de estado, fechas en ISO). La
  * interfaz no cambia ni una línea: sigue llamando a /api/... como siempre.
  *
+ * Copia de la casa (Enmienda 1): además del espejo de contratos, el núcleo
+ * lleva un módulo `sync` (exportar/aplicar) y `install()` lo puentea a la red
+ * (traerDe/enviarA con X-Athena-Token) para copiar biblioteca/progreso con el
+ * servidor de la dueña por LAN, SIEMPRE a mano. No es un contrato del API: es
+ * el puente APK ↔ servidor; las mismas reglas del lado servidor viven en
+ * src/core/sync.ts y se testean en ambos lados.
+ *
  * Se activa SOLO cuando la build es de APK (window.__ATHENA_APK__ === true,
  * inyectado por layout.tsx en la build estática) o cuando corre dentro de
  * Capacitor. En el modo self-host normal este archivo no hace nada.
@@ -979,6 +986,233 @@
      * rutas de la API replicadas. El JSDoc clava el tipo para el tsc (con
      * allowJs el test lo consume tipado: Promise<{status, json?, blob?,
      * headers?}>) — no cambia nada en runtime.
+     */
+    // ------------------------------------------------ sync (copia de la casa)
+    //
+    // Enmienda 1: copia directa entre dispositivos de la dueña, a mano y por
+    // LAN. Este módulo vive DENTRO del núcleo (toca las colecciones) y NO es
+    // un contrato del API: es el puente APK ↔ servidor. Las mismas reglas del
+    // lado servidor viven en src/core/sync.ts (testeadas en ambos lados).
+    //
+    //   exportar()       → estado completo del APK (el teléfono manda)
+    //   aplicar(remoto)  → aplica el estado del servidor (el ordenador manda)
+
+    /** nombres de fichero propios de la biblioteca (precarga OPFS) */
+    function prepararNombres() {
+      var nombres = [];
+      coleccion("books", []).forEach(function (b) {
+        if (b.filePath) nombres.push(baseName(b.filePath));
+        if (b.coverPath && b.coverPath.startsWith("/uploads/")) nombres.push(baseName(b.coverPath));
+      });
+      return nombres;
+    }
+
+    /** estado completo para llevar a otra máquina */
+    function exportarEstado() {
+      var books = coleccion("books", []).slice();
+      var por = sesionesPorLibro();
+      var badges = coleccion("badges", []);
+      var stored = meta.get("settings");
+      return Promise.all(books.map(function (b) { return coverDataUrlDe(b); })).then(function (covers) {
+        return {
+          exportedAt: nowIso(now()),
+          books: books.map(function (b, i) {
+            return Object.assign({}, b, {
+              cover: covers[i],
+              badge: badges.find(function (x) { return x.bookId === b.id; }) || null,
+              sessions: por.get(b.id) || [],
+            });
+          }),
+          settings: (stored && stored.settings) || ajustesPorDefecto(),
+          vocab: coleccion("vocab", []).slice(),
+        };
+      });
+    }
+
+    /** las sesiones del libro se sustituyen por las que llegan (por día) */
+    function sustituirSesiones(sessions, bookId, filas) {
+      var limpias = (Array.isArray(filas) ? filas : []).slice(0, 5000).map(function (s) {
+        var d = s && typeof s.date === "string" && s.date ? new Date(s.date) : null;
+        return {
+          id: String(uuid()).replace(/-/g, "").slice(0, 24),
+          bookId: bookId,
+          pagesRead: Math.max(0, Math.round(Number(s && s.pagesRead) || 0)),
+          minutes: Math.max(0, Math.round(Number(s && s.minutes) || 0)),
+          date: d && !isNaN(d.getTime()) ? d.toISOString() : nowIso(now()),
+        };
+      }).filter(function (s) { return s.pagesRead > 0 || s.minutes > 0; });
+      return sessions.filter(function (s) { return s.bookId !== bookId; }).concat(limpias);
+    }
+
+    /** insignia del libro: la remota manda (upsert con id local o fuera) */
+    function sincronizarInsignia(badges, remota, localId) {
+      var resto = badges.filter(function (x) { return x.bookId !== localId; });
+      if (remota && typeof remota === "object") {
+        resto.push({
+          id: remota.id && typeof remota.id === "string" ? remota.id : String(uuid()).replace(/-/g, "").slice(0, 24),
+          bookId: localId,
+          tier: Math.min(4, Math.max(1, Math.round(Number(remota.tier) || 1))),
+          readings: Math.max(1, Math.round(Number(remota.readings) || 1)),
+          earnedAt: remota.earnedAt || nowIso(now()),
+          updatedAt: remota.updatedAt || nowIso(now()),
+        });
+      }
+      return resto;
+    }
+
+    /**
+     * Aplica el estado del servidor (books con sessions + coverUrl, settings,
+     * vocabulary). «El que manda» gana; los libros que solo existen aquí se
+     * quedan (una copia nunca borra). Devuelve informe con los ficheros que
+     * faltan por descargar (degradación en silencio: se piden fuera).
+     */
+    function aplicarEntrante(remoto) {
+      var informe = { actualizados: 0, nuevos: 0, ficheros: [] };
+      var books = coleccion("books", []).slice();
+      var sessions = coleccion("sessions", []).slice();
+      var badges = coleccion("badges", []).slice();
+      var remotos = remoto && Array.isArray(remoto.books) ? remoto.books : [];
+
+      remotos.forEach(function (r) {
+        if (!r || typeof r !== "object") return;
+        var nombre = typeof r.fileName === "string" ? r.fileName : "";
+        var total = Math.round(Number(r.totalPages));
+        if (!nombre || !Number.isFinite(total) || total <= 0) return; // libro roto: se ignora
+
+        var local = null;
+        for (var i = 0; i < books.length; i++) {
+          if (books[i].id === r.id) { local = books[i]; break; }
+        }
+        if (!local) {
+          for (var j = 0; j < books.length; j++) {
+            if (books[j].fileName === nombre && books[j].totalPages === total) { local = books[j]; break; }
+          }
+        }
+
+        if (local) {
+          Object.assign(local, {
+            title: typeof r.title === "string" && r.title.trim() ? r.title : local.title,
+            author:
+              r.author === null
+                ? null
+                : typeof r.author === "string" && r.author.trim()
+                  ? r.author
+                  : local.author,
+            totalPages: total,
+            currentPage: Math.min(Math.max(1, Math.round(Number(r.currentPage) || 1)), Math.max(1, total)),
+            milestones:
+              r.milestones === undefined
+                ? local.milestones
+                : r.milestones === null
+                  ? null
+                  : clampInt(r.milestones, 2, 40, local.milestones),
+            dailyGoal:
+              r.dailyGoal === undefined
+                ? local.dailyGoal
+                : r.dailyGoal === null
+                  ? null
+                  : clampInt(r.dailyGoal, 1, 500, local.dailyGoal),
+            extras: r.extras === undefined ? local.extras : r.extras && typeof r.extras === "object" ? r.extras : null,
+            finishedAt: r.finishedAt || null,
+            readCount: Math.max(0, Math.round(Number(r.readCount) || 0)),
+            lastReadAt: r.lastReadAt || local.lastReadAt,
+          });
+          var faltaFichero = !files.read(baseName(local.filePath));
+          var faltaCover = !local.coverPath && !!r.coverPath;
+          if (faltaFichero || faltaCover) {
+            informe.ficheros.push({
+              bookId: local.id,
+              archivoUrl: r.archivoUrl || `/api/books/${r.id}/file`,
+              coverUrl: faltaCover ? r.coverUrl || `/api/books/${r.id}/cover` : null,
+            });
+          }
+          badges = sincronizarInsignia(badges, r.badge, local.id);
+          sessions = sustituirSesiones(sessions, local.id, r.sessions);
+          informe.actualizados++;
+        } else {
+          var usado = {};
+          books.forEach(function (b) { usado[b.id] = true; });
+          var idNuevo = esIdSeguro(r.id) && !usado[r.id] ? r.id : idLibro(uuid);
+          var ext = /\.epub$/i.test(String(r.filePath || r.fileName || "")) ? "epub" : "pdf";
+          var fila = {
+            id: idNuevo,
+            title: typeof r.title === "string" && r.title.trim() ? r.title : "Sin título",
+            author: typeof r.author === "string" && r.author.trim() ? r.author : null,
+            fileName: nombre,
+            filePath: `/uploads/${idNuevo}.${ext}`,
+            coverPath: r.coverPath ? `/uploads/${idNuevo}-cover.png` : null,
+            totalPages: total,
+            currentPage: Math.min(Math.max(1, Math.round(Number(r.currentPage) || 1)), Math.max(1, total)),
+            milestones: r.milestones === undefined || r.milestones === null ? null : clampInt(r.milestones, 2, 40, null),
+            dailyGoal: r.dailyGoal === undefined || r.dailyGoal === null ? null : clampInt(r.dailyGoal, 1, 500, null),
+            companionPath: null,
+            companionPages: null,
+            extras: r.extras && typeof r.extras === "object" ? r.extras : null,
+            finishedAt: r.finishedAt || null,
+            readCount: Math.max(0, Math.round(Number(r.readCount) || 0)),
+            createdAt: r.createdAt || nowIso(now()),
+            lastReadAt: r.lastReadAt || null,
+            origin: "subido",
+            fileHash: null,
+            fileBytes: null,
+            fileMtime: null,
+            fileMissingAt: null,
+          };
+          books.push(fila);
+          badges = sincronizarInsignia(badges, r.badge, idNuevo);
+          sessions = sustituirSesiones(sessions, idNuevo, r.sessions);
+          informe.ficheros.push({
+            bookId: idNuevo,
+            archivoUrl: r.archivoUrl || `/api/books/${r.id}/file`,
+            coverUrl: r.coverPath ? r.coverUrl || `/api/books/${r.id}/cover` : null,
+          });
+          informe.nuevos++;
+        }
+      });
+
+      guardarColeccion("books", books);
+      guardarColeccion("sessions", sessions);
+      guardarColeccion("badges", badges);
+
+      // ajustes: el que manda gana; la carpeta de biblioteca es de ESTA máquina
+      if (remoto && remoto.settings && typeof remoto.settings === "object") {
+        var stored = meta.get("settings") || { settings: ajustesPorDefecto(), biblioteca: { carpeta: "" }, _doc: {} };
+        meta.set("settings", {
+          settings: Object.assign({}, ajustesPorDefecto(), remoto.settings),
+          biblioteca: stored.biblioteca || { carpeta: "" },
+          _doc: remoto._doc && typeof remoto._doc === "object" ? remoto._doc : stored._doc || {},
+        });
+      }
+
+      // vocabulario: reemplazo limpio por el que manda (dedupe palabra+idioma)
+      if (remoto && Array.isArray(remoto.vocabulary)) {
+        var vistas = {};
+        var vocab = [];
+        remoto.vocabulary.slice(0, 500).forEach(function (v) {
+          if (!v || typeof v.word !== "string" || !v.word.trim()) return;
+          var lang = v.lang === "en" ? "en" : "es";
+          var clave = v.word.trim().toLowerCase() + "|" + lang;
+          if (vistas[clave]) return;
+          vistas[clave] = true;
+          vocab.push({
+            id: esIdSeguro(v.id) ? v.id : String(uuid()).replace(/-/g, "").slice(0, 24),
+            word: v.word.trim().slice(0, 100),
+            lang: lang,
+            short: typeof v.short === "string" ? v.short.slice(0, 2000) : "",
+            bookId: typeof v.bookId === "string" && v.bookId ? v.bookId : null,
+            bookTitle: typeof v.bookTitle === "string" ? v.bookTitle.slice(0, 255) : "",
+            page: Math.max(1, Math.round(Number(v.page) || 1)),
+            createdAt: typeof v.createdAt === "string" && v.createdAt ? v.createdAt : nowIso(now()),
+          });
+        });
+        guardarColeccion("vocab", vocab);
+      }
+
+      return informe;
+    }
+
+    /**
+     * Punto de entrada: (método, ruta, search, ctx) → Promise<respuesta>
      *
      * @param {{ fetchImpl?: (input: any, init?: any) => Promise<any> }} depsRouter
      * @returns {(metodo: string, pathname: string, search: string, ctx: any) => Promise<{status: number, json?: any, blob?: Blob, headers?: Record<string, string>}>}
@@ -1076,6 +1310,38 @@
       handle: null, // se asigna con crearRouter
       crearRouter: crearRouter,
       ajustesPorDefecto: ajustesPorDefecto,
+      // copia de la casa (Enmienda 1): exportar manda el estado del APK,
+      // aplicar recibe el del servidor — ambos serializados en la cola.
+      /**
+       * @type {{
+       *   exportar: () => Promise<{
+       *     exportedAt: string,
+       *     books: Array<Record<string, any> & { cover: string | null, badge: any, sessions: Array<{ pagesRead: number, minutes: number, date: string }> }>,
+       *     settings: Record<string, any>,
+       *     vocab: Array<Record<string, any>>,
+       *   }>,
+       *   aplicar: (remoto: {
+       *     books?: Array<Record<string, any> | null>,
+       *     settings?: Record<string, any>,
+       *     _doc?: Record<string, string>,
+       *     vocabulary?: Array<Record<string, any>>,
+       *   }) => Promise<{
+       *     actualizados: number,
+       *     nuevos: number,
+       *     ficheros: Array<{ bookId: string, archivoUrl: string, coverUrl: string | null }>,
+       *   }>,
+       * }}
+       */
+      sync: {
+        exportar: function () {
+          return enCola(exportarEstado);
+        },
+        aplicar: function (remoto) {
+          return enCola(function () {
+            return aplicarEntrante(remoto);
+          });
+        },
+      },
       _internos: {
         diaLocal: diaLocal,
         esIdSeguro: esIdSeguro,
@@ -1267,6 +1533,142 @@
     var núcleo = createCore({ files: files, meta: meta, blobToDataUrl: blobADataUrl });
     var router = núcleo.crearRouter({});
     var fetchNativo = window.fetch.bind(window);
+
+    // ---- copia de la casa (Enmienda 1): puente red del módulo sync del núcleo
+    // Los fetches van SIEMPRE por fetchNativo (URL absoluta a otro origen: el
+    // parche de fetch no los toca) y se autentican con X-Athena-Token.
+    function conToken(token) {
+      return { "X-Athena-Token": String(token || "") };
+    }
+
+    function pedirJson(base, ruta, token) {
+      return fetchNativo(base + ruta, { headers: conToken(token) }).then(function (r) {
+        return r.json().then(function (j) {
+          return { ok: r.ok, status: r.status, json: j };
+        });
+      });
+    }
+
+    var sync = {
+      /** prueba de conexión: cuántos libros hay en la otra máquina */
+      probar: function (base, token) {
+        return pedirJson(base, "/api/books", token).then(function (r) {
+          if (!r.ok) throw new Error((r.json && r.json.error) || "HTTP " + r.status);
+          return { libros: (r.json.books || []).length };
+        });
+      },
+
+      /** el ordenador manda: estado + ficheros que falten (en silencio si fallan) */
+      traerDe: function (base, token, nota) {
+        nota = nota || function () {};
+        return Promise.all([
+          pedirJson(base, "/api/books", token),
+          pedirJson(base, "/api/settings", token),
+          pedirJson(base, "/api/vocab", token),
+        ])
+          .then(function (rs) {
+            var libros = rs[0], ajustes = rs[1], vocab = rs[2];
+            if (!libros.ok) throw new Error((libros.json && libros.json.error) || "HTTP " + libros.status);
+            return files.preparar(prepararNombres()).then(function () {
+              return núcleo.sync.aplicar({
+                books: libros.json.books || [],
+                settings: ajustes.ok ? (ajustes.json || {}).settings : undefined,
+                _doc: ajustes.ok ? (ajustes.json || {})._doc : undefined,
+                vocabulary: vocab.ok ? (vocab.json || {}).vocabulary : undefined,
+              });
+            });
+          })
+          .then(function (informe) {
+            nota({ fase: "datos", actualizados: informe.actualizados, nuevos: informe.nuevos });
+            var pendientes = informe.ficheros || [];
+            var p = Promise.resolve();
+            pendientes.forEach(function (d) {
+              p = p.then(function () {
+                nota({ fase: "fichero", total: pendientes.length });
+                return fetchNativo(base + d.archivoUrl, { headers: conToken(token) })
+                  .then(function (r) {
+                    return r.ok ? r.blob() : null;
+                  })
+                  .then(function (blob) {
+                    if (!blob) return null; // degradación en silencio (Enmienda 1)
+                    var fila = (meta.get("books") || []).find(function (b) { return b.id === d.bookId; });
+                    if (!fila || !fila.filePath) return null;
+                    return files.write(baseName(fila.filePath), blob).then(function () {
+                      if (!d.coverUrl || !fila.coverPath) return null;
+                      return fetchNativo(base + d.coverUrl, { headers: conToken(token) })
+                        .then(function (rc) {
+                          return rc.ok ? rc.blob() : null;
+                        })
+                        .then(function (cb) {
+                          return cb ? files.write(baseName(fila.coverPath), cb) : null;
+                        });
+                    });
+                  })
+                  .catch(function () {
+                    return null;
+                  });
+              });
+            });
+            return p.then(function () {
+              return informe;
+            });
+          });
+      },
+
+      /** el teléfono manda: libro a libro (fichero incluido) y luego meta */
+      enviarA: function (base, token, nota) {
+        nota = nota || function () {};
+        return files
+          .preparar(prepararNombres())
+          .then(function () {
+            return núcleo.sync.exportar();
+          })
+          .then(function (estado) {
+            var p = Promise.resolve();
+            estado.books.forEach(function (b) {
+              p = p.then(function () {
+                nota({ fase: "libro", titulo: b.title, total: estado.books.length });
+                var fd = new FormData();
+                var copia = Object.assign({}, b);
+                delete copia.cover; // la portada viaja en su campo
+                fd.append("book", JSON.stringify(copia));
+                var blob = files.read(baseName(b.filePath));
+                if (blob) fd.append("file", blob, b.fileName || "libro.pdf");
+                if (b.cover) fd.append("cover", b.cover);
+                return fetchNativo(base + "/api/sync/book", {
+                  method: "POST",
+                  headers: conToken(token),
+                  body: fd,
+                }).then(function (r) {
+                  if (!r.ok) {
+                    return r.json().then(function (j) {
+                      throw new Error((j && j.error) || "HTTP " + r.status);
+                    });
+                  }
+                  return r.json();
+                });
+              });
+            });
+            return p
+              .then(function () {
+                nota({ fase: "meta" });
+                return fetchNativo(base + "/api/sync/meta", {
+                  method: "POST",
+                  headers: Object.assign({ "Content-Type": "application/json" }, conToken(token)),
+                  body: JSON.stringify({ settings: estado.settings, vocab: estado.vocab }),
+                });
+              })
+              .then(function (r) {
+                if (!r.ok) {
+                  return r.json().then(function (j) {
+                    throw new Error((j && j.error) || "HTTP " + r.status);
+                  });
+                }
+                return { libros: estado.books.length };
+              });
+          });
+      },
+    };
 
     /** nombres de fichero que una petición puede leer (precarga OPFS) */
     function nombresPara(metodo, pathname, body) {
@@ -1499,7 +1901,7 @@
     };
     window.XMLHttpRequest = XHRAthena;
 
-    return { _nucleo: núcleo, _meta: meta, _files: files };
+    return { _nucleo: núcleo, _meta: meta, _files: files, sync: sync };
   }
 
   // Auto-arranque: en la build del APK el layout inyecta el flag ANTES de este
@@ -1508,7 +1910,8 @@
   // (sin flag, sin Capacitor) install() no hace nada: coste cero.
   if (typeof window !== "undefined" && window.__ATHENA_APK__) {
     try {
-      install();
+      // la UI de la copia (SyncDialog) llega al puente por window.__athenaOffline
+      window.__athenaOffline = install() || window.__athenaOffline;
     } catch (e) {
       console.error("[athena-offline] arranque falló", e);
     }

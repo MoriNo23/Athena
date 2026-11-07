@@ -5,6 +5,7 @@ import { stat } from "fs/promises";
 import path from "path";
 import { db } from "@/lib/db";
 import { raizUploads } from "@/core/data-home";
+import { preflightSync, cabecerasSync } from "@/lib/cors";
 
 export const runtime = "nodejs";
 
@@ -16,12 +17,22 @@ const MIME: Record<string, string> = {
   ".epub": "application/epub+zip",
 };
 
+/** OPTIONS: preflight de la copia (el APK baja el fichero por LAN) */
+export async function OPTIONS(req: NextRequest) {
+  return preflightSync(req);
+}
+
 /** Respuesta en stream del fichero (nunca se escribe: solo lectura). Con
     Range (pdfjs pide trozos): 206 + Content-Range, o el fichero entero. */
 async function servir(ruta: string, req: NextRequest): Promise<Response> {
   const st = await stat(/* turbopackIgnore: true */ ruta);
   const tipo = MIME[path.extname(ruta).toLowerCase()] ?? "application/octet-stream";
-  const comun = { "Content-Type": tipo, "Cache-Control": "no-store", "Accept-Ranges": "bytes" };
+  const comun = {
+    "Content-Type": tipo,
+    "Cache-Control": "no-store",
+    "Accept-Ranges": "bytes",
+    ...cabecerasSync(req),
+  };
   const range = req.headers.get("range");
   const m = range?.match(/bytes=(\d+)-(\d*)/);
   if (m) {

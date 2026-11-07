@@ -85,6 +85,7 @@ cd android && ./gradlew assembleRelease   # requiere SDK Android
 | Vocabulario guardado | ✅ perfecta |
 | Ajustes, filtros, fuentes, inmersión | ✅ perfecta |
 | Portadas que vienen dentro del PDF/EPUB | ✅ perfecta |
+| **Copiar con el ordenador** (biblioteca y progreso por la red de casa) | ✅ por LAN: ambos aparatos en tu WiFi, sin internet — la app degrada en silencio si no hay pareja de copia |
 | **Diccionario** (RAE/Wiktionary) | ❌ necesita internet (consulta APIs externas) |
 | **Búsqueda de portada automática** (Open Library/Google) | ❌ necesita internet |
 | **OCR** de libros escaneados | internet SOLO la primera vez (descarga los datos del idioma, ~1-2 MB, luego quedan en caché) |
@@ -98,14 +99,16 @@ escala sin despeinarse.
 
 ### 1. Automatizado (corre solo, antes de cada APK)
 
-- **116 tests** (`bun test`): los de la casa + **24 nuevos del motor offline**
+- **148 tests** (`bun test`): los de la casa + **29 del motor offline**
   (`tests/offline-engine.test.ts`) que verifican UNO A UNO los contratos de
   la API replicada: subida, duplicados, progreso y sesiones agregadas por día,
   clamp de páginas, hitos 2-40 y meta 1-500, insignias y sus tiers, la
   guardia anti-doble-registro de 2 min, la papelera de 30 s con deshacer,
   reseteos, portadas, compañero dual, ajustes con `_doc`, vocabulario con
-  dedupe, diccionario sin conexión y los errores de las rutas que no aplican
-  en móvil.
+  dedupe, diccionario sin conexión, los errores de las rutas que no aplican
+  en móvil y **la copia de la casa** (aplicar el estado del servidor, emparejar
+  libros por id o nombre+páginas, exportar el estado del móvil) — el lado
+  servidor de esas reglas vive en `src/core/sync.ts` con sus propios tests.
 - El **workflow de GitHub** corre `bun test` ANTES de compilar: un APK no se
   genera con tests rojos. Desde la gobernanza de 2026-11, además, el
   workflow **CI** corre tipos + lint + tests en cada PR.
@@ -146,6 +149,8 @@ esto basta — si los 10 puntos pasan, la app está sana:
 | 8 | En modo avión: seleccionar una palabra | Mensaje de «sin resultados» (no error raro) |
 | 9 | Borrar un libro → Deshacer (30 s) | Vuelve con su progreso |
 | 10 | Reiniciar el teléfono y abrir Athena | La biblioteca SIGUE ahí (persistencia) |
+| 11 | Con el servidor en modo lan y ambos en tu WiFi: menú «⋯» → «Copiar con el ordenador» → Probar conexión | Dice cuántos libros hay al otro lado |
+| 12 | «Traer del ordenador» (o «Enviar») | Los libros y el progreso llegan; la biblioteca se recarga sola (guía completa: `docs/guias/sincronizar.md`) |
 
 Si algo de esto falla: manda captura + los pasos exactos, y miro el flujo del
 motor correspondiente (cada punto mapea a un handler del motor, no es

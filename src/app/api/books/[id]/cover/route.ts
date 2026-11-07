@@ -5,6 +5,7 @@ import { stat } from "fs/promises";
 import path from "path";
 import { db } from "@/lib/db";
 import { raizUploads } from "@/core/data-home";
+import { preflightSync, cabecerasSync } from "@/lib/cors";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,12 @@ const UPLOADS_DIR = raizUploads(); // <casa>/uploads con ATHENA_HOME (data-home.
  * estático falla en producción cuando la copia se creó tras el arranque. El
  * stream no cachea: una portada nueva se ve al instante.
  */
-export async function GET(_req: NextRequest, { params }: Params) {
+/** OPTIONS: preflight de la copia (el APK baja la portada por LAN) */
+export async function OPTIONS(req: NextRequest) {
+  return preflightSync(req);
+}
+
+export async function GET(req: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
     const book = await db.book.findUnique({ where: { id }, select: { coverPath: true } });
@@ -37,6 +43,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       headers: {
         "Content-Type": "image/png",
         "Cache-Control": "no-store",
+        ...cabecerasSync(req),
       },
     });
   } catch (e) {
