@@ -112,8 +112,46 @@ Qué hace el paquete:
 ## 3b. Mantenimiento con el CLI
 
 - `./bin/athena backup [dest]` — tar.gz completo (BD + config + candado + ficheros).
+- `./bin/athena bundle [dest]` — artefacto standalone para servidores sin Bun (ver 3c).
 - `./bin/athena doctor` — bun, permisos, BD, uploads, build: qué falta y qué sobra.
 - `./bin/athena home` — imprime las rutas resueltas de esta instalación.
+
+## 3c. Camino paquete standalone (solo Node, sin Bun ni Docker)
+
+Para un servidor donde solo quieres instalar Node (un VPS raído, una NAS,
+un contenedor ajeno): un tar.gz con el servidor ya compilado y su
+`node_modules` mínimo — sin repo, sin Bun, sin recompilar.
+
+En una máquina con Bun y Node (donde preparas el paquete):
+
+```bash
+bun install && bun run build
+./bin/athena bundle            # → dist/athena-standalone-<versión>.tar.gz
+```
+
+En el servidor destino (solo Node ≥ 20):
+
+```bash
+tar xzf athena-standalone-<versión>.tar.gz
+cd athena-standalone
+sh start.sh                    # → http://127.0.0.1:3000
+```
+
+Qué hace `start.sh` en cada arranque: aplica el esquema con el CLI de
+Prisma que trae dentro (`db push`: crea la BD la primera vez, la alinea en
+actualizaciones sin borrar datos) y levanta el servidor con `node
+server.js`. Por defecto **offline en 127.0.0.1** — nunca se abre al WiFi
+sin querer. Para la red local:
+
+```bash
+ATHENA_MODO=lan HOSTNAME=0.0.0.0 ATHENA_PASSWORD=tu-clave sh start.sh
+```
+
+El paquete lleva la biblioteca **vacía de fábrica** (uploads sin tus
+libros): los datos viven donde lo arranques (`db/` y `public/uploads/`
+junto al paquete, o `ATHENA_HOME`/`ATHENA_DB` si los defines). Dentro va
+un `INICIO.md` con estas mismas notas. La imagen Docker (sección 2) usa el
+mismo mecanismo por dentro: mismo cierre de Prisma, mismo `start.sh`.
 
 ## 4. Exponer a internet con TLS (Caddy)
 

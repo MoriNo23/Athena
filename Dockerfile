@@ -18,7 +18,7 @@ COPY . .
 # la BD no se toca en build; la URL existe solo para satisfacer el entorno
 ENV DATABASE_URL=file:/tmp/athena-build.db
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN bun run build
+RUN bun run build && node scripts/complete-standalone.mjs
 
 # ---------- runner: standalone + cliente prisma ----------
 FROM node:22-slim AS runner
@@ -28,20 +28,17 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     DATABASE_URL=file:/app/db/custom.db
 
-# servidor standalone de Next (server.js + node_modules mínimos)
+# servidor standalone de Next completo: server.js + node_modules mínimos
+# + cierre del CLI de Prisma + esquema/migraciones + start.sh
+# (scripts/complete-standalone.mjs lo deja todo dentro de .next/standalone)
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-# Prisma: CLI para `db push` en el arranque + cliente generado + engine
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/prisma ./prisma
 
 # el candado y la BD viven en el volumen; los libros subidos, en el suyo
 RUN mkdir -p /app/db /app/public/uploads
 
 EXPOSE 3000
-# db push: crea la BD la primera vez y alinea el esquema en actualizaciones
-# (--skip-generate: el cliente ya viene generado en la imagen)
-CMD ["sh", "-c", "node node_modules/prisma/build/index.js db push --skip-generate && node server.js"]
+# start.sh: db push (crea la BD la primera vez, alinea el esquema después)
+# y node server.js — el mismo arranque que el paquete standalone de bin/athena bundle
+CMD ["sh", "start.sh"]

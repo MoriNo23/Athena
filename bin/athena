@@ -7,6 +7,7 @@
 #   athena start [--lan] arranca Athena (offline o lan) con los datos en su casa
 #   athena doctor        revisa bun, casa de datos, BD, uploads y permisos
 #   athena backup [dest] copia de seguridad completa (db + uploads) en un tar.gz
+#   athena bundle [dest] artefacto standalone (solo Node) en dist/, sin tu biblioteca
 #   athena home          imprime las rutas resueltas
 #   athena migrate-home  mueve una instalación legacy (datos dentro del repo) a la casa
 #
@@ -120,6 +121,19 @@ cmd_migrate_home() {
   echo "Arranca con: bin/athena start   (bun run start también la encuentra)"
 }
 
+cmd_bundle() {
+  local destino="${1:-$ROOT/dist}"
+  [ -f "$ROOT/.next/standalone/server.js" ] || {
+    echo "No hay build de producción ($ROOT/.next/standalone). Ejecuta antes: bun run build"
+    exit 1
+  }
+  command -v node >/dev/null || {
+    echo "Node no está en el PATH (el artefacto se arranca con Node, sin Bun)."
+    exit 1
+  }
+  node scripts/build-standalone-bundle.mjs "$destino"
+}
+
 cmd_start() {
   local lan=0
   [ "${1:-}" = "--lan" ] && lan=1
@@ -199,10 +213,11 @@ case "${1:-}" in
   start) shift; cmd_start "$@" ;;
   doctor) cmd_doctor ;;
   backup) shift; cmd_backup "$@" ;;
+  bundle) shift; cmd_bundle "$@" ;;
   home) cmd_home ;;
   migrate-home) cmd_migrate_home ;;
   ""|-h|--help|help)
-    sed -n '2,14p' "$(readlink -f "$0")" | sed 's/^# \{0,1\}//'
+    sed -n '2,15p' "$(readlink -f "$0")" | sed 's/^# \{0,1\}//'
     ;;
   *) echo "Comando desconocido: $1 (athena --help)"; exit 1 ;;
 esac

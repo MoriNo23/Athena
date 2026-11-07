@@ -25,8 +25,10 @@ a leer hoy.
 
 - Dev PC: `bun run dev` (offline, 127.0.0.1) / `bun run dev:lan` (0.0.0.0)
 - Producción: `bun run build` + `bun run start` (o `start:lan`)
-- CLI de la casa: `bun run athena init|start|doctor|backup|home|migrate-home`
+- CLI de la casa: `bun run athena init|start|doctor|backup|bundle|home|migrate-home`
   (o `./bin/athena`); gestiona ATHENA_HOME — ver `src/core/data-home.ts`
+- Standalone solo-Node: tras el build, `./bin/athena bundle` produce
+  `dist/athena-standalone-<versión>.tar.gz` (docs/SELFHOSTING.md §3c)
 - Calidad: `bunx tsc --noEmit` · `bun run lint` · `bun test`
 - DB: `bun run db:migrate` · `bun run db:push` · `bun run db:generate`
   (dev/legacy); instalaciones fuera del repo: `bin/athena init` (migrate deploy)
@@ -75,12 +77,14 @@ a leer hoy.
   (dentro del repo). Jamás se commitean. Con `ATHENA_HOME` (default
   `~/.local/share/athena`) los datos viven FUERA del repo: la resolución
   completa y sus reglas viven en `src/core/data-home.ts`.
-- `bin/athena` — CLI de la casa (init/start/doctor/backup/migrate-home).
+- `bin/athena` — CLI de la casa (init/start/doctor/backup/bundle/migrate-home).
   Bash puro, sin dependencias; comparte la resolución de rutas con
   `src/core/data-home.ts` (si cambias una, cambia la otra).
 - `scripts/` — recetas de build/empaquetado (`build-apk-web.mjs`,
-  `package-linux.sh` tarball, `package-deb.sh` paquete Debian). Sin
-  lógica de negocio aquí.
+  `package-linux.sh` tarball, `package-deb.sh` paquete Debian,
+  `complete-standalone.mjs` completa `.next/standalone` con el CLI de Prisma
+  y `start.sh` — lo usan el Dockerfile y `build-standalone-bundle.mjs`,
+  que ensambla el tar.gz solo-Node). Sin lógica de negocio aquí.
 - `android/` — proyecto Capacitor/Gradle del APK. `android/keystore/` —
   firma del APK (riesgo y mitigaciones en `docs/SECURITY.md`).
 - `docs/` — documentación de la casa (PRODUCT es la constitución):
