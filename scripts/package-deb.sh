@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Athena · paquete .deb para Debian/Ubuntu (ver LEEME.md y docs/SELFHOSTING.md)
+# Athena · paquete .deb para Debian/Ubuntu (ver docs/INDICE.md y docs/SELFHOSTING.md)
 #
 # Monta la jerarquía de un paquete Debian a partir del build de producción
 # (.next) ya hecho y lo compila con dpkg-deb. Lo llama
@@ -7,7 +7,7 @@
 #
 #   /opt/athena/                 la app (ficheros rastreados + .next)
 #   /usr/bin/athena              symlink al CLI (bin/athena)
-#   /usr/share/doc/athena/       copyright (MIT) + LEEME.md
+#   /usr/share/doc/athena/       copyright (MIT) + INICIO-RAPIDO.txt
 #   DEBIAN/{control,postinst,postrm}
 #
 # Los datos de la persona NUNCA van en el paquete: viven en la casa de datos
@@ -34,7 +34,22 @@ cp -r .next "$APP/.next"
 ln -s /opt/athena/bin/athena "$DEBROOT/usr/bin/athena"
 
 # 3) Documentación
-install -m 644 LEEME.md "$DOC/LEEME.md"
+cat > "$DOC/INICIO-RAPIDO.txt" <<EOF
+Athena ${VERSION} — inicio rápido
+Manual completo: https://github.com/MoriNo23/Athena/blob/main/docs/INDICE.md
+
+REQUISITO: Bun (https://bun.sh) — curl -fsSL https://bun.sh/install | bash
+Si el postinst no pudo dejar las dependencias instaladas (¿sin red?):
+  cd /opt/athena && sudo bun install --production
+
+ARRANQUE:
+  athena init      # solo la primera vez: casa de datos + esquema
+  athena start     # → http://localhost:3000   (en tu red: athena start --lan)
+
+Tus datos viven FUERA del paquete (~/.local/share/athena o \$ATHENA_HOME):
+sobreviven a actualizaciones y a desinstalar. Log: <casa>/server.log
+Diagnóstico: athena doctor  ·  Copia de seguridad: athena backup
+EOF
 cat > "$DOC/copyright" <<EOF
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Athena

@@ -73,7 +73,8 @@ diario con ritmo propio.
 
 - Libros reales de la dueña cargados en la biblioteca (Sofia, Quijote,
   Meditaciones, cuaderno escaneado).
-- README/LEEME con capturas vivas y reglas de la casa escritas.
+- README en inglés con capturas vivas; documentación de uso en español bajo
+  `docs/` (`INDICE.md` + `guias/`) y reglas de la casa escritas.
 - Auditorías medibles: archivadas en el historial del repo (commit `b66f614`:
   `DESIGN.md`, `.impeccable/design.json`, `docs/auditoria-impeccable.md` y las
   baselines JSON antes/después); se retiraron del árbol en la limpieza de

@@ -31,7 +31,7 @@ Por qué va aquí: cada cambio que llegue a otros viaja hoy a ciegas.
   botón «Carpeta»).
 - `.env` y rutas a prueba de macOS/Windows (la ruta `file:../db/custom.db` ya
   es relativa; verificar el resto).
-- LEEME sin trampas: los 4 comandos reales, sin pasos de repente.
+- README/INDICE sin trampas: los 4 comandos reales, sin pasos de repente.
 
 ## Fase 3 — Touch refinements
 

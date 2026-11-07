@@ -49,13 +49,51 @@ instrument, tuned for consistency.
 - **Literature settings** — X-ray, outline, dictionary, natural pauses, argument skeleton, locked notes, dual read.
 - **ES / EN / PT** — interface, dates, everything switches.
 - **Neo-brutalist UI** — zero radius, hard 2px borders, offset shadows, buttons that press.
-- **Offline-first** — your library (`db/custom.db` + `public/uploads/`) never leaves your machine.
+- **Offline-first** — your library lives on your machine (data home at
+  `~/.local/share/athena`), never on someone else's server.
 
-## RUN IT
+## INSTALL
 
 **Prerequisites:** [Bun](https://bun.sh) (it replaces Node + npm), any modern browser.
 Internet is only needed for the install and the first OCR language download —
 **reading works offline.**
+
+### Debian / Ubuntu — installer
+
+Download `athena_<version>_amd64.deb` from
+[releases](https://github.com/MoriNo23/Athena/releases) and:
+
+```bash
+sudo apt install ./athena_<version>_amd64.deb   # app in /opt/athena + `athena` on your PATH
+athena init      # first time only: data home + schema
+athena start     # → http://localhost:3000   (LAN mode: athena start --lan)
+```
+
+The package ships the production build — nothing recompiles. Your data lives
+in the data home (`~/.local/share/athena`), so updates and removals never
+touch a single book.
+
+### Docker
+
+```bash
+git clone https://github.com/MoriNo23/Athena && cd Athena
+docker compose up -d --build
+```
+
+### Linux tarball — build included
+
+`Athena-<version>-linux-x64.tar.gz` from
+[releases](https://github.com/MoriNo23/Athena/releases): unpack it and follow
+the `COMO-ARRANCAR.txt` inside — no compilation, straight to reading.
+
+### Android — offline APK
+
+`Athena-v<version>.apk` from
+[releases](https://github.com/MoriNo23/Athena/releases): the same app in a
+WebView with an offline engine that mirrors the whole experience on-device.
+Guide and limits in [docs/APK-OFFLINE.md](docs/APK-OFFLINE.md) (Spanish).
+
+### From source
 
 ```bash
 git clone https://github.com/MoriNo23/Athena.git
@@ -87,11 +125,24 @@ Drop a PDF or EPUB on the library. That's the whole onboarding.
 | `bun run build` + `bun run start` | Optional production mode |
 | `bun run lint` | ESLint pass |
 | `bun run db:push` | Apply Prisma schema changes |
+| `bun run athena` | House CLI: `init · start · doctor · backup · home` |
 
-Your books, covers and progress live in `db/custom.db` + `public/uploads/` — copy those
-two to back everything up. They are gitignored on purpose: **your library never leaves
-your machine.** The Spanish quick-start guide with troubleshooting lives in
-[`LEEME.md`](LEEME.md).
+Your books, covers and progress live **outside the code**: new installs keep
+them in the data home (`~/.local/share/athena`, overridable with
+`ATHENA_HOME`); the classic in-repo layout (`db/` + `public/uploads/`) still
+works. They are gitignored on purpose: **your library never leaves your
+machine.**
+
+## DOCUMENTATION
+
+- **[docs/INDICE.md](docs/INDICE.md)** — the Spanish documentation hub:
+  installation, reading guide, folder library, settings, self-hosting,
+  Android APK and troubleshooting.
+- [docs/PRODUCT.md](docs/PRODUCT.md) — the product constitution (Spanish).
+- [docs/SECURITY.md](docs/SECURITY.md) — APK keystore risk, mitigations and
+  the rotation recipe (Spanish).
+- [docs/SELFHOSTING.md](docs/SELFHOSTING.md) — self-hosting deep dive:
+  Docker, LAN mode, data home, Caddy, backups (Spanish).
 
 ## RELEASE CHECKLIST
 
@@ -101,6 +152,7 @@ the repo root, in this order:
 ```bash
 bunx tsc --noEmit        # 0 type errors
 bun run lint             # 0 errors, 0 warnings
+bun test                 # full suite green (the CI workflow enforces all three)
 bun run build            # production build compiles
 ```
 

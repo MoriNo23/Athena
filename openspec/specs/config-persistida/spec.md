@@ -35,7 +35,7 @@ En el fichero no vive dato de lectura ninguno: el vocabulario (notas de la dueñ
 
 ### Requirement: El fichero acompaña el modo LAN
 
-El fichero es de la máquina que sirve; la app no promete sincronizarlo entre hosts, y el LEEME lo explica.
+El fichero es de la máquina que sirve; la app no promete sincronizarlo entre hosts, y la guía de ajustes (`docs/guias/ajustes.md`) lo explica.
 
 #### Scenario: Dos navegadores del mismo host
 

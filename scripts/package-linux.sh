@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Athena · paquete Linux x64 para el release (ver LEEME.md y docs/SELFHOSTING.md)
+# Athena · paquete Linux x64 para el release (ver docs/INDICE.md y docs/SELFHOSTING.md)
 #
 # Empaqueta el proyecto con el BUILD DE PRODUCCIÓN ya hecho (.next) para que
 # quien lo descargue solo tenga que: descomprimir → bun install → arrancar.
@@ -33,7 +33,7 @@ ARRANQUE (dentro de esta carpeta):
   3) ./bin/athena start   # abre http://localhost:3000 y a leer
 
 Modo normal = solo localhost. Para abrirlo en tu red:
-  ./bin/athena start --lan   (candado opcional, ver LEEME.md)
+  ./bin/athena start --lan   (candado opcional, ver docs/INDICE.md)
 
 Otros comandos: ./bin/athena doctor · backup · home
 Los datos viven FUERA del paquete (sobreviven a actualizaciones):
@@ -44,7 +44,8 @@ Los datos viven FUERA del paquete (sobreviven a actualizaciones):
 El build de producción YA VIENE HECHO (.next/): «athena start» no
 recompila nada y arranca directo.
 
-Guía completa: LEEME.md · Auto-alojamiento: docs/SELFHOSTING.md
+Guía completa: https://github.com/MoriNo23/Athena/blob/main/docs/INDICE.md
+Auto-alojamiento: docs/SELFHOSTING.md
 EOF
 
 # 4) Tarball final

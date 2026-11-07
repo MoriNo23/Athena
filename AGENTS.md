@@ -39,8 +39,9 @@ a leer hoy.
 ## Idioma
 
 - Código, comentarios, tests, commits, PRs, issues y CI: **inglés**.
-- `README.md`: inglés (puerta pública del repo). `LEEME.md`: español.
-  Mismo contenido en dos idiomas: si tocas uno, sincroniza el otro.
+- `README.md`: inglés (puerta pública del repo). Documentación de uso en
+  español: `docs/INDICE.md` + `docs/guias/`. Si cambia una feature visible,
+  actualiza README e INDICE a la vez.
 - Documentación de la casa (`docs/`, este archivo, `openspec/`): **español**.
   Los términos propios de la casa (*riel*, *insignias*, «la última página»)
   nacen en español y se traducen después, nunca al revés (ver PRODUCT.md).
@@ -71,7 +72,10 @@ a leer hoy.
   lógica de negocio aquí.
 - `android/` — proyecto Capacitor/Gradle del APK. `android/keystore/` —
   firma del APK (riesgo y mitigaciones en `docs/SECURITY.md`).
-- `docs/` — documentación de la casa (PRODUCT es la constitución).
+- `docs/` — documentación de la casa (PRODUCT es la constitución):
+  `INDICE.md` + `guias/` son la documentación de uso en español;
+  `SECURITY.md`, `SELFHOSTING.md`, `APK-OFFLINE.md` y `ROADMAP.md`
+  completan el mapa.
 - `openspec/` — convenciones técnicas del proyecto.
 - NO crear carpetas de primer nivel sin añadir un párrafo que las describa aquí.
 
