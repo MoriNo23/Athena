@@ -1,6 +1,6 @@
 "use client";
 
-import type { DictionaryResult } from "@/lib/types";
+import type { DictionaryResult } from "@/core/types";
 import { useI18n } from "@/lib/i18n";
 
 /** Bloque de resultados: definiciones numeradas con ejemplos y sinónimos */

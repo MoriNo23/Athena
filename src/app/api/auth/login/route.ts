@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { COOKIE_SESION, cookieDe, contraseñaEfectiva, igualEnTiempoConstante } from "@/lib/access";
+import { COOKIE_SESION, cookieDe, contraseñaEfectiva, igualEnTiempoConstante } from "@/core/access";
 
 /** rate limit en memoria de proceso (design §3): 10 fallos/min por IP */
 const MAX = 10;

@@ -10,7 +10,7 @@
 #   athena home          imprime las rutas resueltas
 #   athena migrate-home  mueve una instalación legacy (datos dentro del repo) a la casa
 #
-# Resolución de la casa (misma lógica que src/lib/data-home.ts):
+# Resolución de la casa (misma lógica que src/core/data-home.ts):
 #   1. ATHENA_HOME definida → esa carpeta
 #   2. datos legacy en el repo (db/custom.db) → el repo MANDA (no se mueve solo)
 #   3. Docker → legacy (el compose fija sus volúmenes)

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { Medal, Trophy } from "lucide-react";
-import { BADGE_TIERS } from "@/lib/types";
+import { BADGE_TIERS } from "@/core/types";
 import { useI18n } from "@/lib/i18n";
 import type { BookWithSessions } from "@/hooks/use-library-books";
 

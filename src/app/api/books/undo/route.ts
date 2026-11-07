@@ -6,7 +6,7 @@ import {
   restoreFiles,
   sweepExpiredUndo,
   UNDO_TTL_MS,
-} from "@/lib/undo-store";
+} from "@/core/undo-store";
 
 /**
  * Deshacer un borrado: recupera ficha, insignia, sesiones y archivos desde la

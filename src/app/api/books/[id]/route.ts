@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { db } from "@/lib/db";
-import { moveToTrash, saveSnapshot, sweepExpiredUndo, UNDO_TTL_MS } from "@/lib/undo-store";
+import { moveToTrash, saveSnapshot, sweepExpiredUndo, UNDO_TTL_MS } from "@/core/undo-store";
 
 type Params = { params: Promise<{ id: string }> };
 

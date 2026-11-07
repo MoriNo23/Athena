@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
-import { MODE_TOGGLE_META, ModeToggleKey, BookDTO, BookExtras } from "@/lib/types";
+import { MODE_TOGGLE_META, ModeToggleKey, BookDTO, BookExtras } from "@/core/types";
 import { ModePanelProps } from "@/components/modes/panel-props";
 import { XrayPanel } from "@/components/modes/XrayPanel";
 import { PausesPanel } from "@/components/modes/PausesPanel";
@@ -28,7 +28,7 @@ import { LockedNotesPanel } from "@/components/modes/LockedNotesPanel";
 import { DualPanel } from "@/components/modes/DualPanel";
 import { OutlinePanel } from "@/components/modes/OutlinePanel";
 import { EpubOutlinePanel } from "@/components/modes/EpubOutlinePanel";
-import type { EpubChapter } from "@/lib/epub";
+import type { EpubChapter } from "@/core/epub";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 
 /** Icono por subfeature (la casa es literatura); la etiqueta de pestaña vive en i18n */

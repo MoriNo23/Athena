@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { db } from "@/lib/db";
-import { archivoUrlDe } from "@/lib/types";
-import { sweepExpiredUndo } from "@/lib/undo-store";
-import { raizUploads } from "@/lib/data-home";
+import { archivoUrlDe } from "@/core/types";
+import { sweepExpiredUndo } from "@/core/undo-store";
+import { raizUploads } from "@/core/data-home";
 
 const UPLOAD_DIR = raizUploads(); // <casa>/uploads con ATHENA_HOME (data-home.ts)
 

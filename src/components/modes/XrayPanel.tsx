@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Plus, Trash2, UserRound } from "lucide-react";
 import { ModePanelProps, uid } from "@/components/modes/panel-props";
 import { useI18n } from "@/lib/i18n";
-import type { XrayCard } from "@/lib/types";
+import type { XrayCard } from "@/core/types";
 
 /**
  * Fichas que siguen tu punto de lectura (X-Ray local): quién aparece hasta donde

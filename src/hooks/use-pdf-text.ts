@@ -9,8 +9,8 @@ import {
   preparePdfText,
   subscribePdfText,
   type PdfTextSnapshot,
-} from "@/lib/pdf-text-index";
-import type { PdfTextBlock } from "@/lib/pdf-text";
+} from "@/core/pdf-text-index";
+import type { PdfTextBlock } from "@/core/pdf-text";
 
 const IDLE: PdfTextSnapshot = { ready: 0, total: 0, done: false, extracted: 0 };
 

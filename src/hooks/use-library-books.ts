@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
-import { computeStreak, dayKey, groupSessionsByDay } from "@/lib/reading";
-import type { BookDTO } from "@/lib/types";
+import { computeStreak, dayKey, groupSessionsByDay } from "@/core/reading";
+import type { BookDTO } from "@/core/types";
 
 export type BookWithSessions = BookDTO & {
   sessions: { pagesRead: number; minutes: number; date: string }[];

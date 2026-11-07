@@ -5,7 +5,7 @@ import {
   contraseñaEfectiva,
   esRecursoEstático,
   igualEnTiempoConstante,
-} from "@/lib/access";
+} from "@/core/access";
 
 export const config = {
   // proxy corre siempre en Node.js (runtime no configurable en Next 16)

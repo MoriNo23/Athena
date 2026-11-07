@@ -8,7 +8,7 @@ import {
   teleprompterCharCount,
   teleprompterPageOffsets,
   type TeleprompterBlock,
-} from "@/lib/teleprompter";
+} from "@/core/teleprompter";
 import { extractPdfPageImageBlocks } from "@/lib/teleprompter-images";
 import { createCameraController, type CameraController } from "@/lib/camera";
 

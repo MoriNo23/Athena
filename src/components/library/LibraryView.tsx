@@ -25,7 +25,7 @@ import { LibraryConfirmDialogs } from "@/components/library/LibraryConfirmDialog
 import { useLibraryBooks } from "@/hooks/use-library-books";
 import { useBookUpload } from "@/hooks/use-book-upload";
 import { useBookActions } from "@/hooks/use-book-actions";
-import { formatMinutes } from "@/lib/reading";
+import { formatMinutes } from "@/core/reading";
 import {
   Clock3,
   Flame,
@@ -37,7 +37,7 @@ import {
   Trophy,
   UploadCloud,
 } from "lucide-react";
-import type { BookDTO } from "@/lib/types";
+import type { BookDTO } from "@/core/types";
 
 export type { BookWithSessions } from "@/hooks/use-library-books";
 import type { BookWithSessions } from "@/hooks/use-library-books";

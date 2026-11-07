@@ -6,7 +6,7 @@
  * Con stub de doc, sin pdf.js. Correr con `bun test src/lib/pdf-text-index.test.ts`.
  */
 import { describe, expect, test } from "bun:test";
-import { probePdfTextLayer } from "@/lib/pdf-text-index";
+import { probePdfTextLayer } from "@/core/pdf-text-index";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 
 /** doc falso: cada página devuelve el texto que le toque (número de chars) */

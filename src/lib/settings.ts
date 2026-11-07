@@ -21,7 +21,7 @@ import {
   TELEPROMPTER_IMAGEN_HOLD_DEFAULT,
   TELEPROMPTER_WPS_DEFAULT,
   wpsDePresetAntiguo,
-} from "@/lib/types";
+} from "@/core/types";
 
 /**
  * Ajustes de lectura: sin presets — la casa es literatura y cada lector

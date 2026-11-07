@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { migrateSettings } from "@/lib/settings";
-import type { TeleprompterSettings } from "@/lib/types";
+import type { TeleprompterSettings } from "@/core/types";
 
 describe("migración del store (v16: − flujoContinuo, + descansoMin)", () => {
   test("un estado v15 con flujoContinuo false lo pierde sin perder lo aprendido", () => {

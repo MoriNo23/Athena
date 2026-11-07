@@ -12,7 +12,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { mkdirSync, openSync, readFileSync, writeSync, closeSync } from "node:fs";
 import path from "node:path";
-import { raizDatos } from "@/lib/data-home";
+import { raizDatos } from "@/core/data-home";
 
 export const COOKIE_SESION = "athena_session";
 

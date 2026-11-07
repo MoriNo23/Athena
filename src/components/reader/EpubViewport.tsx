@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { reflowFilterCss, useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
-import type { EpubPage } from "@/lib/epub";
+import type { EpubPage } from "@/core/epub";
 import { TextBlocks } from "@/components/reader/TextBlocks";
 import { useTheme } from "next-themes";
 import { animarGiroPagina } from "@/lib/utils";

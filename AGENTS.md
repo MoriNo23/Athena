@@ -26,7 +26,7 @@ a leer hoy.
 - Dev PC: `bun run dev` (offline, 127.0.0.1) / `bun run dev:lan` (0.0.0.0)
 - Producción: `bun run build` + `bun run start` (o `start:lan`)
 - CLI de la casa: `bun run athena init|start|doctor|backup|home|migrate-home`
-  (o `./bin/athena`); gestiona ATHENA_HOME — ver `src/lib/data-home.ts`
+  (o `./bin/athena`); gestiona ATHENA_HOME — ver `src/core/data-home.ts`
 - Calidad: `bunx tsc --noEmit` · `bun run lint` · `bun test`
 - DB: `bun run db:migrate` · `bun run db:push` · `bun run db:generate`
   (dev/legacy); instalaciones fuera del repo: `bin/athena init` (migrate deploy)
@@ -50,9 +50,17 @@ a leer hoy.
 
 - `src/app/` — páginas Next.js (App Router) y rutas API en `src/app/api/**`
   (auth, books, dictionary, library, progress, settings, teleprompter, vocab).
-  Handlers finos: validan y delegan; la lógica vive en `src/lib/`.
-- `src/lib/` — lógica de negocio compartida (server-side). Sus tests viven
-  al lado: `foo.ts` + `foo.test.ts`.
+  Handlers finos: validan y delegan; las reglas viven en `src/core/`.
+- `src/core/` — el núcleo único: reglas y contratos de la casa (tipos del
+  dominio, riel/racha/ETA, candado, casa de datos, contrato `db/config.json`,
+  papelera con deshacer, motores EPUB y PDF-texto, timing del teleprompter,
+  gestos del dedo). Sin Next.js, React, Prisma, PDF.js ni zustand: eso es
+  pegamento. Sus tests viven al lado: `foo.ts` + `foo.test.ts`.
+- `src/lib/` — pegamento con terceros y estado de UI: Prisma (`db.ts`),
+  PDF.js (`pdf-client.ts`), Tesseract (`ocr.ts`), cámara (`camera.ts`),
+  i18n, store de ajustes (zustand), animación y utilidades. La lógica pura
+  vive en `src/core/`; la extracción de PDF.js puente (`teleprompter-images`)
+  se queda aquí por su dependencia runtime de `pdf-client`.
 - `src/components/`, `src/hooks/` — UI reutilizable (shadcn/ui + Tailwind).
 - `public/athena-offline.js` — **motor offline del APK**. Espeja los
   contratos de `src/app/api/**` sobre IndexedDB/OPFS. No tocar sin
@@ -63,10 +71,10 @@ a leer hoy.
 - `db/` y `public/uploads/` — estado real de la biblioteca en modo legacy
   (dentro del repo). Jamás se commitean. Con `ATHENA_HOME` (default
   `~/.local/share/athena`) los datos viven FUERA del repo: la resolución
-  completa y sus reglas viven en `src/lib/data-home.ts`.
+  completa y sus reglas viven en `src/core/data-home.ts`.
 - `bin/athena` — CLI de la casa (init/start/doctor/backup/migrate-home).
   Bash puro, sin dependencias; comparte la resolución de rutas con
-  `src/lib/data-home.ts` (si cambias una, cambia la otra).
+  `src/core/data-home.ts` (si cambias una, cambia la otra).
 - `scripts/` — recetas de build/empaquetado (`build-apk-web.mjs`,
   `package-linux.sh` tarball, `package-deb.sh` paquete Debian). Sin
   lógica de negocio aquí.

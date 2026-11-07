@@ -9,7 +9,7 @@
  *
  * Espejo de tests: src/lib/pdf-text.test.ts
  */
-import { paginateEpub, type EpubPage } from "@/lib/epub";
+import { paginateEpub, type EpubPage } from "@/core/epub";
 
 // ---------- Entrada: ítems de texto de pdf.js ----------
 

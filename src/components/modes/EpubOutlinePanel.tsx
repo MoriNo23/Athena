@@ -4,7 +4,7 @@ import { ListTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useI18n } from "@/lib/i18n";
-import type { EpubChapter } from "@/lib/epub";
+import type { EpubChapter } from "@/core/epub";
 
 interface EpubOutlinePanelProps {
   chapters: EpubChapter[];

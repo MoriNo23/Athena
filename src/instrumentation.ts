@@ -8,7 +8,7 @@
  */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const { contraseñaEfectiva } = await import("@/lib/access");
+  const { contraseñaEfectiva } = await import("@/core/access");
   const modo = (process.env.ATHENA_MODO ?? process.env.ATENA_MODO) ?? "offline";
   const fija = ((process.env.ATHENA_PASSWORD ?? process.env.ATENA_PASSWORD) ?? "").trim();
   if (modo === "lan") {

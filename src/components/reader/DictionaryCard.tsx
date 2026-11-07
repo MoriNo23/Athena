@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { DictionaryEntries } from "@/components/reader/DictionaryEntries";
-import type { DictionaryResult } from "@/lib/types";
+import type { DictionaryResult } from "@/core/types";
 import { Globe, Loader2, Star, Volume2, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import type { RefObject } from "react";

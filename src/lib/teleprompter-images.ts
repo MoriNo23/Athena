@@ -20,8 +20,8 @@
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { loadPdfLib } from "@/lib/pdf-client";
-import { detectPdfColumns, pdfTextItems } from "@/lib/pdf-text";
-import type { TeleprompterBlock } from "@/lib/teleprompter";
+import { detectPdfColumns, pdfTextItems } from "@/core/pdf-text";
+import type { TeleprompterBlock } from "@/core/teleprompter";
 
 /** Área mínima de la figura respecto de la PÁGINA LÓGICA (el SDD: ≥ 12 %).
  *  En un two-up la página lógica es la mitad del spread: una lámina que

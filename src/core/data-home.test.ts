@@ -4,7 +4,7 @@
  * con entradas literales. Correr con `bun test src/lib/data-home.test.ts`.
  */
 import { describe, expect, test } from "bun:test";
-import { resuelveCasa } from "@/lib/data-home";
+import { resuelveCasa } from "@/core/data-home";
 
 const legacy = { hayLegacy: true, esDocker: false, esTest: false };
 const limpio = { hayLegacy: false, esDocker: false, esTest: false };

@@ -4,7 +4,7 @@
  * Correr con `bun test src/lib/undo-store.test.ts`.
  */
 import { expect, test } from "bun:test";
-import { esIdSeguro, readSnapshot } from "@/lib/undo-store";
+import { esIdSeguro, readSnapshot } from "@/core/undo-store";
 
 test("esIdSeguro: cuides/uuid pasan, traversal no", () => {
   expect(esIdSeguro("cm3l0abc123def456ghi789")).toBe(true);

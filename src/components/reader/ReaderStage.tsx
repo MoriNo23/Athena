@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { DualViewport } from "@/components/reader/DualViewport";
-import type { BookDTO } from "@/lib/types";
+import type { BookDTO } from "@/core/types";
 import { BookOpen, Coffee } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import type { ReactNode } from "react";

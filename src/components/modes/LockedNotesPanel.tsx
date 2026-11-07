@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { ModePanelProps, uid } from "@/components/modes/panel-props";
 import { useI18n } from "@/lib/i18n";
-import type { LockedNote } from "@/lib/types";
+import type { LockedNote } from "@/core/types";
 
 /**
  * Notas con candado de spoilers: escribe notas etiquetadas con la página a partir

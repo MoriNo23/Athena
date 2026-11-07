@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BADGE_TIERS } from "@/lib/types";
+import { BADGE_TIERS } from "@/core/types";
 import { useI18n } from "@/lib/i18n";
 import type { BookWithSessions } from "@/hooks/use-library-books";
 import { Loader2 } from "lucide-react";

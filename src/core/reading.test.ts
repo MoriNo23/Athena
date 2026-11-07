@@ -3,8 +3,8 @@
  * y porcentaje de progreso. Correr con `bun test src/lib/reading.test.ts`.
  */
 import { expect, test } from "bun:test";
-import { estimateFinishDate, milestonePages, progressPct } from "@/lib/reading";
-import type { BookDTO } from "@/lib/types";
+import { estimateFinishDate, milestonePages, progressPct } from "@/core/reading";
+import type { BookDTO } from "@/core/types";
 
 /** libro mínimo para progressPct: solo importan totalPages y currentPage */
 function libro(totalPages: number, currentPage: number): BookDTO {

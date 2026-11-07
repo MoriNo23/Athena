@@ -2,7 +2,7 @@
 
 import { useRailScrub } from "@/hooks/use-rail-scrub";
 import { RailLabels, RailTrack } from "@/components/rail/RailTrack";
-import { RailSettings, RAIL_THEMES } from "@/lib/types";
+import { RailSettings, RAIL_THEMES } from "@/core/types";
 import { Milestone } from "lucide-react";
 import { cn } from "@/lib/utils";
 

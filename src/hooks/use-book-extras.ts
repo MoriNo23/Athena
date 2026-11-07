@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSettings } from "@/lib/settings";
-import type { BookDTO, BookExtras } from "@/lib/types";
+import type { BookDTO, BookExtras } from "@/core/types";
 
 /**
  * Extras del libro (notas, pausas, hitos por panel) con patch optimista y

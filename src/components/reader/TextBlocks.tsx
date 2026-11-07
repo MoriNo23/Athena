@@ -1,6 +1,6 @@
 "use client";
 
-import type { EpubBlock } from "@/lib/epub";
+import type { EpubBlock } from "@/core/epub";
 
 /**
  * Bloques de una página reflowable (EPUB o modo texto del PDF): HTML inline ya

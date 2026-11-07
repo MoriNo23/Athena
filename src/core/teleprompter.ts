@@ -27,7 +27,7 @@
  */
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { extractPdfPageBlocks, pdfTextItems } from "@/lib/pdf-text";
+import { extractPdfPageBlocks, pdfTextItems } from "@/core/pdf-text";
 
 // ---------- Constantes de ritmo (espejadas en scripts/audit_teleprompter_timing.py) ----------
 

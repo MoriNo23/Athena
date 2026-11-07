@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { BADGE_TIERS, type BookDTO } from "@/lib/types";
+import { BADGE_TIERS, type BookDTO } from "@/core/types";
 import { useI18n, type Translator } from "@/lib/i18n";
 
 interface FinishResponse {

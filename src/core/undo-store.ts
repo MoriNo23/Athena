@@ -1,6 +1,6 @@
 import { mkdir, readdir, readFile, rename, rm, writeFile } from "fs/promises";
 import path from "path";
-import { raizDatos, raizUploads } from "@/lib/data-home";
+import { raizDatos, raizUploads } from "@/core/data-home";
 
 /**
  * Papelera con deshacer para libros borrados. Al eliminar:

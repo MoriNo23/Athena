@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { parseEpub, type EpubBook } from "@/lib/epub";
-import type { TeleprompterBlock } from "@/lib/teleprompter";
+import { parseEpub, type EpubBook } from "@/core/epub";
+import type { TeleprompterBlock } from "@/core/teleprompter";
 
 /**
  * Carga y parsea un EPUB del servidor para el lector.

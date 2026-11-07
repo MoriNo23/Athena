@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { estimateFinishDate, groupSessionsByDay, pickDailyRate, type DailyRate } from "@/lib/reading";
+import { estimateFinishDate, groupSessionsByDay, pickDailyRate, type DailyRate } from "@/core/reading";
 
 /**
  * Fecha estimada de fin del libro en el lector, a partir del ritmo real de

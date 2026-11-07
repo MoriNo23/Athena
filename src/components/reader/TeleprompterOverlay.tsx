@@ -27,8 +27,8 @@ import {
 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
-import { teleprompterPageContaining } from "@/lib/teleprompter";
-import { direccionArrastre, esTap, iniciarGesto, type GestoActivo } from "@/lib/touch-gestures";
+import { teleprompterPageContaining } from "@/core/teleprompter";
+import { direccionArrastre, esTap, iniciarGesto, type GestoActivo } from "@/core/touch-gestures";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useWakeLock } from "@/hooks/use-wake-lock";
 import {
@@ -48,8 +48,8 @@ import {
   TELEPROMPTER_WPS_MIN,
   TELEPROMPTER_WPS_STEP,
   fondoUrlDe,
-} from "@/lib/types";
-import type { BookDTO } from "@/lib/types";
+} from "@/core/types";
+import type { BookDTO } from "@/core/types";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { cn } from "@/lib/utils";
 import type { StreamWindow } from "@/hooks/use-teleprompter-window";
@@ -58,7 +58,7 @@ interface TeleprompterOverlayProps {
   book: BookDTO;
   doc: PDFDocumentProxy | null;
   /** EPUB: bloques reales de la página (h1-h4 en el flujo) */
-  getPageBlocks?: (page: number) => Promise<import("@/lib/teleprompter").TeleprompterBlock[]>;
+  getPageBlocks?: (page: number) => Promise<import("@/core/teleprompter").TeleprompterBlock[]>;
   pageNum: number;
   numPages: number;
   /**

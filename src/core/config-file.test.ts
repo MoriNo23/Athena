@@ -6,7 +6,7 @@
  */
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { leerAjustes, saneaAjustes, escribirAjustes } from "@/lib/config-file";
+import { leerAjustes, saneaAjustes, escribirAjustes } from "@/core/config-file";
 
 /* ---------------- bloque puro: saneaAjustes ---------------- */
 

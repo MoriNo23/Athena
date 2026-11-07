@@ -1,5 +1,5 @@
 import { LoginForm } from "@/components/auth/LoginForm";
-import { siguienteSeguro } from "@/lib/access";
+import { siguienteSeguro } from "@/core/access";
 
 export const metadata = { title: "Entrar" };
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { escribirAjustes, leerAjustes, saneaAjustes, docPorDefecto } from "@/lib/config-file";
+import { escribirAjustes, leerAjustes, saneaAjustes, docPorDefecto } from "@/core/config-file";
 
 /**
  * Fuente única de ajustes: `db/config.json` (change cfg-y-biblioteca-por-carpeta).

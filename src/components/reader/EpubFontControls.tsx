@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Tip } from "@/components/reader/ZoomControls";
 import { useI18n } from "@/lib/i18n";
-import { clampTeleprompterFontScale, TELEPROMPTER_FONT_MAX, TELEPROMPTER_FONT_MIN, TELEPROMPTER_FONT_STEP } from "@/lib/types";
+import { clampTeleprompterFontScale, TELEPROMPTER_FONT_MAX, TELEPROMPTER_FONT_MIN, TELEPROMPTER_FONT_STEP } from "@/core/types";
 
 interface EpubFontControlsProps {
   /** multiplicador global de tamaño de letra del lector */

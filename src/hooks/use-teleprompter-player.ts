@@ -9,11 +9,11 @@ import {
   teleprompterPrunableLimit,
   msPorUnidad,
   type TeleprompterBlock,
-} from "@/lib/teleprompter";
-import { TELEPROMPTER_PAGE_TURN_MS } from "@/lib/teleprompter";
-import { TELEPROMPTER_WPS_DEFAULT } from "@/lib/types";
+} from "@/core/teleprompter";
+import { TELEPROMPTER_PAGE_TURN_MS } from "@/core/teleprompter";
+import { TELEPROMPTER_WPS_DEFAULT } from "@/core/types";
 import type { StreamWindow } from "@/hooks/use-teleprompter-window";
-import { stepWait, type PendingStep } from "@/lib/step-timer";
+import { stepWait, type PendingStep } from "@/core/step-timer";
 
 interface UseTeleprompterPlayerOpts {
   /** página real pedida por el lector (1-based) */
@@ -32,7 +32,7 @@ interface UseTeleprompterPlayerOpts {
   hasSource: boolean;
   /** gira la página real del lector (cuenta como lectura y hitos salvo `silent`) */
   onGoToPage: (page: number, opts?: { silent?: boolean }) => void;
-  stream: ReturnType<typeof import("@/lib/teleprompter").buildTeleprompterStream>;
+  stream: ReturnType<typeof import("@/core/teleprompter").buildTeleprompterStream>;
   /** offsets acumulados de caracteres por página de la ventana (el mapa del
       cruce sin evento: dónde empieza y acaba cada página en los spans) */
   pageOffsets: number[];

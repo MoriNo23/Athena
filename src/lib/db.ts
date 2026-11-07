@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import { esModoHome, ficheroDb } from '@/lib/data-home'
+import { esModoHome, ficheroDb } from '@/core/data-home'
 
 // ATHENA_HOME (change athena-home-cli): en modo home la BD vive fuera del
 // repo y el datasource apunta ahí. El `file:` del .env solo manda en modo

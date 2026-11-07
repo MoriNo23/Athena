@@ -27,8 +27,8 @@ import {
   TELEPROMPTER_WPS_MIN,
   TELEPROMPTER_WPS_STEP,
   type TeleprompterFondo,
-} from "@/lib/types";
-import type { BookDTO } from "@/lib/types";
+} from "@/core/types";
+import type { BookDTO } from "@/core/types";
 
 interface TeleprompterSettingsSheetProps {
   open: boolean;

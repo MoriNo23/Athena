@@ -16,7 +16,7 @@ import { ReaderFontPicker } from "@/components/reader/ReaderFontPicker";
 import { Tip, ZoomControls } from "@/components/reader/ZoomControls";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import type { BookDTO, ReadingFont, ZoomPresetId } from "@/lib/types";
+import type { BookDTO, ReadingFont, ZoomPresetId } from "@/core/types";
 import {
   ALargeSmall,
   ArrowLeft,

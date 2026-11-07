@@ -33,7 +33,7 @@ import {
   TELEPROMPTER_WPS_MIN,
   TELEPROMPTER_WPS_STEP,
   fondoUrlDe,
-} from "@/lib/types";
+} from "@/core/types";
 import { RESERVED_HOTKEYS } from "@/hooks/use-reader-hotkeys";
 import type { BookPatch } from "@/hooks/use-book-milestones";
 import { ThemeToggle } from "@/components/theme-toggle";

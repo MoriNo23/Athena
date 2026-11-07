@@ -41,11 +41,11 @@ import { ShortcutGhost, type ShortcutGhostEntry } from "@/components/reader/Shor
 import { useSettings } from "@/lib/settings";
 import { useI18n, formatDate } from "@/lib/i18n";
 import { useEpubBook } from "@/hooks/use-epub-book";
-import { epubPageText, type EpubPage } from "@/lib/epub";
-import type { TeleprompterBlock } from "@/lib/teleprompter";
-import { clampTeleprompterFontScale, archivoUrlDe, TELEPROMPTER_FONT_STEP } from "@/lib/types";
-import type { BookDTO } from "@/lib/types";
-import type { RailPosition } from "@/lib/types";
+import { epubPageText, type EpubPage } from "@/core/epub";
+import type { TeleprompterBlock } from "@/core/teleprompter";
+import { clampTeleprompterFontScale, archivoUrlDe, TELEPROMPTER_FONT_STEP } from "@/core/types";
+import type { BookDTO } from "@/core/types";
+import type { RailPosition } from "@/core/types";
 import type { BookWithSessions } from "@/hooks/use-library-books";
 import { cn } from "@/lib/utils";
 import type { PDFDocumentProxy } from "pdfjs-dist";

@@ -15,7 +15,7 @@
  * Espejo de tests: src/lib/pdf-text.test.ts y src/lib/pdf-text-index.test.ts
  */
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { extractPdfPageBlocks, pdfTextItems, type PdfTextBlock } from "@/lib/pdf-text";
+import { extractPdfPageBlocks, pdfTextItems, type PdfTextBlock } from "@/core/pdf-text";
 
 export interface PdfTextSnapshot {
   /** páginas consecutivas listas desde la 1: prefijo seguro para paginar */

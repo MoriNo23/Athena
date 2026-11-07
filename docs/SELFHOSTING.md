@@ -72,7 +72,7 @@ Desde el change `athena-home-cli`, una instalación nueva guarda TODO fuera del
 `~/.local/share/athena`. Reglas de resolución (primera que aplica): `ATHENA_HOME`
 explícita → datos legacy en el repo (se respetan, nunca se mueven solos) → Docker
 (el compose fija sus volúmenes) → default XDG. El código vive en
-`src/lib/data-home.ts`; el CLI en `bin/athena` comparte la misma lógica.
+`src/core/data-home.ts`; el CLI en `bin/athena` comparte la misma lógica.
 
 ¿Instalación antigua con los datos dentro del repo? Se respeta tal cual. Para
 moverla a su casa (recomendado antes de una actualización de versión):

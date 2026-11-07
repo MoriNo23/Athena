@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, type RefObject } from "react";
-import type { ZoomPresetId } from "@/lib/types";
+import type { ZoomPresetId } from "@/core/types";
 
 /** Teclas reservadas por otros atajos del lector: no pueden ocultar la UI */
 export const RESERVED_HOTKEYS = new Set([

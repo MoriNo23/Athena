@@ -4,7 +4,7 @@ import { Readable } from "stream";
 import { stat } from "fs/promises";
 import path from "path";
 import { db } from "@/lib/db";
-import { raizUploads } from "@/lib/data-home";
+import { raizUploads } from "@/core/data-home";
 
 export const runtime = "nodejs";
 

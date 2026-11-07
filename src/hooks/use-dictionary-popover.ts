@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/lib/settings";
 import { useWordSelectionEvents } from "@/hooks/use-word-selection";
 import { useI18n } from "@/lib/i18n";
-import type { DictionaryResult } from "@/lib/types";
+import type { DictionaryResult } from "@/core/types";
 
 export interface SelectionState {
   word: string;

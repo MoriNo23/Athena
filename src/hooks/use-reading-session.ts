@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { computeStreak, groupSessionsByDay, dayKey } from "@/lib/reading";
+import { computeStreak, groupSessionsByDay, dayKey } from "@/core/reading";
 
 type Pending = { pages: number; seconds: number };
 

@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
-import type { BookDTO } from "@/lib/types";
+import type { BookDTO } from "@/core/types";
 
 /** Parches de ficha que el lector puede tocar en vivo */
 export type BookPatch = { milestones?: number | null; dailyGoal?: number | null };

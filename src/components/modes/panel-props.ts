@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookExtras } from "@/lib/types";
+import type { BookExtras } from "@/core/types";
 
 /** Props comunes de todos los paneles de modos de lectura */
 export interface ModePanelProps {

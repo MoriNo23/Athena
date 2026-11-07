@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { LibraryView } from "@/components/library/LibraryView";
 import { ReaderView } from "@/components/reader/ReaderView";
 import { hidratarAjustes } from "@/lib/settings";
-import type { BookDTO } from "@/lib/types";
+import type { BookDTO } from "@/core/types";
 import type { BookWithSessions } from "@/hooks/use-library-books";
 
 export default function Home() {

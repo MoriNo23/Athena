@@ -13,7 +13,7 @@ import {
   type PdfTextBlock,
   type PdfTextItem,
   type PdfTextKind,
-} from "@/lib/pdf-text";
+} from "@/core/pdf-text";
 
 let n = 0;
 /** bloque con texto único para que la comparación profunda sea fiel */

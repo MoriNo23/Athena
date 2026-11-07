@@ -5,10 +5,10 @@ import { BookOpen, FileWarning, Link2, Medal, Pencil, RotateCcw, Trash2 } from "
 import { Button } from "@/components/ui/button";
 import { RailBar } from "@/components/rail/RailBar";
 import { TodayRing } from "@/components/library/TodayRing";
-import { dayKey, estimateFinishDate, groupSessionsByDay, pickDailyRate, progressPct } from "@/lib/reading";
+import { dayKey, estimateFinishDate, groupSessionsByDay, pickDailyRate, progressPct } from "@/core/reading";
 import { useI18n, formatDate } from "@/lib/i18n";
 import { useSettings } from "@/lib/settings";
-import { BADGE_TIERS, RailTheme } from "@/lib/types";
+import { BADGE_TIERS, RailTheme } from "@/core/types";
 import type { BookWithSessions } from "@/hooks/use-library-books";
 
 interface BookCardProps {

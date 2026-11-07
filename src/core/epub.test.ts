@@ -8,8 +8,8 @@
  * y solo los topes de palabras y el anti-huérfano cortan la página.
  */
 import { expect, test } from "bun:test";
-import { paginateEpub, EPUB_WORDS_PER_PAGE } from "@/lib/epub";
-import type { EpubBlock, EpubTextBlock } from "@/lib/epub";
+import { paginateEpub, EPUB_WORDS_PER_PAGE } from "@/core/epub";
+import type { EpubBlock, EpubTextBlock } from "@/core/epub";
 
 function p(words: number): EpubTextBlock {
   return { kind: "p", html: "<p>p</p>", text: "p", words };

@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePdfText } from "@/hooks/use-pdf-text";
 import { useI18n } from "@/lib/i18n";
-import { foldPdfTextIndex, type PdfTextBlock, type PdfTextIndex } from "@/lib/pdf-text";
+import { foldPdfTextIndex, type PdfTextBlock, type PdfTextIndex } from "@/core/pdf-text";
 import { extractPdfPageImageBlocks } from "@/lib/teleprompter-images";
-import { probePdfTextLayer } from "@/lib/pdf-text-index";
-import type { TeleprompterBlock } from "@/lib/teleprompter";
-import type { BookDTO } from "@/lib/types";
+import { probePdfTextLayer } from "@/core/pdf-text-index";
+import type { TeleprompterBlock } from "@/core/teleprompter";
+import type { BookDTO } from "@/core/types";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 
 // ---------- fold incremental del modo texto (slot de módulo, como pdf-text-index) ----------

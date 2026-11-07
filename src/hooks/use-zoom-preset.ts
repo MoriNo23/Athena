@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ZoomPresetId } from "@/lib/types";
+import type { ZoomPresetId } from "@/core/types";
 
 const MIN_SCALE = 0.4;
 const MAX_SCALE = 8;

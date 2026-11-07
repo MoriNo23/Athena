@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { ModePanelProps } from "@/components/modes/panel-props";
 import { probePdf } from "@/lib/pdf-client";
-import type { BookDTO } from "@/lib/types";
+import type { BookDTO } from "@/core/types";
 
 interface DualPanelProps extends ModePanelProps {
   book: BookDTO;

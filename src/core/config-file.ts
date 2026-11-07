@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from "fs/promises";
 import path from "path";
-import { raizDatos } from "@/lib/data-home";
+import { raizDatos } from "@/core/data-home";
 import {
   AppSettings,
   FilterPreset,
@@ -20,7 +20,7 @@ import {
   TeleprompterFondo,
   TELEPROMPTER_IMAGEN_HOLD_DEFAULT,
   wpsDePresetAntiguo,
-} from "@/lib/types";
+} from "@/core/types";
 
 /**
  * `db/config.json` — la casa de los ajustes (change cfg-y-biblioteca-por-carpeta).

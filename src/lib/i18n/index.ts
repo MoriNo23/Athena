@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useSettings } from "@/lib/settings";
-import type { Lang } from "@/lib/types";
+import type { Lang } from "@/core/types";
 import { es } from "./es";
 import { en } from "./en";
 import { pt } from "./pt";

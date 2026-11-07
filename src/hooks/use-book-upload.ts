@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { probePdf, titleFromFileName } from "@/lib/pdf-client";
-import { probeEpub } from "@/lib/epub";
+import { probeEpub } from "@/core/epub";
 
 /**
  * Flujo de subida de libros (PDF o EPUB): arrastrar o elegir archivo → probe

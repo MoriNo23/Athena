@@ -3,8 +3,8 @@ import { mkdir, writeFile, stat } from "fs/promises";
 import { createReadStream } from "fs";
 import { Readable } from "stream";
 import path from "path";
-import { escribirAjustes, leerAjustes } from "@/lib/config-file";
-import { raizUploads } from "@/lib/data-home";
+import { escribirAjustes, leerAjustes } from "@/core/config-file";
+import { raizUploads } from "@/core/data-home";
 
 /**
  * Fondo propio del teleprompter (change teleprompter-ritmo-y-fondo):

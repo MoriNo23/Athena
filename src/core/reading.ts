@@ -1,6 +1,6 @@
 "use client";
 
-import { BookDTO, GlobalStats } from "@/lib/types";
+import { BookDTO, GlobalStats } from "@/core/types";
 
 /** Agrupa sesiones por día (YYYY-MM-DD) sumando páginas y minutos */
 export function groupSessionsByDay(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { escribirAjustes, leerAjustes } from "@/lib/config-file";
+import { escribirAjustes, leerAjustes } from "@/core/config-file";
 import { carpetaValida, escanearCarpeta, ResumenEscaneo } from "@/lib/library-folder";
 
 /**

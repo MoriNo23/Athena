@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "@/lib/i18n";
-import { READING_FONTS, type ReadingFont } from "@/lib/types";
+import { READING_FONTS, type ReadingFont } from "@/core/types";
 import { Check, Type } from "lucide-react";
 
 interface ReaderFontPickerProps {

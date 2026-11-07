@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ZOOM_TARGETS } from "@/hooks/use-zoom-preset";
 import { useI18n } from "@/lib/i18n";
 import { Check, Minus, Plus, ZoomIn } from "lucide-react";
-import type { ZoomPresetId } from "@/lib/types";
+import type { ZoomPresetId } from "@/core/types";
 
 interface ZoomControlsProps {
   effectiveScale: number;

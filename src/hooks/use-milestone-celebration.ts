@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from "react";
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n, type Translator } from "@/lib/i18n";
-import { milestonePages } from "@/lib/reading";
+import { milestonePages } from "@/core/reading";
 
 /** Confeti dorado de la app: grande al terminar el libro, corto en hitos */
 export function fireConfetti(big = false) {

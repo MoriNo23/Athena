@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { DictEntry, DictionaryResult } from "@/lib/types";
+import type { DictEntry, DictionaryResult } from "@/core/types";
 
 /**
  * Proxy de diccionario gratuito (sin API key):
