@@ -18,8 +18,12 @@ que te devuelven a leer hoy.
 - Standalone solo-Node: tras el build, `./bin/athena bundle` produce
   `release/athena-standalone-<versión>.tar.gz`.
 - Calidad: `bunx tsc --noEmit` · `bun run lint` · `bun test`.
-- DB: `bun run db:migrate` · `db:push` · `db:generate` (dev/legacy);
-  instalaciones fuera del repo: `bin/athena init` (migrate deploy).
+- DB: el servidor se auto-sirve — al arrancar aplica `prisma/migrations`
+  si faltan (ver `src/core/ensure-db.ts`); sin `.env` ni `db push` previo.
+  Para DESARROLLAR el schema: `bun run db:migrate` (crea la migración);
+  `db:push`/`db:generate` quedan para casos legacy. Instalaciones fuera
+  del repo: `bin/athena init` (migrate deploy) — y `athena start` también
+  auto-inicia si falta la BD.
 - APK: `bun run apk:sync` y luego `android/gradlew assembleRelease`
   (o dejar que lo compile GitHub Actions: workflow «Athena APK»).
 - Linux: `bash scripts/package-linux.sh` (.tar.gz) y

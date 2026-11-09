@@ -29,6 +29,8 @@ import {
   esRecursoEstático,
   igualEnTiempoConstante,
 } from "@/core/access";
+import { asegurarEsquemaDb, urlAFichero } from "@/core/ensure-db";
+import { db } from "@/lib/db";
 import { api } from "./api";
 
 const app = express();
@@ -159,7 +161,23 @@ function hostEscucha(): string {
   return "127.0.0.1";
 }
 
+// BD cero-config: el esquema se aplica (si falta) ANTES de abrir el puerto.
+// Con la biblioteca al día no escribe nada; recién creada se anuncia.
+const ficheroBd =
+  urlAFichero((process.env.DATABASE_URL ?? "").trim()) ?? "la BD del entorno";
 banner();
-app.listen(PORT, hostEscucha(), () => {
-  console.log(`Athena escuchando en http://${hostEscucha()}:${PORT}`);
-});
+asegurarEsquemaDb(db)
+  .then((info) => {
+    if (info.aplicado && info.migraciones.length > 0) {
+      console.log(`📚 Biblioteca nueva creada: ${ficheroBd}`);
+    } else {
+      console.log(`📖 Biblioteca lista: ${ficheroBd}`);
+    }
+    app.listen(PORT, hostEscucha(), () => {
+      console.log(`Athena escuchando en http://${hostEscucha()}:${PORT}`);
+    });
+  })
+  .catch((err: unknown) => {
+    console.error("No se pudo preparar la base de datos:", err);
+    process.exit(1);
+  });

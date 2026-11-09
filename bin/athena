@@ -137,10 +137,14 @@ cmd_bundle() {
 cmd_start() {
   local lan=0
   [ "${1:-}" = "--lan" ] && lan=1
-  [ -f "$DB" ] || {
-    echo "No hay BD en $DB. Ejecuta primero: bin/athena init"
-    exit 1
-  }
+  # BD cero-config: si falta, se crea ahora mismo (mismo criterio que el
+  # arranque directo del servidor, que también se auto-sirve el esquema).
+  if [ ! -f "$DB" ]; then
+    prisma_ok || { echo "No hay BD en $DB y falta el cliente Prisma: ejecuta «bun install» y relanza."; exit 1; }
+    mkdir -p "$(dirname "$DB")" "$(dirname "$UPLOADS")"
+    echo "Creando la biblioteca ($DB)…"
+    con_db migrate deploy || { echo "No se pudo crear la BD."; exit 1; }
+  fi
   [ -f "$ROOT/server-dist/server.cjs" ] || {
     echo "No hay build de producción ($ROOT/server-dist). Ejecuta: bun run build"
     exit 1

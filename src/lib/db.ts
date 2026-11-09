@@ -1,11 +1,12 @@
 import { PrismaClient } from '@prisma/client'
-import { esModoHome, ficheroDb } from '@/core/data-home'
+import { asegurarUrlDb } from '@/core/ensure-db'
 
-// ATHENA_HOME (change athena-home-cli): en modo home la BD vive fuera del
-// repo y el datasource apunta ahí. El `file:` del .env solo manda en modo
-// legacy/dev. Se fija ANTES de construir el cliente: Prisma lee DATABASE_URL
-// al inicializar la instancia.
-if (esModoHome()) process.env.DATABASE_URL = 'file:' + ficheroDb()
+// BD cero-config (change bd-cero-config): sin DATABASE_URL en el entorno,
+// se fija apuntando a la casa de datos (ATHENA_HOME/XDG/legacy — ver
+// src/core/data-home.ts) ANTES de construir el cliente, porque Prisma lee
+// la URL al instanciarlo. Si la URL ya venía (Docker, bundle, CLI), se
+// respeta tal cual.
+asegurarUrlDb()
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
