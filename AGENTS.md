@@ -137,6 +137,27 @@ a leer hoy.
    `bash scripts/package-linux.sh` (tarball Linux) o
    `bash scripts/package-deb.sh` (.deb) según el destino.
 
+## El sandbox del agente (Z.ai) no es una PC normal
+
+El agente trabaja en un sandbox reciclable; las pruebas hay que diseñarlas
+para que valgan igual que en la máquina de una persona real:
+
+- El **shell es persistente entre comandos**: los `export` sobreviven a la
+  orden que los creó. Un `DATABASE_URL` viejo envenenó un test de
+  instalación limpia (Prisma prefiere la variable de entorno al `.env` y
+  creó la BD fuera del clon). Antes de un test «como en una PC normal»:
+  `unset` de todo lo que el producto lee (`DATABASE_URL`, `ATHENA_*`,
+  `PORT`, `HOSTNAME`) o correr con `env -i`.
+- **El sandbox se recicla**: `/home/z/my-project` puede desaparecer entre
+  sesiones (re-clonar de GitHub) y puede conservar restos de sesiones
+  anteriores (`.env`, `db/`, workspaces fantasma). No confíes en el estado
+  local: verifica siempre contra el remote.
+- **Los procesos mueren al reciclar**: los servidores de prueba se
+  levantan, verifican (`curl` + `ss`) y paran dentro de la misma sesión.
+- Un test que falla en el sandbox puede estar midiendo el sandbox y no el
+  producto: antes de «arreglar» código, repite el test con entorno limpio
+  y un clon nuevo bajo `/tmp`.
+
 ## Prohibido
 
 - Commitear secretos: `.env*` (salvo `.env.example`), tokens, `*.pem`,
