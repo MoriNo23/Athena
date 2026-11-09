@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { filterCss, useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
 import { destruirPdfDoc, loadPdfLib, PDFJS_ASSETS } from "@/lib/pdf-client";

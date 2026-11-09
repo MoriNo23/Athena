@@ -167,7 +167,7 @@ export function PagePeek({
             if (p < 1 || p > totalPages) {
               return <div key={off} className="w-16 shrink-0 sm:w-20" aria-hidden />;
             }
-            const src = thumbs[p];
+            const _src = thumbs[p];
             const isSel = off === 0;
             const isOrigin = p === originPage && !isSel;
             return (

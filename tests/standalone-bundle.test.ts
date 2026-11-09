@@ -6,7 +6,7 @@ import { ENTRA } from '../scripts/build-standalone-bundle.mjs'
 
 const RAIZ = join(import.meta.dir, '..')
 
-describe('cierrePrisma: dependencias que necesita la salida standalone', () => {
+describe('cierrePrisma: dependencias que necesita el paquete standalone', () => {
   test('trae el CLI de Prisma y su cierre completo del scope @prisma', () => {
     const cierre = cierrePrisma(RAIZ)
     // el CLI y el cliente generado son la razón de ser del cierre
@@ -37,14 +37,14 @@ describe('cierrePrisma: dependencias que necesita la salida standalone', () => {
 describe('ENTRA: la lista blanca del artefacto standalone', () => {
   test('lleva lo imprescindible para arrancar con solo Node', () => {
     for (const imprescindible of [
-      'server.js',
+      'server-dist',
       'start.sh',
       'node_modules',
-      '.next',
-      'public',
+      'dist',
       'prisma',
       'package.json',
       'LICENSE',
+      'INICIO.md',
     ]) {
       expect(ENTRA).toContain(imprescindible)
     }
@@ -52,17 +52,18 @@ describe('ENTRA: la lista blanca del artefacto standalone', () => {
 
   test('no lleva restos del repo de desarrollo', () => {
     for (const resto of [
-      'docs',
       'src',
       'tests',
       'scripts',
       'android',
-      'openspec',
       'deploy',
       'bin',
       'AGENTS.md',
+      'README.md',
       'bun.lock',
-      'next.config.ts',
+      'vite.config.ts',
+      'index.html',
+      'login.html',
     ]) {
       expect(ENTRA).not.toContain(resto)
     }

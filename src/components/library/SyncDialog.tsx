@@ -41,7 +41,7 @@ const CLAVE_URL = "athena.sync.url";
 /** normaliza la dirección: http(s) y sin barra final; null si no sirve */
 function baseSana(bruta: string): string | null {
   const v = bruta.trim().replace(/\/+$/, "");
-  if (!/^https?:\/\/[a-z0-9.\-]+(:\d+)?$/i.test(v)) return null;
+  if (!/^https?:\/\/[a-z0-9.-]+(:\d+)?$/i.test(v)) return null;
   return v;
 }
 

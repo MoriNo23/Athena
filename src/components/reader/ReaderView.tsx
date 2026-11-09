@@ -1,7 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useImmersiveWake } from "@/hooks/use-immersive-wake";
 import { useReaderHotkeys } from "@/hooks/use-reader-hotkeys";
@@ -30,11 +29,10 @@ import { VocabularySheet } from "@/components/reader/VocabularySheet";
 import { PagePeek } from "@/components/reader/PagePeek";
 import { ModeDock } from "@/components/modes/ModeDock";
 import { ReaderHeader } from "@/components/reader/ReaderHeader";
-// El stage pesa (pdf.js y el motor epub viven dentro): carga perezosa —
-// nada lo pide antes de abrir un libro. En dev self-host el boot de '/'
-// no descarga los motores (0 peticiones, ver perf-dev-net); en el build
-// prerenderizado de Turbopack siguen en el preload del HTML (design §3).
-const ReaderStage = dynamic(() => import("@/components/reader/ReaderStage").then((m) => m.ReaderStage), { ssr: false });
+// El stage pesa (pdf.js y el motor epub viven dentro): carga perezosa con
+// React.lazy — nada lo pide antes de abrir un libro y los motores no entran
+// en el bundle de arranque de la biblioteca.
+const ReaderStage = lazy(() => import("@/components/reader/ReaderStage").then((m) => ({ default: m.ReaderStage })));
 import { PauseDialog } from "@/components/reader/PauseDialog";
 import { TeleprompterOverlay } from "@/components/reader/TeleprompterOverlay";
 import { ShortcutGhost, type ShortcutGhostEntry } from "@/components/reader/ShortcutGhost";
@@ -695,19 +693,21 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
 
           {/* --- Visor + dock de modos --- */}
           <div className="flex min-h-0 flex-1">
-            <ReaderStage
-              error={error}
-              onBack={onBack}
-              dualActive={dualActive}
-              book={book}
-              pageNum={pageNum}
-              numPages={numPages}
-              viewport={viewport}
-              overlay={textMode ? pdfTextView : undefined}
-              pauseArmed={pauseArmed}
-              pauseDialogOpen={pauseDialogOpen}
-              onOpenPause={() => openPauseDialog(() => extrasRef.current.pause?.recap ?? "")}
-            />
+            <Suspense fallback={null}>
+              <ReaderStage
+                error={error}
+                onBack={onBack}
+                dualActive={dualActive}
+                book={book}
+                pageNum={pageNum}
+                numPages={numPages}
+                viewport={viewport}
+                overlay={textMode ? pdfTextView : undefined}
+                pauseArmed={pauseArmed}
+                pauseDialogOpen={pauseDialogOpen}
+                onOpenPause={() => openPauseDialog(() => extrasRef.current.pause?.recap ?? "")}
+              />
+            </Suspense>
 
             {/* Dock de modos de lectura: en escritorio, panel lateral de la
                 casa; en móvil, hoja inferior a pantalla ancha — el panel de

@@ -14,6 +14,8 @@ import { mkdirSync, openSync, readFileSync, writeSync, closeSync } from "node:fs
 import path from "node:path";
 import { raizDatos } from "@/core/data-home";
 
+export { siguienteSeguro } from "@/core/destino";
+
 export const COOKIE_SESION = "athena_session";
 
 /** fichero del candado: relativo en modo legacy ("db/athena-lock") o
@@ -95,18 +97,6 @@ export function contraseñaEfectiva(): string {
     return garantizaContraseña();
   }
   return "";
-}
-
-/**
- * destino seguro tras el login (`next`): solo rutas relativas internas
- * (empiezan por "/" y sin "//" inicial); cualquier otra cosa → null.
- */
-export function siguienteSeguro(v: string | null | undefined): string | null {
-  if (!v || !v.startsWith("/") || v.startsWith("//")) return null;
-  // `new URL` normaliza "\" a "/" — `/\evil.com` acabaría navegando fuera; los
-  // caracteres de control no tienen sitio en una URL tecleada por una persona.
-  if (v.includes("\\") || /[\u0000-\u001f]/.test(v)) return null;
-  return v;
 }
 
 /**

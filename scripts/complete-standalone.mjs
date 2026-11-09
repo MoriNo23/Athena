@@ -1,23 +1,23 @@
 #!/usr/bin/env node
 /**
- * Completa la salida standalone de Next (.next/standalone) para que valga
- * por sí sola. Lo usan el Dockerfile (etapa builder) y `bin/athena bundle`.
+ * Completa el artefacto standalone de Athena (solo Node, sin Bun ni repo)
+ * dentro de `standalone/`. Lo usan el Dockerfile (etapa builder) y
+ * `bin/athena bundle`.
  *
  *   node scripts/complete-standalone.mjs [raíz-del-repo]
  *
- * Dos huecos que el rastreo de Next 16 no cubre:
+ * El paquete necesita:
+ *  - server-dist/server.cjs  (el API+estáticos compilado; antes .next/standalone)
+ *  - dist/                   (la web de Vite: index, login, assets, public)
+ *  - prisma/                 (esquema y migraciones)
+ *  - node_modules/prisma y su cierre (para el `db push` del arranque) y
+ *    @prisma/.prisma (el cliente generado que requirea el servidor)
+ *  - start.sh                (fija la BD, aplica el esquema y arranca Node)
  *
- *  1. El CLI de Prisma (`node_modules/prisma`) y su cierre de dependencias:
- *     hace falta para el `db push` del arranque, que crea la BD la primera
- *     vez y alinea el esquema en actualizaciones (igual que la imagen Docker
- *     hacía copiando 3 carpetas a mano — insuficiente: faltaba @prisma/debug
- *     y el arranque fresco se caía).
- *  2. `start.sh`: el comando de arranque que fija la BD (ATHENA_HOME manda,
- *     igual que src/core/data-home.ts), aplica el esquema y levanta el
- *     servidor con solo Node. Por defecto offline en 127.0.0.1: nunca se
- *     abre al WiFi sin querer.
+ * El cierre de dependencias se calcula igual que siempre: semillas
+ * prisma/@prisma/client/.prisma/client + sus dependencias transitivas.
  */
-import { cpSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 /**
@@ -52,7 +52,7 @@ const START_SH = `#!/bin/sh
 #
 # Entorno que respeta:
 #   PORT             puerto (3000)
-#   HOSTNAME         interfaz (127.0.0.1; usa 0.0.0.0 para abrir a la LAN)
+#   ATHENA_HOST      interfaz (127.0.0.1; usa 0.0.0.0 para abrir a la LAN)
 #   ATHENA_MODO      offline (sin candado) | lan (con candado)
 #   ATHENA_PASSWORD  contraseña fija del candado en modo lan
 #   ATHENA_HOME      casa de datos externa (igual que src/core/data-home.ts)
@@ -61,12 +61,7 @@ set -e
 cd "$(dirname "$0")"
 
 export PORT="\${PORT:-3000}"
-# HOSTNAME: bash lo predefine con el nombre de la máquina (sin exportar);
-# solo lo fijamos si no viene ya del entorno real (p. ej. Docker pone
-# HOSTNAME=0.0.0.0). Default honesto: localhost, nunca el WiFi de casualidad.
-if [ -z "$(printenv HOSTNAME)" ]; then
-  export HOSTNAME=127.0.0.1
-fi
+export ATHENA_HOST="\${ATHENA_HOST:-127.0.0.1}"
 export ATHENA_MODO="\${ATHENA_MODO:-offline}"
 
 if [ -n "\${ATHENA_HOME:-}" ]; then
@@ -91,44 +86,76 @@ if ! DATABASE_URL="file:$BD" node node_modules/prisma/build/index.js db push --s
   fi
 fi
 
-exec env DATABASE_URL="file:$BD" ATHENA_MODO="$ATHENA_MODO" node server.js
+exec env DATABASE_URL="file:$BD" ATHENA_MODO="$ATHENA_MODO" node server-dist/server.cjs
 `
 
 /**
- * Añade a .next/standalone lo que le falta para arrancar por sí sola:
- * el cierre del CLI de Prisma, el esquema/migraciones y start.sh.
- * Idempotente: lo que ya está, no se toca. Devuelve lo añadido.
+ * Ensambla el paquete en <raíz>/standalone/ (idempotente: lo que ya está,
+ * no se toca). Exige un build previo (dist/ + server-dist/). Devuelve lo
+ * añadido.
  */
 export function completarStandalone(raiz) {
   const raizAbs = resolve(raiz)
-  const standalone = join(raizAbs, '.next', 'standalone')
-  if (!existsSync(join(standalone, 'server.js'))) {
-    throw new Error(`Falta ${standalone}/server.js — ejecuta antes: bun run build`)
-  }
-  const nmRepo = join(raizAbs, 'node_modules')
-  const nmSa = join(standalone, 'node_modules')
+  const paquete = join(raizAbs, 'standalone')
   const anadidos = []
+
+  if (!existsSync(join(raizAbs, 'server-dist', 'server.cjs'))) {
+    throw new Error('Falta server-dist/server.cjs — ejecuta antes: bun run build')
+  }
+  if (!existsSync(join(raizAbs, 'dist', 'index.html'))) {
+    throw new Error('Falta dist/index.html — ejecuta antes: bun run build')
+  }
+
+  // 1. servidor + web + esquema
+  for (const [origen, destino] of [
+    ['server-dist', 'server-dist'],
+    ['dist', 'dist'],
+    ['prisma', 'prisma'],
+  ]) {
+    const de = join(raizAbs, origen)
+    const a = join(paquete, destino)
+    if (!existsSync(de)) continue
+    cpSync(de, a, { recursive: true })
+    anadidos.push(`${destino}/`)
+  }
+
+  // 2. cierre de Prisma (CLI para db push + cliente para el runtime)
+  const nmRepo = join(raizAbs, 'node_modules')
+  const nmPaquete = join(paquete, 'node_modules')
   for (const nombre of cierrePrisma(raizAbs)) {
     const origen = join(nmRepo, nombre)
-    const destino = join(nmSa, nombre)
+    const destino = join(nmPaquete, nombre)
     if (!existsSync(origen)) continue
     if (existsSync(join(destino, 'package.json'))) continue // ya trazado
     cpSync(origen, destino, { recursive: true })
     anadidos.push(`node_modules/${nombre}`)
   }
-  const esquemaRepo = join(raizAbs, 'prisma')
-  const esquemaSa = join(standalone, 'prisma')
-  if (existsSync(join(esquemaRepo, 'schema.prisma')) && !existsSync(join(esquemaSa, 'schema.prisma'))) {
-    cpSync(esquemaRepo, esquemaSa, { recursive: true })
-    anadidos.push('prisma/')
+
+  // 3. package.json mínimo (nombre/versión, para el runtime de Prisma)
+  const pkg = JSON.parse(readFileSync(join(raizAbs, 'package.json'), 'utf8'))
+  writeFileSync(
+    join(paquete, 'package.json'),
+    JSON.stringify({ name: pkg.name, version: pkg.version, private: true }, null, 2)
+  )
+
+  // 4. arranque + licencia
+  writeFileSync(join(paquete, 'start.sh'), START_SH, { mode: 0o755 })
+  if (existsSync(join(raizAbs, 'LICENSE'))) {
+    cpSync(join(raizAbs, 'LICENSE'), join(paquete, 'LICENSE'))
   }
-  writeFileSync(join(standalone, 'start.sh'), START_SH, { mode: 0o755 })
+
+  // 5. uploads vacío (la biblioteca personal nunca viaja) — legacy mode
+  // escribe en public/uploads junto al paquete (data-home modo legacy)
+  mkdirSync(join(paquete, 'public', 'uploads'), { recursive: true })
+  writeFileSync(join(paquete, 'public', 'uploads', '.gitkeep'), '')
+  anadidos.push('public/uploads/.gitkeep')
+
   return anadidos
 }
 
 if (process.argv[1] && process.argv[1].endsWith('complete-standalone.mjs')) {
   const anadidos = completarStandalone(resolve(process.argv[2] ?? '.'))
-  console.log(`standalone completado (${anadidos.length} añadidos):`)
+  console.log(`standalone completo (${anadidos.length} entradas):`)
   for (const anadido of anadidos) console.log('  +', anadido)
   console.log('  + start.sh')
 }

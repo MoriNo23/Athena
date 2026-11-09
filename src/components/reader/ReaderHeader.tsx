@@ -27,6 +27,7 @@ import {
   Clock3,
   Flame,
   History,
+  Keyboard,
   Languages,
   Maximize,
   Minimize2,
@@ -36,6 +37,7 @@ import {
   Target,
 } from "lucide-react";
 import { useState, type RefObject } from "react";
+import { ShortcutsSheet } from "@/components/reader/ShortcutsSheet";
 
 interface ReaderHeaderProps {
   book: BookDTO;
@@ -128,6 +130,7 @@ export function ReaderHeader({
   const { t } = useI18n();
   /** borrador de "ir a página": solo comitea en Enter/blur, no por tecla */
   const [draftPagina, setDraftPagina] = useState<string | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   return (
     <header data-chrome data-chrome-kind="header" className="flex min-h-14 shrink-0 flex-col border-b border-border/60 bg-card/40 px-3 py-1.5">
       {/* Fila 1 — identidad: volver, título, (escritorio: telemetría), vista y «⋯» */}
@@ -277,8 +280,15 @@ export function ReaderHeader({
               <Settings2 className="h-4 w-4" />
               {t("reader.railSettingsTip")}
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShortcutsOpen(true)} className="gap-2" data-testid="shortcuts-open-reader">
+              <Keyboard className="h-4 w-4" />
+              {t("shortcuts.title")}
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Apartado de teclas de acceso: consultable en cualquier plataforma */}
+        <ShortcutsSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       </div>
 
       {/* Fila 2 — lectura: navegar (izquierda) + vista y modos (derecha) */}

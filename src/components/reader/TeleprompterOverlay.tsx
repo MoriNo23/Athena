@@ -908,6 +908,9 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
               // Si había una transición en vuelo, se fija el scrollTop actual: así
               // se detiene también un scroll suave del compositor que la cámara
               // hubiera dejado en marcha (solo la primera vez, no en cada giro).
+              // asignación a sí misma a propósito: corta un scroll suave del
+              // compositor que la cámara hubiera dejado en marcha
+              // eslint-disable-next-line no-self-assign
               if (cancelViewAnim()) e.currentTarget.scrollTop = e.currentTarget.scrollTop;
               if (e.deltaY < 0) setPlaying(false);
             }}

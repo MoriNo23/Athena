@@ -15,4 +15,4 @@
 - [ ] If any `src/app/api/**` route changed → `public/athena-offline.js`
       and `tests/offline-engine.test.ts` updated with the same contract
 - [ ] If reading UI changed → smoke-tested in the APK (not only desktop browser)
-- [ ] Does not contradict `docs/PRODUCT.md` (or the amendment is part of this PR)
+- [ ] Keeps the product contract: local-first, no cloud, no accounts, no telemetry

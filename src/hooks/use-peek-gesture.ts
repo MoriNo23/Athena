@@ -101,7 +101,7 @@ export function usePeekGesture(opts: {
     setPeekSel(target);
   };
 
-  const onPeekUp = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onPeekUp = (_e: React.PointerEvent<HTMLDivElement>) => {
     const g = peekGesture.current;
     releaseCapture(g);
     if (g.opened) {

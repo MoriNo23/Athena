@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   Layers3,
   ListTree,
@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
-import { MODE_TOGGLE_META, ModeToggleKey, BookDTO, BookExtras } from "@/core/types";
+import { MODE_TOGGLE_META, ModeToggleKey, BookDTO } from "@/core/types";
 import { ModePanelProps } from "@/components/modes/panel-props";
 import { XrayPanel } from "@/components/modes/XrayPanel";
 import { PausesPanel } from "@/components/modes/PausesPanel";
@@ -108,7 +108,7 @@ export function ModeDock({
                     {t("dock.allOptional")}
                   </p>
                   {(Object.keys(MODE_TOGGLE_META) as ModeToggleKey[]).map((key) => {
-                    const meta = MODE_TOGGLE_META[key];
+                    const _meta = MODE_TOGGLE_META[key];
                     return (
                       <div key={key} className="flex items-start justify-between gap-2" data-testid={`mode-toggle-${key}`}>
                         <div className="min-w-0">

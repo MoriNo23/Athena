@@ -1,7 +1,7 @@
 # Athena · paquete Linux (Debian/Ubuntu) para el release
 #
 # Construye la web de producción y la empaqueta en dos formatos, ambos con
-# el build ya hecho:
+# el build ya hecho (server-dist/ + dist/):
 #   - tarball:    descomprimir → bun install → ./bin/athena start
 #   - .deb:       sudo apt install ./athena_<versión>_amd64.deb → athena start
 # Quedan adjuntos al release v<versión de package.json> como
@@ -50,8 +50,8 @@ jobs:
         run: |
           VERSION=$(bun -e "console.log(require('./package.json').version)")
           TAG="v${VERSION}"
-          TAR="dist/Athena-${VERSION}-linux-x64.tar.gz"
-          DEB="dist/athena_${VERSION}_amd64.deb"
+          TAR="release/Athena-${VERSION}-linux-x64.tar.gz"
+          DEB="release/athena_${VERSION}_amd64.deb"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
                  --title "Athena $TAG" --generate-notes

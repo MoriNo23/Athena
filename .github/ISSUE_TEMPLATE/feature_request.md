@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Propose an improvement aligned with docs/PRODUCT.md
+about: Propose an improvement for Athena (local-first, no cloud, no accounts)
 labels: enhancement
 ---
 

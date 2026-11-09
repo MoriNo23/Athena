@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useIsDesktopInput } from "@/hooks/use-desktop-input";
 
 /** ms que el recordatorio permanece en pantalla antes de retirarse solo */
 const SHORTCUT_GHOST_HOLD_MS = 2500;
@@ -27,22 +28,28 @@ interface ShortcutGhostProps {
  * capturar el puntero: los controles y tooltips siguen siendo la fuente
  * accesible.
  *
+ * SOLO con entrada de escritorio (pointer fine + hover): es un recordatorio
+ * de TECLAS — en un teléfono táctil no hay teclado y el velo opaco sobre el
+ * texto era un overlay de escritorio que estorbaba la lectura en Android
+ * (fix «overlay de desktop en la versión de Android»). Para consultar las
+ * teclas en cualquier plataforma está el apartado ShortcutsSheet del menú.
+ * Un Android con teclado físico suele reportar pointer: fine → reaparece
+ * justo cuando hay teclas que recordar.
+ *
  * Única chispa (24-10, la dueña): «que solo aparezca una vez vuelvo a la
- * pestaña — ya no estará supervisando el mouse». Antes se disparaba con la
- * quietud del puntero (el chrome dormía tras N segundos sin moverlo y el
- * recordatorio se quedaba en pantalla oscureciendo el visor) — con la pestaña
- * en primer plano eso es ruido, no ayuda. Ahora: la pestaña pasa a visible
- * (visibilitychange) → aparece UNA vez, se retira sola (~2,5 s) y respeta un
- * mínimo entre apariciones (~8 s) para que el vaivén de pestañas no lo repita
- * sin parar. Ningún temporizador vigila el mouse. Un velo opaco cubre el texto
+ * pestaña — ya no estará supervisando el mouse». Ahora: la pestaña pasa a
+ * visible (visibilitychange) → aparece UNA vez, se retira sola (~2,5 s) y
+ * respeta un mínimo entre apariciones (~8 s). Un velo opaco cubre el texto
  * detrás mientras está en pantalla: las teclas se LEEN, no se adivinan.
  */
 export function ShortcutGhost({ entries, testId }: ShortcutGhostProps) {
+  const esEscritorio = useIsDesktopInput();
   const [shown, setShown] = useState(false);
   const lastAtRef = useRef(0);
   const hideTimerRef = useRef(0);
 
   useEffect(() => {
+    if (!esEscritorio) return; // sin teclado no hay nada que recordar
     const onVisibility = () => {
       if (document.visibilityState !== "visible") return;
       const now = Date.now();
@@ -60,7 +67,9 @@ export function ShortcutGhost({ entries, testId }: ShortcutGhostProps) {
       document.removeEventListener("visibilitychange", onVisibility);
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
     };
-  }, []);
+  }, [esEscritorio]);
+
+  if (!esEscritorio) return null;
 
   return (
     <>
@@ -89,3 +98,4 @@ export function ShortcutGhost({ entries, testId }: ShortcutGhostProps) {
     </>
   );
 }
+

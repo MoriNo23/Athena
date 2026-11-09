@@ -571,6 +571,12 @@ export const pt: Record<string, string> = {
   "ghost.tp.fullscreen": "tela cheia",
   "ghost.tp.settings": "ajustes do teleprompter",
   "ghost.tp.exit": "sair",
+
+  // ---------- teclas de acesso (painel consultável em qualquer plataforma) ----------
+  "shortcuts.title": "Teclas de acesso",
+  "shortcuts.reader": "Leitor",
+  "shortcuts.teleprompter": "Teleprompter",
+  "shortcuts.note": "No celular funcionam com um teclado físico conectado; no desktop, depois de clicar no livro para focá-lo.",
   // ---------- cauda longa: peek/sync/pausa/OCR/dicionário/vocabulário/marcos/capas ----------
   "peek.aria": "Folhear páginas",
   "peek.goTo": "Ir para a página {n}",

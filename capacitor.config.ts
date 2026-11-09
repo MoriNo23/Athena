@@ -1,9 +1,9 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * Configuración de Capacitor para el APK de Athena (docs/APK-OFFLINE.md).
+ * Configuración de Capacitor para el APK de Athena (scripts/build-apk-web.mjs).
  *
- * - webDir "out": la web estática que genera scripts/build-apk-web.mjs.
+ * - webDir "out": la web estática que genera la build del APK (vite --mode apk).
  * - server.androidScheme "https": el WebView sirve la app desde
  *   https://localhost — sin cleartext y con origen estable para
  *   IndexedDB/OPFS (la biblioteca persiste entre actualizaciones).

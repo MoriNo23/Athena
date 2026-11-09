@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Athena · paquete .deb para Debian/Ubuntu (ver docs/INDICE.md y docs/SELFHOSTING.md)
+# Athena · paquete .deb para Debian/Ubuntu (ver README.md)
 #
 # Monta la jerarquía de un paquete Debian a partir del build de producción
-# (.next) ya hecho y lo compila con dpkg-deb. Lo llama
+# (server-dist/ + dist/) ya hecho y lo compila con dpkg-deb. Lo llama
 # .github/workflows/release-linux.yml justo después de `bun run build`.
 #
-#   /opt/athena/                 la app (ficheros rastreados + .next)
+#   /opt/athena/                 la app (ficheros rastreados + build)
 #   /usr/bin/athena              symlink al CLI (bin/athena)
 #   /usr/share/doc/athena/       copyright (MIT) + INICIO-RAPIDO.txt
 #   DEBIAN/{control,postinst,postrm}
@@ -15,12 +15,12 @@
 set -euo pipefail
 
 VERSION=$(bun -e "console.log(require('./package.json').version)")
-DEBROOT="dist/deb-root"
+DEBROOT="release/deb-root"
 APP="$DEBROOT/opt/athena"
 DOC="$DEBROOT/usr/share/doc/athena"
-DEB="dist/athena_${VERSION}_amd64.deb"
+DEB="release/athena_${VERSION}_amd64.deb"
 
-[ -d .next ] || { echo "Falta el build de producción (.next). Ejecuta antes: bun run build"; exit 1; }
+[ -f server-dist/server.cjs ] || { echo "Falta el build de producción (server-dist). Ejecuta antes: bun run build"; exit 1; }
 command -v dpkg-deb >/dev/null 2>&1 || { echo "Falta dpkg-deb (viene con dpkg en Debian/Ubuntu)."; exit 1; }
 
 rm -rf "$DEBROOT"
@@ -28,7 +28,8 @@ mkdir -p "$APP" "$DEBROOT/DEBIAN" "$DEBROOT/usr/bin" "$DOC"
 
 # 1) App: ficheros rastreados del repo + build de producción precompilado
 git archive --format=tar HEAD | tar -x -C "$APP"
-cp -r .next "$APP/.next"
+cp -r server-dist "$APP/server-dist"
+cp -r dist "$APP/dist"
 
 # 2) CLI en el PATH (bin/athena resuelve su raíz con readlink -f: el symlink vale)
 ln -s /opt/athena/bin/athena "$DEBROOT/usr/bin/athena"
@@ -36,7 +37,7 @@ ln -s /opt/athena/bin/athena "$DEBROOT/usr/bin/athena"
 # 3) Documentación
 cat > "$DOC/INICIO-RAPIDO.txt" <<EOF
 Athena ${VERSION} — inicio rápido
-Manual completo: https://github.com/MoriNo23/Athena/blob/main/docs/INDICE.md
+Manual completo: https://github.com/MoriNo23/Athena
 
 REQUISITO: Bun (https://bun.sh) — curl -fsSL https://bun.sh/install | bash
 Si el postinst no pudo dejar las dependencias instaladas (¿sin red?):

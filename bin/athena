@@ -7,7 +7,7 @@
 #   athena start [--lan] arranca Athena (offline o lan) con los datos en su casa
 #   athena doctor        revisa bun, casa de datos, BD, uploads y permisos
 #   athena backup [dest] copia de seguridad completa (db + uploads) en un tar.gz
-#   athena bundle [dest] artefacto standalone (solo Node) en dist/, sin tu biblioteca
+#   athena bundle [dest] artefacto standalone (solo Node) en release/, sin tu biblioteca
 #   athena home          imprime las rutas resueltas
 #   athena migrate-home  mueve una instalación legacy (datos dentro del repo) a la casa
 #
@@ -122,9 +122,9 @@ cmd_migrate_home() {
 }
 
 cmd_bundle() {
-  local destino="${1:-$ROOT/dist}"
-  [ -f "$ROOT/.next/standalone/server.js" ] || {
-    echo "No hay build de producción ($ROOT/.next/standalone). Ejecuta antes: bun run build"
+  local destino="${1:-$ROOT/release}"
+  [ -f "$ROOT/server-dist/server.cjs" ] || {
+    echo "No hay build de producción ($ROOT/server-dist). Ejecuta antes: bun run build"
     exit 1
   }
   command -v node >/dev/null || {
@@ -141,8 +141,8 @@ cmd_start() {
     echo "No hay BD en $DB. Ejecuta primero: bin/athena init"
     exit 1
   }
-  [ -d "$ROOT/.next" ] || {
-    echo "No hay build de producción ($ROOT/.next). Ejecuta: bun run build"
+  [ -f "$ROOT/server-dist/server.cjs" ] || {
+    echo "No hay build de producción ($ROOT/server-dist). Ejecuta: bun run build"
     exit 1
   }
   export ATHENA_HOME="${CASA:-}"
@@ -192,13 +192,13 @@ cmd_doctor() {
   [ -f "$(dirname "$DB")/config.json" ] && di "config.json presente" || dw "config.json aún no existe (se crea al primer uso)"
   echo "· Servidor"
   prisma_ok && di "cliente Prisma instalado" || dw "sin node_modules (bun install)"
-  [ -d "$ROOT/.next" ] && di "build de producción presente" || dw "sin build (.next) — bun run build"
+  [ -f "$ROOT/server-dist/server.cjs" ] && di "build de producción presente" || dw "sin build (server-dist) — bun run build"
   echo ""
   if [ "$fallos" = 0 ]; then echo "Todo en orden (o nada bloqueante)."; else echo "$fallos problema(s) bloqueante(s)."; exit 1; fi
 }
 
 cmd_backup() {
-  [ -n "$CASA" ] || { echo "En modo legacy: copia a mano db/ y public/uploads/ (ver docs/SELFHOSTING.md)."; exit 2; }
+  [ -n "$CASA" ] || { echo "En modo legacy: copia a mano db/ y public/uploads/ (ver README)."; exit 2; }
   local dest="${1:-$CASA/backups}"
   [ -f "$DB" ] || { echo "No hay BD que respaldar ($DB). ¿athena init?"; exit 1; }
   mkdir -p "$dest"

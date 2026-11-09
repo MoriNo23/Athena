@@ -1,23 +1,25 @@
 #!/usr/bin/env bash
-# Athena · paquete Linux x64 para el release (ver docs/INDICE.md y docs/SELFHOSTING.md)
+# Athena · paquete Linux x64 para el release (ver README.md)
 #
-# Empaqueta el proyecto con el BUILD DE PRODUCCIÓN ya hecho (.next) para que
-# quien lo descargue solo tenga que: descomprimir → bun install → arrancar.
+# Empaqueta el proyecto con el BUILD DE PRODUCCIÓN ya hecho (server-dist/ +
+# dist/) para que quien lo descargue solo tenga que: descomprimir → bun
+# install → arrancar.
 # Lo llama .github/workflows/release-linux.yml justo después de `bun run build`.
 set -euo pipefail
 
 VERSION=$(bun -e "console.log(require('./package.json').version)")
 NAME="Athena-${VERSION}-linux-x64"
-STAGE="dist/${NAME}"
+STAGE="release/${NAME}"
 
-rm -rf dist
+rm -rf release
 mkdir -p "${STAGE}/db"
 
-# 1) Árbol del repo (ficheros rastreados: sin node_modules, sin .git, sin .next)
+# 1) Árbol del repo (ficheros rastreados: sin node_modules ni .git)
 git archive --format=tar HEAD | tar -x -C "${STAGE}"
 
 # 2) Build de producción precompilado (lo genera `bun run build` justo antes)
-cp -r .next "${STAGE}/.next"
+cp -r server-dist "${STAGE}/server-dist"
+cp -r dist "${STAGE}/dist"
 
 # 3) Instrucciones de arranque dentro del paquete
 cat > "${STAGE}/COMO-ARRANCAR.txt" <<EOF
@@ -33,7 +35,7 @@ ARRANQUE (dentro de esta carpeta):
   3) ./bin/athena start   # abre http://localhost:3000 y a leer
 
 Modo normal = solo localhost. Para abrirlo en tu red:
-  ./bin/athena start --lan   (candado opcional, ver docs/INDICE.md)
+  ./bin/athena start --lan   (candado opcional, ver README.md)
 
 Otros comandos: ./bin/athena doctor · backup · home
 Los datos viven FUERA del paquete (sobreviven a actualizaciones):
@@ -41,13 +43,12 @@ Los datos viven FUERA del paquete (sobreviven a actualizaciones):
   (personalizable con la variable ATHENA_HOME; el método antiguo de tener
   los datos dentro de la carpeta sigue funcionando si ya los tenías así)
 
-El build de producción YA VIENE HECHO (.next/): «athena start» no
-recompila nada y arranca directo.
+El build de producción YA VIENE HECHO (server-dist/ + dist/): «athena
+start» no recompila nada y arranca directo.
 
-Guía completa: https://github.com/MoriNo23/Athena/blob/main/docs/INDICE.md
-Auto-alojamiento: docs/SELFHOSTING.md
+Guía completa: https://github.com/MoriNo23/Athena
 EOF
 
 # 4) Tarball final
-tar -czf "dist/${NAME}.tar.gz" -C dist "${NAME}"
-echo "Paquete listo: dist/${NAME}.tar.gz ($(du -h "dist/${NAME}.tar.gz" | cut -f1))"
+tar -czf "release/${NAME}.tar.gz" -C release "${NAME}"
+echo "Paquete listo: release/${NAME}.tar.gz ($(du -h "release/${NAME}.tar.gz" | cut -f1))"

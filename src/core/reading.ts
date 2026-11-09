@@ -1,6 +1,6 @@
 "use client";
 
-import { BookDTO, GlobalStats } from "@/core/types";
+import { BookDTO } from "@/core/types";
 
 /** Agrupa sesiones por día (YYYY-MM-DD) sumando páginas y minutos */
 export function groupSessionsByDay(
@@ -31,7 +31,7 @@ export function computeStreak(dayMap: Map<string, { pages: number; minutes: numb
   let streak = 0;
   const today = new Date();
   // Si hoy no leyó pero ayer sí, la racha sigue viva (empieza por ayer)
-  let cursor = new Date(today);
+  const cursor = new Date(today);
   if (!dayMap.has(dayKey(cursor))) {
     cursor.setDate(cursor.getDate() - 1);
     if (!dayMap.has(dayKey(cursor))) return 0;
@@ -46,7 +46,7 @@ export function computeStreak(dayMap: Map<string, { pages: number; minutes: numb
 /** Ritmo medio de páginas/día en los últimos 7 días */
 export function computeDailyRate7d(dayMap: Map<string, { pages: number; minutes: number }>): number {
   let pages = 0;
-  let activeDays = 0;
+  let _activeDays = 0;  // acumulador no leído en este bloque (7d usa pages/7)
   const today = new Date();
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
@@ -54,7 +54,7 @@ export function computeDailyRate7d(dayMap: Map<string, { pages: number; minutes:
     const entry = dayMap.get(dayKey(d));
     if (entry && entry.pages > 0) {
       pages += entry.pages;
-      activeDays++;
+      _activeDays++;
     }
   }
   return pages / 7; // promedio diario sobre 7 días naturales

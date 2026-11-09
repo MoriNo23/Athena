@@ -14,9 +14,10 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, Languages, MoreHorizontal, RotateCcw, Sun } from "lucide-react";
+import { Check, Keyboard, Languages, MoreHorizontal, RotateCcw, Sun } from "lucide-react";
 import { LANGUAGES, useI18n } from "@/lib/i18n";
 import { SyncDialog } from "@/components/library/SyncDialog";
+import { ShortcutsSheet } from "@/components/reader/ShortcutsSheet";
 
 const emptySubscribe = () => () => {};
 
@@ -39,6 +40,7 @@ export function HeroMenu({ onResetAll }: { onResetAll: () => void }) {
   const mounted = useMounted();
   const isDark = !mounted || resolvedTheme !== "light";
   const [syncOpen, setSyncOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   // la copia de la casa solo existe en la build del APK (motor offline instalado)
   const esApk =
     mounted &&
@@ -47,6 +49,7 @@ export function HeroMenu({ onResetAll }: { onResetAll: () => void }) {
     !!(window as unknown as { __athenaOffline?: { sync?: unknown } }).__athenaOffline?.sync;
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
@@ -118,6 +121,13 @@ export function HeroMenu({ onResetAll }: { onResetAll: () => void }) {
           </>
         )}
 
+        {/* Teclas de acceso: consultables en cualquier plataforma */}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setShortcutsOpen(true)} className="gap-2" data-testid="shortcuts-open">
+          <Keyboard className="h-4 w-4" />
+          {t("shortcuts.title")}
+        </DropdownMenuItem>
+
         {/* Destructivo de baja frecuencia: un paso aparte, con su confirmación */}
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -130,5 +140,10 @@ export function HeroMenu({ onResetAll }: { onResetAll: () => void }) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+
+    {/* La copia de la casa (solo APK) y el apartado de teclas de acceso */}
+    <SyncDialog open={syncOpen} onOpenChange={setSyncOpen} />
+    <ShortcutsSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+    </>
   );
 }

@@ -572,6 +572,12 @@ export const es: Record<string, string> = {
   "ghost.tp.fullscreen": "pantalla completa",
   "ghost.tp.settings": "ajustes del teleprompter",
   "ghost.tp.exit": "salir",
+
+  // ---------- teclas de acceso (apartado consultable en cualquier plataforma) ----------
+  "shortcuts.title": "Teclas de acceso",
+  "shortcuts.reader": "Lector",
+  "shortcuts.teleprompter": "Teleprompter",
+  "shortcuts.note": "En el teléfono funcionan al conectar un teclado físico; en escritorio, tras hacer click en el libro para darle el foco.",
   // ---------- cola larga: peek/sync/pausa/OCR/diccionario/vocabulario/hitos/portadas ----------
   "peek.aria": "Hojear páginas",
   "peek.goTo": "Ir a la página {n}",

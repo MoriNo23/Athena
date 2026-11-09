@@ -571,6 +571,12 @@ export const en: Record<string, string> = {
   "ghost.tp.fullscreen": "fullscreen",
   "ghost.tp.settings": "teleprompter settings",
   "ghost.tp.exit": "exit",
+
+  // ---------- keyboard shortcuts (consultable panel on any platform) ----------
+  "shortcuts.title": "Keyboard shortcuts",
+  "shortcuts.reader": "Reader",
+  "shortcuts.teleprompter": "Teleprompter",
+  "shortcuts.note": "On a phone they work with a physical keyboard attached; on desktop, after clicking the book to focus it.",
   // ---------- long tail: peek/sync/pause/OCR/dictionary/vocabulary/milestones/covers ----------
   "peek.aria": "Flip through pages",
   "peek.goTo": "Go to page {n}",

@@ -6,7 +6,7 @@
 
 A local-first reading app that treats **the last page** as the product.
 
-React 19 · Next.js 16 · TypeScript · Tailwind 4 · Prisma + SQLite · PDF.js
+React 19 · Vite · Express · TypeScript · Tailwind 4 · Prisma + SQLite · PDF.js
 
 </div>
 
@@ -48,12 +48,26 @@ instrument, tuned for consistency.
 - **EPUBs & PDFs** paginated the same way (~320 words/virtual page); rail and header track real pages.
 - **Literature settings** — X-ray, outline, dictionary, natural pauses, argument skeleton, locked notes, dual read.
 - **ES / EN / PT** — interface, dates, everything switches.
+- **Keyboard shortcuts** — a shortcuts panel in the library and reader menus
+  (Android and desktop): every key, what it does, in your language. The
+  ghost reminder only appears on real desktop input — no desktop overlays
+  on your phone.
 - **Home copy** — pull/push your library and progress between the Android app
   and your own server over your home network, always by hand (Amendment 1:
   no cloud, no accounts, silent degradation).
 - **Neo-brutalist UI** — zero radius, hard 2px borders, offset shadows, buttons that press.
 - **Offline-first** — your library lives on your machine (data home at
   `~/.local/share/athena`), never on someone else's server.
+
+## THE STACK (deliberately boring)
+
+One Vite SPA (`index.html` + `login.html`) served by one Express server
+(`server/index.ts`) that also hosts the `/api/**` routes and the password
+lock. No framework runtime, no SSR, no Node modules magic: `bun run build`
+produces `dist/` (web) + `server-dist/server.cjs` (server) and Node serves
+it all from one port. The APK is the same SPA compiled without the login
+page — the offline engine (`public/athena-offline.js`) answers `/api/*`
+inside the WebView over IndexedDB/OPFS.
 
 ## INSTALL
 
@@ -96,7 +110,6 @@ the `COMO-ARRANCAR.txt` inside — no compilation, straight to reading.
 WebView with an offline engine that mirrors the whole experience on-device —
 including the **home copy**: pull or push your library and progress to your
 own computer over the home network, always by hand.
-Guide and limits in [docs/APK-OFFLINE.md](docs/APK-OFFLINE.md) (Spanish).
 
 ### From source
 
@@ -112,11 +125,9 @@ bun run dev              # → http://localhost:3000
 
 Drop a PDF or EPUB on the library. That's the whole onboarding.
 
-> **Sizes:** each book can weigh up to **200 MB** (PDF or EPUB). The lock
-> (`src/proxy.ts`) never clips the upload: `next.config.ts` raises the proxy
-> body cap (`experimental.proxyClientMaxBodySize`, 10 MB default in Next 16)
-> to 256 MB so heavy books reach the API whole. Above 200 MB the API answers
-> 413 with a friendly notice.
+> **Sizes:** each book can weigh up to **200 MB** (PDF or EPUB). The upload
+> path has a 256 MB transport cap so heavy books reach the API whole; above
+> 200 MB the API answers 413 with a friendly notice.
 
 > Why `file:../db/custom.db`? Prisma resolves the SQLite path relative to
 > `prisma/`, so this single line lands the library at `<repo>/db/custom.db`
@@ -126,28 +137,17 @@ Drop a PDF or EPUB on the library. That's the whole onboarding.
 
 | Command | What it does |
 |---|---|
-| `bun run dev` | Dev server on port 3000 |
-| `bun run build` + `bun run start` | Optional production mode |
+| `bun run dev` | Dev: Vite web on 3000 + Bun API on 3001 |
+| `bun run build` + `bun run start` | Production mode (Node serves web + API) |
 | `bun run lint` | ESLint pass |
 | `bun run db:push` | Apply Prisma schema changes |
-| `bun run athena` | House CLI: `init · start · doctor · backup · home` |
+| `bun run athena` | House CLI: `init · start · doctor · backup · bundle · home` |
 
 Your books, covers and progress live **outside the code**: new installs keep
 them in the data home (`~/.local/share/athena`, overridable with
 `ATHENA_HOME`); the classic in-repo layout (`db/` + `public/uploads/`) still
 works. They are gitignored on purpose: **your library never leaves your
 machine.**
-
-## DOCUMENTATION
-
-- **[docs/INDICE.md](docs/INDICE.md)** — the Spanish documentation hub:
-  installation, reading guide, folder library, settings, self-hosting,
-  Android APK and troubleshooting.
-- [docs/PRODUCT.md](docs/PRODUCT.md) — the product constitution (Spanish).
-- [docs/SECURITY.md](docs/SECURITY.md) — APK keystore risk, mitigations and
-  the rotation recipe (Spanish).
-- [docs/SELFHOSTING.md](docs/SELFHOSTING.md) — self-hosting deep dive:
-  Docker, LAN mode, data home, Caddy, backups (Spanish).
 
 ## RELEASE CHECKLIST
 
@@ -158,7 +158,7 @@ the repo root, in this order:
 bunx tsc --noEmit        # 0 type errors
 bun run lint             # 0 errors, 0 warnings
 bun test                 # full suite green (the CI workflow enforces all three)
-bun run build            # production build compiles
+bun run build            # production build compiles (dist/ + server-dist/)
 ```
 
 

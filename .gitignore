@@ -13,14 +13,13 @@ node_modules
 # testing
 /coverage
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-# empaquetado Linux (package-linux.sh / package-deb.sh)
+# build de la casa (vite + esbuild) y paquetes de release
 /dist/
+/out/
+/server-dist/
+/standalone/
+/release/
+/build
 
 # misc
 .DS_Store
@@ -43,7 +42,6 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 local-*
 .claude
 .z-ai-config
@@ -82,8 +80,6 @@ scripts/*.png
 scripts/*.pdf
 scripts/state-backup.json
 scripts/vlm-*.json
-# audit artifacts (impeccable Task 41): snapshots, browser profiles and the
-# USER'S private state snapshot (db + uploaded books) never travel in the repo
 scripts/audit-profile/
 scripts/audit-snapshots/
 scripts/user-state-snapshot/
@@ -91,8 +87,6 @@ scripts/user-state-snapshot/
 # python
 __pycache__/
 .venv/
-scripts/impeccable-*.txt
-scripts/impeccable-*.json
 scripts/verify-*.txt
 /public/evidencia/
 *.patch

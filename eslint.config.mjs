@@ -1,50 +1,56 @@
-import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
-import nextTypescript from "eslint-config-next/typescript";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
+import js from "@eslint/js";
+import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
-  rules: {
-    // TypeScript rules
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/no-non-null-assertion": "off",
-    "@typescript-eslint/ban-ts-comment": "off",
-    "@typescript-eslint/prefer-as-const": "off",
-    "@typescript-eslint/no-unused-disable-directive": "off",
-    
-    // React rules
-    "react-hooks/exhaustive-deps": "off",
-    "react-hooks/purity": "off",
-    "react/no-unescaped-entities": "off",
-    "react/display-name": "off",
-    "react/prop-types": "off",
-    "react-compiler/react-compiler": "off",
-    
-    // Next.js rules
-    "@next/next/no-img-element": "off",
-    "@next/next/no-html-link-for-pages": "off",
-    
-    // General JavaScript rules
-    "prefer-const": "off",
-    "no-unused-vars": "off",
-    "no-console": "off",
-    "no-debugger": "off",
-    "no-empty": "off",
-    "no-irregular-whitespace": "off",
-    "no-case-declarations": "off",
-    "no-fallthrough": "off",
-    "no-mixed-spaces-and-tabs": "off",
-    "no-redeclare": "off",
-    "no-undef": "off",
-    "no-unreachable": "off",
-    "no-useless-escape": "off",
+/**
+ * Lint de la casa — simple y manejable (antes heredaba de eslint-config-next).
+ * Base JS + TypeScript estricto en lo que importa + reglas clásicas de hooks
+ * de React (rules-of-hooks + exhaustive-deps; las reglas «compiler» de la
+ * v7 del plugin son ruido para este código y no las pedía la casa).
+ * El código de la casa es español por diseño; los archivos de server/ corren
+ * en Node (globals de node vía bun-types en tsconfig).
+ */
+export default tseslint.config(
+  {
+    ignores: [
+      "node_modules/**",
+      "dist/**",
+      "out/**",
+      "server-dist/**",
+      "standalone/**",
+      "release/**",
+      "build/**",
+      "android/**",
+      "public/**",
+      "db/**",
+      "scripts/**",
+      "examples/**",
+      ".opencode/**",
+    ],
   },
-}, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "dist/**", "next-env.d.ts", "examples/**", "skills", "public/**", "db/**", "scripts/**", "tools/**", ".opencode/**", "openspec/**"]
-}];
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    files: ["**/*.{ts,tsx}"],
+    plugins: {
+      "react-hooks": reactHooks,
+    },
+    rules: {
+      // las dos reglas clásicas de hooks — el resto del plugin v7 es ruido
+      "react-hooks/rules-of-hooks": "error",
+      // deps de efectos gestionadas a mano por la casa (comentarios en cada caso)
+      "react-hooks/exhaustive-deps": "off",
+      // la casa usa `any` acotado en tests y adaptadores (noImplicitAny: false)
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      // el HTML de la casa usa <img> a propósito (streaming propio, sin optimizer)
+      "no-html-link-for-pages": "off",
+      // patrones de acumulación legítimos del teleprompter/cámara
+      "no-useless-assignment": "off",
+    },
+  }
+);
 
-export default eslintConfig;

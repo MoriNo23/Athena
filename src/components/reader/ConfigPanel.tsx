@@ -38,7 +38,7 @@ import { RESERVED_HOTKEYS } from "@/hooks/use-reader-hotkeys";
 import type { BookPatch } from "@/hooks/use-book-milestones";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageMenu } from "@/components/library/LanguageMenu";
-import { BookMarked, Check, Eye, EyeOff, Keyboard, LayoutPanelLeft, MonitorPlay, Moon, Palette, Sparkles, Target } from "lucide-react";
+import { BookMarked, Check, Eye, EyeOff, Keyboard, LayoutPanelLeft, MonitorPlay, Palette, Sparkles, Target } from "lucide-react";
 
 interface ConfigPanelProps {
   open: boolean;
@@ -136,7 +136,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
   }, [capturing, setImmersion, t]);
 
   const perBookActive = book?.milestones != null;
-  const effectiveSegments = book?.milestones ?? rail.segments;
+  const _effectiveSegments = book?.milestones ?? rail.segments;
   const keyLabel = (k: string) => formatKey(k, t);
 
   return (

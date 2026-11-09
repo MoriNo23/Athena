@@ -227,7 +227,7 @@ export function vocabSano(v: unknown): VocabSync[] {
  */
 export function camposGanadores(
   entrante: LibroSync,
-  existente: Pick<BookDTO, "totalPages" | "currentPage">
+  _existente: Pick<BookDTO, "totalPages" | "currentPage">
 ): {
   title: string;
   author: string | null;

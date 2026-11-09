@@ -69,7 +69,7 @@ export interface CameraController {
  */
 export function createCameraController<E extends ScrollLike>(deps: CameraDeps<E>): CameraController {
   const tau = deps.tauMs ?? CAMERA_TAU_MS;
-  const attached = deps.attached ?? ((el: E) => true);
+  const attached = deps.attached ?? ((_el: E) => true);
   let rafId = 0;
   let target: number | null = null;
   /** lo último que la cámara dejó escrito (leído de vuelta: el navegador redondea) */

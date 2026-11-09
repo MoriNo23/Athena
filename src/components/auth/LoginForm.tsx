@@ -1,18 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n";
 
 /**
  * Formulario de la puerta real /login (era LockGate del change auth-api):
- * envía el login y avanza al destino validado (prop del servidor).
+ * envía el login y avanza al destino validado (el `next` ya vino saneado de
+ * core/destino.ts en login-main.tsx — sin router de framework, es una SPA).
  */
 export function LoginForm({ destino }: { destino: string }) {
   const { t } = useI18n();
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +26,7 @@ export function LoginForm({ destino }: { destino: string }) {
         body: JSON.stringify({ password }),
       });
       if (res.ok) {
-        router.replace(destino);
+        window.location.replace(destino);
         return;
       }
       setError(t(res.status === 429 ? "lib.lockRateLimit" : "lib.lockError"));
