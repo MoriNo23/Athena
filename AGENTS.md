@@ -63,6 +63,55 @@ que te devuelven a leer hoy.
   (dentro del repo). Jamás se commitean. Con `ATHENA_HOME` (default
   `~/.local/share/athena`) los datos viven FUERA del repo.
 
+### La raíz se queda limpia (regla anti-caos)
+
+El repositorio se percibe por su raíz: si la raíz parece un cajón, el repo
+parece caótico, aunque el código dentro esté ordenado.
+
+- En la raíz SOLO vive configuración del proyecto y puntos de entrada:
+  `README.md`, `AGENTS.md`, `LICENSE`, `.gitignore`, `.editorconfig`,
+  `.gitattributes`, `components.json`, `eslint.config.mjs`, `tsconfig.json`,
+  `vite.config.ts`, `capacitor.config.ts`, `package.json`, `bun.lock`,
+  `index.html`, `login.html`. Nada más sin justificarlo en el PR.
+- Un archivo nuevo nunca cae «por ahora» en la raíz ni «por ahora» suelto
+  donde toque: auxiliar de UI → `src/lib/` o `src/hooks/`; regla de negocio
+  → `src/core/`; receta de build → `scripts/`; doc de casa → `AGENTS.md`
+  (sección existente o nueva, no un archivo nuevo).
+- El que desordena, recoge: el PR que introduce un archivo también decide
+  su casa definitiva. «Luego lo muevo» no es una respuesta.
+- Los archivos de configuración viejos NO se heredan por inercia: si algo
+  referencia rutas que ya no existen (`src/app/`, `.next/`, `prisma/`), se
+  corrige o se borra en el PR que lo descubre, no se deja «porque no molesta».
+
+### Revisión de archivos viejos (auditoría de estancamiento)
+
+Lo que nadie toca se pudre en silencio: un workflow con un trigger roto no
+falla ruidosamente, simplemente NUNCA SE DISPARA y nadie lo nota. Por eso
+la casa revisa lo viejo de forma explícita:
+
+- Cada PR grande (o al menos una vez al mes) pasa por esta lista:
+  1. **Estancados**: `git ls-files` + `git log -1 --format=%as` por archivo.
+     Todo lo que lleve 3+ semanas sin tocarse se mira con ojo fresco:
+     ¿sigue correcto, sigue aportando, o es peso muerto de una era pasada?
+  2. **Huérfanos**: archivo que nadie importa y nadie referencia (grep de su
+     nombre en `src/`, `server/`, `public/`, `scripts/`, `tests/` y los
+     html). Sin referencias reales → se borra. Ojo con los falsos positivos
+     (el motor offline y los tests se referencian por convención, no por
+     import) y con las palabras que contienen a otras («diálogo» contiene
+     «logo»).
+  3. **Config podrida en silencio**: los workflows y configs no casan con el
+     stack real (`components.json` apuntando a `src/app/globals.css` cuando
+     los estilos viven en `src/styles/`), ignores de directorios borrados,
+     dependencias que ya no se importan. Se corrige en el mismo PR.
+  4. **Leftovers de eras anteriores**: Next.js, Vercel, Docker, Prisma,
+     OpenCode, python de verificación… si la era murió, sus restos también.
+- Criterio de decisión para cada archivo viejo: **correcto y aporta → se
+  queda; correcto pero pesa → se simplifica; incorrecto u huérfano → se
+  borra**. Dudar es eliminar: el historial de git lo guarda todo.
+- Lo descubierto en la auditoría se arregla EN el PR de la auditoría, con
+  su entrada en la descripción. Las auditorías que «encuentran» pero no
+  corrigen son teatro.
+
 ## Convenciones técnicas
 
 - TypeScript strict, Bun como runtime de dev/tests, Node en producción.
