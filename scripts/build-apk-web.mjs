@@ -25,6 +25,14 @@ const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const viteBin = path.join(raiz, "node_modules", "vite", "bin", "vite.js");
 
 console.log("▸ Athena · build web estática para el APK");
+
+// recursos de pdf.js (cmaps, fuentes, wasm) en public/pdfjs: idempotente
+const sinc = spawnSync(process.execPath, [path.join(raiz, "scripts", "sync-pdfjs.mjs")], { stdio: "inherit" });
+if (sinc.status !== 0) {
+  console.error("✗ No pude preparar los recursos de pdf.js.");
+  process.exit(1);
+}
+
 const resultado = spawnSync(process.execPath, [viteBin, "build", "--mode", "apk"], {
   cwd: raiz,
   stdio: "inherit",

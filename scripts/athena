@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Athena · CLI de la casa (change athena-home-cli)
+# Athena · CLI de la casa
 #
 # Orquesta la casa de datos (ATHENA_HOME) y el arranque del servidor:
 #
-#   athena init          crea la casa de datos y aplica el esquema (migrate deploy)
-#   athena start [--lan] arranca Athena (offline o lan) con los datos en su casa
+#   athena init          crea las carpetas de la casa de datos
+#   athena start [--lan] arranca Athena (offline o lan); la BD se crea sola
 #   athena doctor        revisa bun, casa de datos, BD, uploads y permisos
 #   athena backup [dest] copia de seguridad completa (db + uploads) en un tar.gz
 #   athena bundle [dest] artefacto standalone (solo Node) en release/, sin tu biblioteca
@@ -14,8 +14,7 @@
 # Resolución de la casa (misma lógica que src/core/data-home.ts):
 #   1. ATHENA_HOME definida → esa carpeta
 #   2. datos legacy en el repo (db/custom.db) → el repo MANDA (no se mueve solo)
-#   3. Docker → legacy (el compose fija sus volúmenes)
-#   4. default XDG: $XDG_DATA_HOME/athena o ~/.local/share/athena
+#   3. default XDG: $XDG_DATA_HOME/athena o ~/.local/share/athena
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
@@ -30,7 +29,6 @@ casa() {
     return
   fi
   if [ -f "$ROOT/db/custom.db" ]; then echo ""; return; fi      # legacy: repo manda
-  if [ -f /.dockerenv ]; then echo ""; return; fi               # docker: compose manda
   echo "${XDG_DATA_HOME:-$HOME/.local/share}/athena"
 }
 
@@ -43,11 +41,7 @@ else
   UPLOADS="$ROOT/public/uploads"
 fi
 
-prisma_ok() { [ -d "$ROOT/node_modules/prisma" ]; }
-
-con_db() { # ejecuta bunx prisma <args> apuntando a la BD de la casa
-  (cd "$ROOT" && DATABASE_URL="file:$DB" bunx prisma "$@")
-}
+dependencias() { [ -d "$ROOT/node_modules/vite" ]; }
 
 # --- comandos ---------------------------------------------------------------
 cmd_home() {
@@ -65,15 +59,13 @@ cmd_init() {
   fi
   if [ -f "$ROOT/db/custom.db" ]; then
     echo "⚠ Hay datos legacy dentro del repo (db/custom.db). Ejecuta antes:"
-    echo "    bin/athena migrate-home"
+    echo "    scripts/athena migrate-home"
     exit 2
   fi
   mkdir -p "$CASA/db" "$CASA/uploads"
-  prisma_ok || { echo "Falta el cliente Prisma: ejecuta «bun install» en $ROOT"; exit 1; }
   echo "Casa de datos: $CASA"
-  echo "Aplicando esquema (prisma migrate deploy)…"
-  con_db migrate deploy
-  echo "Listo. Arranca con: bin/athena start"
+  echo "La BD nace sola en el primer arranque ($DB)."
+  echo "Listo. Arranca con: scripts/athena start   (o bun run start)"
 }
 
 cmd_migrate_home() {
@@ -84,7 +76,6 @@ cmd_migrate_home() {
   local hay=0
   for f in "$ROOT"/db/*; do
     [ -e "$f" ] || continue
-    [ "$(basename "$f")" = ".gitkeep" ] && continue
     hay=1
   done
   local hay_up=0
@@ -101,7 +92,7 @@ cmd_migrate_home() {
   echo "Moviendo datos del repo → $CASA"
   if [ "$hay" = 1 ]; then
     for f in "$ROOT"/db/*; do
-      [ "$(basename "$f")" = ".gitkeep" ] && continue
+      [ -e "$f" ] || continue
       mv "$f" "$CASA/db/"
       echo "  db/$(basename "$f")"
     done
@@ -113,12 +104,8 @@ cmd_migrate_home() {
       echo "  uploads/$(basename "$f")"
     done
   fi
-  prisma_ok || { echo "Falta el cliente Prisma: ejecuta «bun install» y relanza."; exit 1; }
-  echo "Registrando la migración base como aplicada (no se toca tu BD)…"
-  con_db migrate resolve --applied 0001_init \
-    || echo "  (la migración base ya estaba registrada: nada que hacer)"
   echo "Hecho. Tu biblioteca vive ahora en $CASA"
-  echo "Arranca con: bin/athena start   (bun run start también la encuentra)"
+  echo "Arranca con: scripts/athena start   (bun run start también la encuentra)"
 }
 
 cmd_bundle() {
@@ -137,29 +124,32 @@ cmd_bundle() {
 cmd_start() {
   local lan=0
   [ "${1:-}" = "--lan" ] && lan=1
-  # BD cero-config: si falta, se crea ahora mismo (mismo criterio que el
-  # arranque directo del servidor, que también se auto-sirve el esquema).
-  if [ ! -f "$DB" ]; then
-    prisma_ok || { echo "No hay BD en $DB y falta el cliente Prisma: ejecuta «bun install» y relanza."; exit 1; }
-    mkdir -p "$(dirname "$DB")" "$(dirname "$UPLOADS")"
-    echo "Creando la biblioteca ($DB)…"
-    con_db migrate deploy || { echo "No se pudo crear la BD."; exit 1; }
-  fi
   [ -f "$ROOT/server-dist/server.cjs" ] || {
     echo "No hay build de producción ($ROOT/server-dist). Ejecuta: bun run build"
     exit 1
   }
-  export ATHENA_HOME="${CASA:-}"
-  export DATABASE_URL="${DATABASE_URL:-file:$DB}"
+  # BD cero-config: si falta, el propio servidor la crea al arrancar.
+  if [ ! -f "$DB" ]; then
+    mkdir -p "$(dirname "$DB")" "$(dirname "$UPLOADS")"
+    echo "La biblioteca nacerá en $DB al arrancar."
+  fi
   # El log del servidor va a la casa de datos (escribible por la persona;
   # imprescindible cuando la app vive en /opt/athena tras instalar el .deb).
   # En modo legacy queda en el repo como siempre (tee server.log).
   if [ -n "$CASA" ]; then export ATHENA_LOG="$CASA/server.log"; fi
-  if [ "$lan" = 1 ]; then
-    exec bun run start:lan
-  else
-    exec bun run start
+  if command -v bun >/dev/null 2>&1; then
+    if [ "$lan" = 1 ]; then
+      exec bun run start:lan
+    else
+      exec bun run start
+    fi
   fi
+  # sin Bun: el build ya va self-contained, Node directo sirve igual
+  echo "(sin bun en el PATH: arranco con node directo)"
+  if [ "$lan" = 1 ]; then
+    exec env ATHENA_MODO=lan ATHENA_HOST=0.0.0.0 node "$ROOT/server-dist/server.cjs"
+  fi
+  exec env ATHENA_MODO=offline node "$ROOT/server-dist/server.cjs"
 }
 
 cmd_doctor() {
@@ -186,7 +176,7 @@ cmd_doctor() {
   if [ -f "$DB" ]; then
     di "BD: $DB ($(du -h "$DB" | cut -f1))"
   else
-    df "sin BD en $DB (athena init | migrate-home)"
+    dw "sin BD en $DB (nacerá sola al arrancar)"
   fi
   if [ -d "$UPLOADS" ]; then
     local n
@@ -195,8 +185,13 @@ cmd_doctor() {
   fi
   [ -f "$(dirname "$DB")/config.json" ] && di "config.json presente" || dw "config.json aún no existe (se crea al primer uso)"
   echo "· Servidor"
-  prisma_ok && di "cliente Prisma instalado" || dw "sin node_modules (bun install)"
+  dependencias && di "dependencias instaladas (node_modules)" || dw "sin node_modules (bun install)"
   [ -f "$ROOT/server-dist/server.cjs" ] && di "build de producción presente" || dw "sin build (server-dist) — bun run build"
+  if command -v node >/dev/null; then
+    node -e "const v=process.versions.node.split('.').map(Number); if(v[0]>23||(v[0]===23&&v[1]>=4)) process.exit(0); process.exit(1)" 2>/dev/null \
+      && di "node $(node --version) (SQLite integrado)" \
+      || dw "node $(node --version) viejo para producción (pide ≥ 23.4)"
+  fi
   echo ""
   if [ "$fallos" = 0 ]; then echo "Todo en orden (o nada bloqueante)."; else echo "$fallos problema(s) bloqueante(s)."; exit 1; fi
 }

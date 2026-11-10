@@ -2,7 +2,7 @@
 #
 # Construye la web de producción y la empaqueta en dos formatos, ambos con
 # el build ya hecho (server-dist/ + dist/):
-#   - tarball:    descomprimir → bun install → ./bin/athena start
+#   - tarball:    descomprimir → ./scripts/athena start (nada que instalar)
 #   - .deb:       sudo apt install ./athena_<versión>_amd64.deb → athena start
 # Quedan adjuntos al release v<versión de package.json> como
 # Athena-<versión>-linux-x64.tar.gz y athena_<versión>_amd64.deb.

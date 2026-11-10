@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
  * Empaqueta el artefacto standalone como tar.gz desplegable que solo
- * necesita Node (≥ 20):
+ * necesita Node (≥ 23.4):
  *
  *   node scripts/build-standalone-bundle.mjs [destino]     (default: release/)
  *
  * Produce release/athena-standalone-<versión>.tar.gz con lo que ensambla
- * complete-standalone.mjs (server-dist + dist + prisma + cierre de Prisma +
- * start.sh), más INICIO.md y LICENSE. La biblioteca personal nunca viaja.
+ * complete-standalone.mjs (server-dist + dist + start.sh), más INICIO.md y
+ * LICENSE. Sin node_modules, sin esquema, sin pasos: descomprimir y arrancar.
+ * La biblioteca personal nunca viaja.
  */
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
@@ -18,9 +19,7 @@ import { completarStandalone } from './complete-standalone.mjs'
 export const ENTRA = [
   'server-dist',
   'start.sh',
-  'node_modules',
   'dist',
-  'prisma',
   'public',
   'package.json',
   'LICENSE',
@@ -29,15 +28,15 @@ export const ENTRA = [
 
 const INICIO_MD = `# Athena — paquete standalone
 
-Servidor de lectura local-first empaquetado para correr con solo Node (≥ 20).
-No lleva Bun, ni repo, ni Docker.
+Servidor de lectura local-first empaquetado para correr con solo Node ≥ 23.4.
+No lleva Bun, ni node_modules, ni repo.
 
 ## Arranque
 
     sh start.sh
 
-Abre http://127.0.0.1:3000 — el primer arranque crea la BD aplicando el
-esquema (node node_modules/prisma … db push, sin Bun).
+Abre http://127.0.0.1:3000 — la base de datos se crea sola en el primer
+arranque (SQLite integrado en Node; no hay nada que configurar).
 
 ## Para verlo desde el WiFi (tablet, móvil)
 
@@ -50,7 +49,7 @@ Sin ATHENA_PASSWORD, Athena genera una y la guarda en db/athena-lock
 
 Por defecto junto a este paquete: db/ (SQLite, config.json, candado) y
 public/uploads/ (libros, portadas, fondos). Con ATHENA_HOME se van a su
-propia casa, igual que en el resto de instalaciones de Athena.
+propia casa (~/.local/share/athena), igual que en el resto de instalaciones.
 `
 
 /**

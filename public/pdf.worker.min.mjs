@@ -1,5 +1,5 @@
 /* atena-polyfill: Map.getOrInsert/getOrInsertComputed (TC39 upsert) para
- * Chromium viejos. Inyectado por scripts/patch-pdf-worker.py — NO copiar
+ * Chromium viejos. Inyectado por scripts/patch-pdf-worker.mjs — NO copiar
  * pdf.worker.min.mjs desde node_modules sin re-ejecutar ese script. */
 if (typeof Map.prototype.getOrInsert !== "function") {
   Map.prototype.getOrInsert = function (k, v) { if (!this.has(k)) this.set(k, v); return this.get(k); };

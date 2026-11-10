@@ -68,8 +68,8 @@ jobs:
       - name: Resumen
         run: |
           echo "## ✅ APK de Athena listo" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUM
-          echo "Descarga **Athena-apk** en la sección *Artifacts* de este run," >> $GITHUB_STEP_SUM
-          echo "descomprime el zip y pasa el \`.apk\` a tu teléfono para instalarlo." >> $GITHUB_STEP_SUM
-          echo "" >> $GITHUB_STEP_SUM
-          echo "Teclas de acceso: menú «⋯» → **Teclas de acceso** (en el teléfono y en el escritorio)." >> $GITHUB_STEP_SUM
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Descarga **Athena-apk** en la sección *Artifacts* de este run," >> $GITHUB_STEP_SUMMARY
+          echo "descomprime el zip y pasa el \`.apk\` a tu teléfono para instalarlo." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Teclas de acceso: menú «⋯» → **Teclas de acceso** (en el teléfono y en el escritorio)." >> $GITHUB_STEP_SUMMARY

@@ -8,7 +8,7 @@
  * [--host] abre la web a la LAN (0.0.0.0) — el modo/candado lo marca
  * ATHENA_MODO del entorno (dev = offline, dev:lan = lan).
  */
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,6 +21,9 @@ if (!existsSync(viteBin)) {
   console.error("Falta vite (node_modules). Ejecuta antes: bun install");
   process.exit(1);
 }
+
+// recursos de pdf.js (cmaps, fuentes, wasm) en public/pdfjs: idempotente
+spawnSync(process.execPath, [path.join(raiz, "scripts", "sync-pdfjs.mjs")], { stdio: "inherit" });
 
 const hijos = [];
 

@@ -6,15 +6,17 @@
 # .github/workflows/release-linux.yml justo después de `bun run build`.
 #
 #   /opt/athena/                 la app (ficheros rastreados + build)
-#   /usr/bin/athena              symlink al CLI (bin/athena)
+#   /usr/bin/athena              symlink al CLI (scripts/athena)
 #   /usr/share/doc/athena/       copyright (MIT) + INICIO-RAPIDO.txt
 #   DEBIAN/{control,postinst,postrm}
 #
 # Los datos de la persona NUNCA van en el paquete: viven en la casa de datos
-# (~/.local/share/athena o ATHENA_HOME) y sobreviven al paquete.
+# (~/.local/share/athena o ATHENA_HOME) y sobreviven al paquete. El runtime
+# no necesita node_modules: el build va self-contained y la BD usa el SQLite
+# integrado en Node (≥ 23.4).
 set -euo pipefail
 
-VERSION=$(bun -e "console.log(require('./package.json').version)")
+VERSION=$(node -e "console.log(require('./package.json').version)")
 DEBROOT="release/deb-root"
 APP="$DEBROOT/opt/athena"
 DOC="$DEBROOT/usr/share/doc/athena"
@@ -31,24 +33,24 @@ git archive --format=tar HEAD | tar -x -C "$APP"
 cp -r server-dist "$APP/server-dist"
 cp -r dist "$APP/dist"
 
-# 2) CLI en el PATH (bin/athena resuelve su raíz con readlink -f: el symlink vale)
-ln -s /opt/athena/bin/athena "$DEBROOT/usr/bin/athena"
+# 2) CLI en el PATH (scripts/athena resuelve su raíz con readlink -f: el symlink vale)
+ln -s /opt/athena/scripts/athena "$DEBROOT/usr/bin/athena"
 
 # 3) Documentación
 cat > "$DOC/INICIO-RAPIDO.txt" <<EOF
 Athena ${VERSION} — inicio rápido
 Manual completo: https://github.com/MoriNo23/Athena
 
-REQUISITO: Bun (https://bun.sh) — curl -fsSL https://bun.sh/install | bash
-Si el postinst no pudo dejar las dependencias instaladas (¿sin red?):
-  cd /opt/athena && sudo bun install --production
+REQUISITO: Node ≥ 23.4 (node --version). El servidor ya va compilado y
+no instala dependencias: descomprime nada, ejecuta y a leer.
 
 ARRANQUE:
-  athena init      # solo la primera vez: casa de datos + esquema
-  athena start     # → http://localhost:3000   (en tu red: athena start --lan)
+  athena start       # → http://localhost:3000   (en tu red: athena start --lan)
+  (equivalente: node /opt/athena/server-dist/server.cjs)
 
-Tus datos viven FUERA del paquete (~/.local/share/athena o \$ATHENA_HOME):
-sobreviven a actualizaciones y a desinstalar. Log: <casa>/server.log
+La BD se crea sola en el primer arranque (~/.local/share/athena).
+Tus datos viven FUERA del paquete (o \$ATHENA_HOME): sobreviven a
+actualizaciones y a desinstalar. Log: <casa>/server.log
 Diagnóstico: athena doctor  ·  Copia de seguridad: athena backup
 EOF
 cat > "$DOC/copyright" <<EOF
@@ -88,7 +90,7 @@ Section: web
 Priority: optional
 Architecture: amd64
 Installed-Size: ${INSTALLED_SIZE}
-Suggests: bun
+Suggests: nodejs (>= 23.4)
 Maintainer: MoriNo23 <MoriNo23@users.noreply.github.com>
 Homepage: https://github.com/MoriNo23/Athena
 Description: Lector local-first de PDF y EPUB — la última página
@@ -97,39 +99,27 @@ Description: Lector local-first de PDF y EPUB — la última página
  PDF compañero, OCR, diccionario y modo teleprompter. Todo corre en tu
  máquina: sin nube, sin cuentas y sin telemetría.
  .
- Instala la app en /opt/athena con el comando «athena» (init, start,
- doctor, backup). Tu biblioteca vive en ~/.local/share/athena y
- sobrevive a actualizaciones y a desinstalar el paquete.
+ Instala la app en /opt/athena con el comando «athena» (start, doctor,
+ backup). Tu biblioteca vive en ~/.local/share/athena y sobrevive a
+ actualizaciones y a desinstalar el paquete.
  .
- Necesita Bun en tiempo de ejecución (https://bun.sh); el postinst lo
- detecta y te da la orden exacta si falta.
+ Necesita Node ≥ 23.4 en tiempo de ejecución; va todo precompilado y
+ sin dependencias que instalar.
 EOF
 
 cat > "$DEBROOT/DEBIAN/postinst" <<'EOF'
 #!/bin/sh
-# Prepara dependencias si puede; jamás toca los datos del usuario.
+# Nada que instalar: el build va self-contained y la BD nace sola.
+# Jamás se tocan los datos del usuario.
 set -e
-APP=/opt/athena
-if command -v bun >/dev/null 2>&1; then
-  if [ ! -d "$APP/node_modules" ]; then
-    echo "Athena: instalando dependencias (bun install --production)…"
-    if (cd "$APP" && bun install --production); then
-      echo "Athena: dependencias listas."
-    else
-      echo "Athena: no pude instalarlas ahora (¿sin red?)." >&2
-      echo "  Ejecútalo después:  cd /opt/athena && sudo bun install --production" >&2
-    fi
-  fi
+if command -v node >/dev/null 2>&1; then
+  echo "Athena instalada en /opt/athena (comando: athena)."
+  echo "  A diario:     athena start     # http://localhost:3000"
+  echo "  En tu red:    athena start --lan"
 else
-  echo "Athena necesita Bun y no está en el PATH de la instalación." >&2
-  echo "  Instálalo:  curl -fsSL https://bun.sh/install | bash" >&2
-  echo "  Y luego:    cd /opt/athena && sudo bun install --production" >&2
+  echo "Athena necesita Node ≥ 23.4 y no está en el PATH de la instalación." >&2
+  echo "  Instálalo con el gestor de tu distribución y vuelve a llamar a athena." >&2
 fi
-echo ""
-echo "Athena instalada en /opt/athena (comando: athena)."
-echo "  Primera vez:  athena init      # casa de datos + esquema"
-echo "  A diario:     athena start     # http://localhost:3000"
-echo "  En tu red:    athena start --lan"
 echo "Tus datos viven en ~/.local/share/athena (o \$ATHENA_HOME):"
 echo "sobreviven a actualizaciones y a desinstalar el paquete."
 exit 0

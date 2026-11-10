@@ -7,7 +7,7 @@
 A local-first reading app: PDF/EPUB library, progress rail, streaks,
 honest ETA to the last page, and a letter-by-letter teleprompter mode.
 
-React 19 · Vite · Express · TypeScript · Tailwind 4 · Prisma + SQLite · PDF.js
+React 19 · Vite · Express · TypeScript · Tailwind 4 · SQLite (zero-config) · PDF.js
 
 [![CI](https://github.com/MoriNo23/Athena/actions/workflows/ci.yml/badge.svg)](https://github.com/MoriNo23/Athena/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/MoriNo23/Athena?display_name=tag&sort=semver)](https://github.com/MoriNo23/Athena/releases)
@@ -50,17 +50,18 @@ today.
 - **Teleprompter** — one continuous stream, letter by letter, font `0.8×–1.6×`, rewind with `←`.
 - **Immersion** — UI hides on idle (`H`), fullscreen, controls fade out.
 - **EPUBs & PDFs** paginated the same way (~320 words/virtual page).
+- **OCR for scanned PDFs** — Tesseract runs on demand, in your browser; nothing is uploaded anywhere.
 - **Literature settings** — X-ray, outline, dictionary, natural pauses, argument skeleton, locked notes, dual read.
 - **ES / EN / PT** — the whole interface switches.
 - **Keyboard shortcuts & gestures** — a shortcuts panel in the library and reader menus (Android and desktop); the desktop ghost hint only appears on real desktop input, never on touch.
 - **Home copy** — pull/push your library and progress between the Android app and your own server over your home network, always by hand.
-- **Zero config** — the database creates itself on first run; no `.env`, no migrations to run.
+- **Zero config** — the database is plain SQLite from the runtime itself: it is created on first run, no `.env`, no migrations, no client generation.
 - **Offline-first** — reading works without internet.
 
 ## INSTALL
 
-**Prerequisites:** [Bun](https://bun.sh) (it replaces Node + npm) and any
-modern browser. Internet is only needed for the install and the first OCR
+**Prerequisites:** [Bun](https://bun.sh) for development, Node ≥ 23.4 for
+production. Internet is only needed for the install and the first OCR
 language download — **reading works offline.**
 
 ### From source (2 commands)
@@ -86,22 +87,18 @@ Download `athena_<version>_amd64.deb` from
 
 ```bash
 sudo apt install ./athena_<version>_amd64.deb   # app in /opt/athena + `athena` on your PATH
-athena init      # first time only: data home + schema
-athena start     # → http://localhost:3000   (LAN mode: athena start --lan)
+athena start      # → http://localhost:3000   (LAN mode: athena start --lan)
 ```
 
-### Docker
-
-```bash
-git clone https://github.com/MoriNo23/Athena && cd Athena
-docker compose up -d --build
-```
+Nothing is installed at package time: the build is self-contained and the
+database creates itself on the first run. Removing the package never
+touches your library.
 
 ### Linux tarball
 
 `Athena-<version>-linux-x64.tar.gz` from
 [releases](https://github.com/MoriNo23/Athena/releases): unpack and follow
-`COMO-ARRANCAR.txt` — no compilation, straight to reading.
+`COMO-ARRANCAR.txt` — no dependencies, straight to reading.
 
 ### Android — offline APK
 
@@ -117,9 +114,13 @@ including the **home copy** to your own computer over the home network.
 One Vite SPA (`index.html` + `login.html`) served by one Express server
 (`server/index.ts`) that also hosts `/api/**` and the optional password
 lock. `bun run build` produces `dist/` + `server-dist/server.cjs` and Node
-serves it all from one port. The APK is the same SPA compiled without the
-login page; the offline engine (`public/athena-offline.js`) answers `/api/*`
-inside the WebView over IndexedDB/OPFS.
+serves it all from one port. The database is the SQLite built into the
+runtime (`node:sqlite` in Node, `bun:sqlite` in Bun) — `src/lib/db.ts`
+embeds the schema and mirrors the small query surface the API needs, so
+there is no ORM, no generated client and no migration step. The APK is the
+same SPA compiled without the login page; the offline engine
+(`public/athena-offline.js`) answers `/api/*` inside the WebView over
+IndexedDB/OPFS.
 
 **Everyday scripts:**
 
@@ -128,14 +129,32 @@ inside the WebView over IndexedDB/OPFS.
 | `bun run dev` | Dev: Vite web on 3000 + Bun API on 3001 |
 | `bun run build` + `bun run start` | Production mode (Node serves web + API) |
 | `bun run lint` | ESLint pass |
-| `bun run db:push` | Apply Prisma schema changes (dev only — runtime auto-creates) |
 | `bun run athena` | House CLI: `init · start · doctor · backup · bundle · home` |
 
 Your books, covers and progress live **outside the code**, in the data home
 (`~/.local/share/athena`, overridable with `ATHENA_HOME`). They are
 gitignored on purpose: **your library never leaves your machine.** The only
 optional environment variable for daily use is `ATHENA_PASSWORD` (the lock
-for LAN mode) — see `.env.example`.
+for LAN mode), set it in the shell when you start Athena.
+
+## REPO LAYOUT
+
+```
+├── index.html · login.html     # the two pages (login = the lock's gate)
+├── server/                     # Express: statics, lock, /api/** routes
+├── src/                        # core rules, UI components, data layer
+│   ├── core/                   # house kernel: no framework imports
+│   ├── lib/                    # glue: sqlite, PDF.js, OCR, i18n
+│   └── components/ · hooks/    # shadcn/ui + Tailwind
+├── public/                     # offline engine, brand, pdf.js worker
+├── scripts/                    # build/dev/apk packaging + house CLI
+├── tests/                      # integration: offline engine, bundle
+└── android/                    # Capacitor/Gradle project for the APK
+```
+
+The root holds only project configuration. The ~200 pdf.js asset files
+(cmaps, standard fonts, wasm) are not tracked: `scripts/sync-pdfjs.mjs`
+copies them from `node_modules` at install and build time.
 
 ## RELEASE CHECKLIST
 

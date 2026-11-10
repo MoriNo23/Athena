@@ -2,17 +2,17 @@
 # Athena · paquete Linux x64 para el release (ver README.md)
 #
 # Empaqueta el proyecto con el BUILD DE PRODUCCIÓN ya hecho (server-dist/ +
-# dist/) para que quien lo descargue solo tenga que: descomprimir → bun
-# install → arrancar.
+# dist/) para que quien lo descargue solo tenga que: descomprimir →
+# ./scripts/athena start. Sin dependencias que instalar.
 # Lo llama .github/workflows/release-linux.yml justo después de `bun run build`.
 set -euo pipefail
 
-VERSION=$(bun -e "console.log(require('./package.json').version)")
+VERSION=$(node -e "console.log(require('./package.json').version)")
 NAME="Athena-${VERSION}-linux-x64"
 STAGE="release/${NAME}"
 
 rm -rf release
-mkdir -p "${STAGE}/db"
+mkdir -p "${STAGE}"
 
 # 1) Árbol del repo (ficheros rastreados: sin node_modules ni .git)
 git archive --format=tar HEAD | tar -x -C "${STAGE}"
@@ -25,26 +25,25 @@ cp -r dist "${STAGE}/dist"
 cat > "${STAGE}/COMO-ARRANCAR.txt" <<EOF
 Athena ${VERSION} — Linux x64 (Debian, Ubuntu, Mint…)
 
-REQUISITO: Bun (sustituye a Node y npm). Instalación:
-  curl -fsSL https://bun.sh/install | bash
+REQUISITO: Node ≥ 23.4 (node --version). Bun solo hace falta para
+desarrollar (bun install); para leer no hay nada que instalar.
 
 ARRANQUE (dentro de esta carpeta):
-  1) bun install          # instala dependencias y genera el cliente de BD
-  2) ./bin/athena init    # crea la casa de datos (~/.local/share/athena)
-                          # y aplica el esquema de la BD (migrate deploy)
-  3) ./bin/athena start   # abre http://localhost:3000 y a leer
+  ./scripts/athena start     # → http://localhost:3000 y a leer
+  (equivalente: node server-dist/server.cjs)
 
 Modo normal = solo localhost. Para abrirlo en tu red:
-  ./bin/athena start --lan   (candado opcional, ver README.md)
+  ./scripts/athena start --lan   (candado opcional, ver README.md)
 
-Otros comandos: ./bin/athena doctor · backup · home
-Los datos viven FUERA del paquete (sobreviven a actualizaciones):
+Otros comandos: ./scripts/athena doctor · backup · home
+La BD se crea sola en el primer arranque. Los datos viven FUERA del
+paquete (sobreviven a actualizaciones):
   \$XDG_DATA_HOME/athena o ~/.local/share/athena
   (personalizable con la variable ATHENA_HOME; el método antiguo de tener
   los datos dentro de la carpeta sigue funcionando si ya los tenías así)
 
-El build de producción YA VIENE HECHO (server-dist/ + dist/): «athena
-start» no recompila nada y arranca directo.
+El build de producción YA VIENE HECHO (server-dist/ + dist/): arranca
+directo, sin recompilar nada.
 
 Guía completa: https://github.com/MoriNo23/Athena
 EOF

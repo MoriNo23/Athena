@@ -18,7 +18,8 @@
  *
  * En dev corre con Bun (`bun --watch server/index.ts`) y el Vite dev-server
  * proxya /api; en producción es un bundle Node (server-dist/server.cjs) que
- * sirve dist/ directamente.
+ * sirve dist/ directamente. La BD se abre sola al primer uso con el SQLite
+ * del propio runtime (node:sqlite / bun:sqlite) — ver src/lib/db.ts.
  */
 import express from "express";
 import path from "node:path";
@@ -29,8 +30,7 @@ import {
   esRecursoEstático,
   igualEnTiempoConstante,
 } from "@/core/access";
-import { asegurarEsquemaDb, urlAFichero } from "@/core/ensure-db";
-import { db } from "@/lib/db";
+import { iniciarDb } from "@/lib/db";
 import { api } from "./api";
 
 const app = express();
@@ -135,13 +135,13 @@ function banner() {
   const fija = ((process.env.ATHENA_PASSWORD ?? process.env.ATENA_PASSWORD) ?? "").trim();
   if (modo === "lan") {
     if (fija) {
-      console.log("🔒 Modo lan · usando ATHENA_PASSWORD del .env como candado");
+      console.log("🔒 Modo lan · usando ATHENA_PASSWORD como candado");
     } else if ((process.env.ATHENA_ABIERTO ?? process.env.ATENA_ABIERTO) === "1") {
       console.log("🔓 Modo lan · abierto a elección (ATHENA_ABIERTO=1), sin candado");
     } else {
       const pw = contraseñaEfectiva(); // garantiza db/athena-lock y la imprime
       console.log(`🔒 Modo lan · contraseña de la biblioteca: ${pw}`);
-      console.log("   (guardada en db/athena-lock · fija la tuya con ATHENA_PASSWORD en .env)");
+      console.log("   (guardada en db/athena-lock · fija la tuya con ATHENA_PASSWORD)");
     }
   } else {
     console.log(`🏠 Modo normal · solo localhost${fija ? " · candado local con ATHENA_PASSWORD" : " · sin candado"}`);
@@ -161,23 +161,15 @@ function hostEscucha(): string {
   return "127.0.0.1";
 }
 
-// BD cero-config: el esquema se aplica (si falta) ANTES de abrir el puerto.
-// Con la biblioteca al día no escribe nada; recién creada se anuncia.
-const ficheroBd =
-  urlAFichero((process.env.DATABASE_URL ?? "").trim()) ?? "la BD del entorno";
+// BD cero-config: se abre (y se crea si falta) ANTES de escuchar, con el
+// SQLite integrado del runtime. No hay migraciones ni pasos previos.
+const bd = iniciarDb();
 banner();
-asegurarEsquemaDb(db)
-  .then((info) => {
-    if (info.aplicado && info.migraciones.length > 0) {
-      console.log(`📚 Biblioteca nueva creada: ${ficheroBd}`);
-    } else {
-      console.log(`📖 Biblioteca lista: ${ficheroBd}`);
-    }
-    app.listen(PORT, hostEscucha(), () => {
-      console.log(`Athena escuchando en http://${hostEscucha()}:${PORT}`);
-    });
-  })
-  .catch((err: unknown) => {
-    console.error("No se pudo preparar la base de datos:", err);
-    process.exit(1);
-  });
+if (bd.creada) {
+  console.log(`📚 Biblioteca nueva creada: ${bd.fichero}`);
+} else {
+  console.log(`📖 Biblioteca lista: ${bd.fichero}`);
+}
+app.listen(PORT, hostEscucha(), () => {
+  console.log(`Athena escuchando en http://${hostEscucha()}:${PORT}`);
+});

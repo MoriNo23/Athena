@@ -3,7 +3,7 @@ import os from "os";
 import path from "path";
 
 /**
- * ATHENA_HOME — la casa de los datos (change athena-home-cli).
+ * ATHENA_HOME — la casa de los datos.
  *
  * Hoy todo vive DENTRO del repo: la BD en `db/custom.db`, la config en
  * `db/config.json`, los ficheros subidos en `public/uploads/`. Eso está bien
@@ -17,17 +17,15 @@ import path from "path";
  *     tests hacen chdir a su sandbox y el patrón relativo se conserva.
  *  3. Datos legacy en el repo (`db/custom.db` existe) → rutas legacy
  *     relativas: una instalación existente NO se mueve sola nunca.
- *  4. Docker (`/.dockerenv`) → legacy: el contenedor fija su DATABASE_URL y
- *     sus volúmenes (ver docker-compose.yml).
- *  5. Default XDG: `$XDG_DATA_HOME/athena` o `~/.local/share/athena`.
+ *  4. Default XDG: `$XDG_DATA_HOME/athena` o `~/.local/share/athena`.
  *
  * En modo home: la BD en `<home>/db/custom.db`, la config en `<home>/db/`,
  * los subidos en `<home>/uploads`. Los URLs de la app NO cambian:
  * `/uploads/<nombre>` sigue siendo el identificador lógico que el API sirve
  * por stream (nunca estático) — solo cambia dónde toca el disco el servidor.
  *
- * El CLI `bin/athena` (init · start · doctor · backup · migrate-home) usa la
- * MISMA resolución y orquesta la migración de una instalación legacy.
+ * El CLI `scripts/athena` (init · start · doctor · backup · migrate-home) usa
+ * la MISMA resolución y orquesta la migración de una instalación legacy.
  */
 
 export interface EntradasCasa {
@@ -39,8 +37,6 @@ export interface EntradasCasa {
   home?: string;
   /** ¿existe db/custom.db bajo el cwd? (instalación legacy en el repo) */
   hayLegacy: boolean;
-  /** ¿corre dentro de un contenedor Docker? */
-  esDocker: boolean;
   /** ¿bajo `bun test` o NODE_ENV=test? */
   esTest: boolean;
 }
@@ -59,7 +55,6 @@ export function resuelveCasa(e: EntradasCasa): string | null {
   if (explicita) return path.resolve(explicita);
   if (e.esTest) return null;
   if (e.hayLegacy) return null;
-  if (e.esDocker) return null;
   const base = e.xdgDataHome?.trim() || path.join(e.home || os.homedir(), ".local", "share");
   return path.join(base, NOMBRE_CASA);
 }
@@ -79,7 +74,6 @@ function entradas(): EntradasCasa {
     xdgDataHome: process.env.XDG_DATA_HOME,
     home: process.env.HOME,
     hayLegacy: existsSync(path.join(process.cwd(), "db", NOMBRE_DB)),
-    esDocker: existsSync("/.dockerenv"),
     esTest: esTest(),
   };
 }
