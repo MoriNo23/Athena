@@ -1,0 +1,77 @@
+# Athena · APK de Android para el release
+#
+# Compila el APK firmado SIN necesidad de Android Studio en tu máquina:
+#   1. tests de la casa (incluye los del motor offline)
+#   2. build web estática + sync de Capacitor
+#   3. gradlew assembleRelease con el keystore de android/keystore/
+# El APK queda adjunto al release del tag como Athena-v<versión>.apk y,
+# además, como artifact «Athena-apk» del run (útil en disparos manuales).
+#
+# Se dispara: al pushear un tag v* (release), o a mano
+# (Actions → Athena Android → Run workflow).
+
+name: Athena Android
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Dependencias
+        run: bun install
+
+      - name: Tests (puerta de calidad)
+        run: bun test
+
+      - name: Build web estática + sync Capacitor
+        run: bun run apk:sync
+
+      - name: Compilar APK release
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Renombrar APK con la versión
+        run: |
+          VERSION=$(bun -e "console.log(require('./package.json').version)")
+          cp android/app/build/outputs/apk/release/app-release.apk "Athena-v${VERSION}.apk"
+          echo "APK: Athena-v${VERSION}.apk"
+
+      - name: Subir APK como artifact del run
+        uses: actions/upload-artifact@v4
+        with:
+          name: Athena-apk
+          path: Athena-v*.apk
+          if-no-files-found: error
+
+      - name: Adjuntar APK al release (solo en tags)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(bun -e "console.log(require('./package.json').version)")
+          TAG="${GITHUB_REF_NAME}"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+                 --title "Athena $TAG" --generate-notes
+          gh release upload "$TAG" "Athena-v${VERSION}.apk" --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Adjuntado Athena-v${VERSION}.apk al release $TAG"

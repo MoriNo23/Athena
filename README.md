@@ -13,8 +13,8 @@ React 19 · Vite · Express · SQLite (zero-config) · PDF.js · Tesseract OCR
 [![Release](https://img.shields.io/github/v/release/MoriNo23/Athena?display_name=tag&sort=semver)](https://github.com/MoriNo23/Athena/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
 
-[![Android APK](https://img.shields.io/badge/Get_the-Android_APK-3ddc84?logo=android&logoColor=white)](https://github.com/MoriNo23/Athena/actions/workflows/apk.yml)
-[![Linux .deb / tar.gz](https://img.shields.io/badge/Get-Linux_package-yellow?logo=linux)](https://github.com/MoriNo23/Athena/releases)
+[![Android APK](https://img.shields.io/badge/Get_the-Android_APK-3ddc84?logo=android&logoColor=white)](https://github.com/MoriNo23/Athena/releases)
+[![Linux .deb / .AppImage / tar.gz](https://img.shields.io/badge/Get-Linux_package-yellow?logo=linux)](https://github.com/MoriNo23/Athena/releases)
 
 </div>
 
@@ -88,16 +88,18 @@ sudo apt install ./athena_<version>_amd64.deb
 athena start                   # → http://localhost:3000   (athena start --lan for LAN)
 ```
 
-**Other Linux:** unpack `Athena-<version>-linux-x64.tar.gz` from
-[releases](https://github.com/MoriNo23/Athena/releases) and follow
-`COMO-ARRANCAR.txt` — no dependencies.
+**Other Linux:** grab `Athena-<version>-x86_64.AppImage` from
+[releases](https://github.com/MoriNo23/Athena/releases) — one file with
+Node inside, `chmod +x` and run (your library lives in
+`~/.local/share/athena`, never inside the image). Prefer a tarball?
+`Athena-<version>-linux-x64.tar.gz` unpacks and follows
+`COMO-ARRANCAR.txt`.
 
-**Android:** grab the latest **Athena-apk** artifact from the
-[APK workflow](https://github.com/MoriNo23/Athena/actions/workflows/apk.yml)
-(or `Athena-v<version>.apk` from
-[releases](https://github.com/MoriNo23/Athena/releases)). Reading works
-fully offline; the optional password lock is only for LAN mode
-(`ATHENA_PASSWORD` in the shell — never a config file).
+**Android:** grab `Athena-v<version>.apk` from
+[releases](https://github.com/MoriNo23/Athena/releases) — every tag `v*`
+builds it automatically (or run the *Athena Android* workflow by hand).
+Reading works fully offline; the optional password lock is only for LAN
+mode (`ATHENA_PASSWORD` in the shell — never a config file).
 
 ## Under the hood
 

@@ -19,9 +19,12 @@ que te devuelven a leer hoy.
   `release/athena-standalone-<versión>.tar.gz` (sin node_modules dentro).
 - Calidad: `bunx tsc --noEmit` · `bun run lint` · `bun test`.
 - APK: `bun run apk:sync` y luego `android/gradlew assembleRelease`
-  (o dejar que lo compile GitHub Actions: workflow «Athena APK»).
-- Linux: `bash scripts/package-linux.sh` (.tar.gz) y
-  `bash scripts/package-deb.sh` (.deb) — workflow «Athena Linux» (tags v*).
+  (o dejar que lo compile GitHub Actions: workflow «Athena Android», tags v*).
+- Linux: `bash scripts/package-linux.sh` (.tar.gz),
+  `bash scripts/package-deb.sh` (.deb) y `bash scripts/package-appimage.sh`
+  (.AppImage portable con Node dentro) — workflow «Athena Linux» (tags v*).
+  `package-appimage.sh` va SIEMPRE el último: `package-linux.sh` limpia
+  `release/` al empezar.
 
 ## Idioma
 

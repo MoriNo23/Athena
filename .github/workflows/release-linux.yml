@@ -1,11 +1,13 @@
-# Athena · paquete Linux (Debian/Ubuntu) para el release
+# Athena · paquete Linux (Debian/Ubuntu y portable) para el release
 #
-# Construye la web de producción y la empaqueta en dos formatos, ambos con
+# Construye la web de producción y la empaqueta en tres formatos, todos con
 # el build ya hecho (server-dist/ + dist/):
 #   - tarball:    descomprimir → ./scripts/athena start (nada que instalar)
 #   - .deb:       sudo apt install ./athena_<versión>_amd64.deb → athena start
+#   - .AppImage:  un solo fichero con Node dentro → doble clic y a leer
 # Quedan adjuntos al release v<versión de package.json> como
-# Athena-<versión>-linux-x64.tar.gz y athena_<versión>_amd64.deb.
+# Athena-<versión>-linux-x64.tar.gz, athena_<versión>_amd64.deb y
+# Athena-<versión>-x86_64.AppImage.
 #
 # Se dispara: manual (Actions → Athena Linux → Run) o al pushear un tag v*.
 
@@ -29,6 +31,12 @@ jobs:
         with:
           bun-version: latest
 
+      # Node ≥ 23.4 para scripts y para el binario que viaja DENTRO del
+      # AppImage (node:sqlite estable: la BD se crea sola, sin dependencias)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
       - name: Dependencias
         run: bun install
 
@@ -44,6 +52,21 @@ jobs:
       - name: Empaquetar .deb (Debian/Ubuntu)
         run: bash scripts/package-deb.sh
 
+      - name: Empaquetar .AppImage (portable, Node incluido)
+        run: bash scripts/package-appimage.sh
+
+      - name: Prueba de humo del AppImage (arranca y sirve)
+        run: |
+          APP=$(ls release/Athena-*-x86_64.AppImage)
+          ATHENA_HOME="$RUNNER_TEMP/ai-home" PORT=3997 APPIMAGE_EXTRACT_AND_RUN=1 "$APP" &
+          PID=$!
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3997/ >/dev/null; then echo "web OK tras ${i}s"; break; fi
+            sleep 1
+            if [ "$i" = 30 ]; then echo "el AppImage no llegó a servir"; kill $PID; exit 1; fi
+          done
+          kill $PID || true
+
       - name: Adjuntar al release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,8 +75,9 @@ jobs:
           TAG="v${VERSION}"
           TAR="release/Athena-${VERSION}-linux-x64.tar.gz"
           DEB="release/athena_${VERSION}_amd64.deb"
+          APP="release/Athena-${VERSION}-x86_64.AppImage"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
                  --title "Athena $TAG" --generate-notes
-          gh release upload "$TAG" "$TAR" "$DEB" --repo "$GITHUB_REPOSITORY" --clobber
-          echo "Adjuntados $TAR y $DEB al release $TAG"
+          gh release upload "$TAG" "$TAR" "$DEB" "$APP" --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Adjuntados $TAR, $DEB y $APP al release $TAG"
