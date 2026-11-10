@@ -24,8 +24,6 @@ export default tseslint.config(
       "public/**",
       "db/**",
       "scripts/**",
-      "examples/**",
-      ".opencode/**",
     ],
   },
   js.configs.recommended,

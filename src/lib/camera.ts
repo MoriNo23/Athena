@@ -2,11 +2,11 @@
  * Cámara del teleprompter: UN solo bucle rAF persistente con interpolación
  * exponencial (change teleprompter-camara-estable).
  *
- * Por qué reemplaza a `view-anim.ts`: la cámara vieja creaba una animación
- * ease-out NUEVA por cada orden de cámara. En modo automático las órdenes
- * llegan letra a letra (cada 20-160 ms según la velocidad) y cada reinicio
- * arrancaba su curva con velocidad máxima: la columna avanzaba a tirones
- * («brincos») y al terminar cada curva se detenía en seco hasta la siguiente.
+ * Historia: la primera cámara creaba una animación ease-out NUEVA por cada
+ * orden de cámara (ya retirada). En modo automático las órdenes llegan letra
+ * a letra (cada 20-160 ms según la velocidad) y cada reinicio arrancaba su
+ * curva con velocidad máxima: la columna avanzaba a tirones («brincos») y al
+ * terminar cada curva se detenía en seco hasta la siguiente.
  *
  * La cámara nueva NO se reinicia nunca: mantiene un objetivo (`target`) que
  * las órdenes actualizan, y cada cuadro avanza hacia él con un suavizado
