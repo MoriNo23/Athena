@@ -1,0 +1,104 @@
+# Athena · Release automático
+#
+# Se dispara en CADA push a main y publica un release sin intervención
+# humana:
+#   1. Calcula el tag v<versión de package.json> y lo apunta al commit actual.
+#      Si el tag ya existía, lo mueve (el release queda siempre sobre el
+#      último main).
+#   2. Llama a los dos pipelines de build como reusable workflows:
+#      Athena Android (APK firmado) y Athena Linux (tarball, .deb, AppImage).
+#   3. Publica o actualiza el release: el cuerpo se genera a partir de
+#      .github/release-template.md + la lista de commits desde el tag
+#      anterior, y adjunta todos los artefactos (--clobber: reemplaza los
+#      que ya existieran en lugar de fallar).
+#
+# Nota: el tag y el release se gestionan SOLO aquí. Los pipelines de build
+# ya no se disparan por push de tags: los eventos generados con GITHUB_TOKEN
+# no disparan otros workflows, por eso se les llama como reusable workflows.
+
+name: Athena Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Un release a la vez por rama: si llegan pushes seguidos, el run anterior
+# se cancela y el más nuevo es el que publica.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Crear o mover el tag v<versión>
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(jq -r .version package.json)
+          TAG="v${VERSION}"
+          git tag -f "${TAG}" "${GITHUB_SHA}"
+          git push --force origin "refs/tags/${TAG}"
+          echo "Tag ${TAG} apuntando a ${GITHUB_SHA}"
+
+  apk:
+    uses: ./.github/workflows/release-android.yml
+
+  linux:
+    uses: ./.github/workflows/release-linux.yml
+
+  publish:
+    needs: [tag, apk, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Descargar artefactos compilados
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Athena-*
+          merge-multiple: true
+          path: dist-release
+
+      - name: Crear o actualizar el release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(jq -r .version package.json)
+          TAG="v${VERSION}"
+
+          # Cuerpo del release: plantilla de .github + commits desde el tag anterior
+          {
+            cat .github/release-template.md
+            echo
+            echo "## Commits incluidos"
+            echo
+            PREV=$(git tag --sort=-creatordate | grep '^v' | grep -v "^${TAG}\$" | head -1)
+            if [ -n "$PREV" ] && git merge-base --is-ancestor "$PREV" HEAD; then
+              git log --pretty=format:"- %s (%h)" "${PREV}..HEAD"
+            else
+              git log --pretty=format:"- %s (%h)" HEAD
+            fi
+          } > release_body.md
+
+          ls -la dist-release
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Athena ${TAG}" --notes-file release_body.md --latest
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Athena ${TAG}" --notes-file release_body.md --latest
+          fi
+
+          gh release upload "$TAG" dist-release/* --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Release ${TAG} publicado/actualizado con $(ls dist-release | wc -l) artefactos"

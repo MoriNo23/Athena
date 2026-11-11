@@ -5,21 +5,20 @@
 #   - tarball:    descomprimir → ./scripts/athena start (nada que instalar)
 #   - .deb:       sudo apt install ./athena_<versión>_amd64.deb → athena start
 #   - .AppImage:  un solo fichero con Node dentro → doble clic y a leer
-# Quedan adjuntos al release v<versión de package.json> como
-# Athena-<versión>-linux-x64.tar.gz, athena_<versión>_amd64.deb y
-# Athena-<versión>-x86_64.AppImage.
+# Quedan empaquetados como artifact «Athena-linux»; el release lo publica
+# el workflow Athena Release (release.yml), que llama a este pipeline.
 #
-# Se dispara: manual (Actions → Athena Linux → Run) o al pushear un tag v*.
+# Se dispara: a mano (Actions → Athena Linux → Run) o como reusable
+# workflow desde Athena Release en cada push a main.
 
 name: Athena Linux
 
 on:
   workflow_dispatch:
-  push:
-    tags: ["v*"]
+  workflow_call:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   linux:
@@ -67,17 +66,12 @@ jobs:
           done
           kill $PID || true
 
-      - name: Adjuntar al release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION=$(bun -e "console.log(require('./package.json').version)")
-          TAG="v${VERSION}"
-          TAR="release/Athena-${VERSION}-linux-x64.tar.gz"
-          DEB="release/athena_${VERSION}_amd64.deb"
-          APP="release/Athena-${VERSION}-x86_64.AppImage"
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
-            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
-                 --title "Athena $TAG" --generate-notes
-          gh release upload "$TAG" "$TAR" "$DEB" "$APP" --repo "$GITHUB_REPOSITORY" --clobber
-          echo "Adjuntados $TAR, $DEB y $APP al release $TAG"
+      - name: Subir paquetes como artifact del run
+        uses: actions/upload-artifact@v4
+        with:
+          name: Athena-linux
+          path: |
+            release/Athena-*-linux-x64.tar.gz
+            release/athena_*_amd64.deb
+            release/Athena-*-x86_64.AppImage
+          if-no-files-found: error
