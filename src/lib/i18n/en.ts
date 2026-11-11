@@ -12,7 +12,7 @@ export const en: Record<string, string> = {
 
   // ---------- library ----------
   "lib.heroSubtitle":
-    "The house of wisdom keeps your library: a progress rail, milestones, a streak, and a teleprompter that lights up the pages letter by letter.",
+    "The house of wisdom: progress, milestones, streak, teleprompter.",
   "lib.resetAll": "Reset all progress",
   "lib.moreAria": "Menu: language, night/morning and progress reset",
   "lib.themeNight": "Aegean night",
@@ -101,7 +101,7 @@ export const en: Record<string, string> = {
   "card.todayRingAria": "Today: {p} of {g} pages",
   "card.todayNone": "Not started today · goal {g} pg",
   "card.todayProgress": "Today: {p} of {g} pg · {m} min",
-  "card.todayGoalMet": "Today’s goal met! {p}/{g}",
+  "card.todayGoalMet": "Today’s goal met! {p}/{g} pg",
   "card.reread": "Read again",
   "card.continue": "Continue",
   "card.start": "Start reading",
@@ -234,6 +234,7 @@ export const en: Record<string, string> = {
   "rv.peekHint": "press and drag up to flip through pages",
   "rv.kbdHint": "Click the book to activate the keyboard",
   "rv.immerseHint": "Move the mouse to bring the interface back",
+  "rv.immerseHintTouch": "Tap the screen to bring the interface back",
   "rv.loadingPage": "loading page…",
 
   // ---------- EPUB viewport ----------
@@ -343,6 +344,8 @@ export const en: Record<string, string> = {
   "dock.optionsTitle": "Turn subfeatures on/off",
   "dock.allOptional": "Every subfeature is optional: turn on the ones you need right now.",
   "dock.closeAria": "Close settings panel",
+  "dock.backdropAria": "Close by tapping outside the panel",
+  "dock.handleAria": "Close panel",
   "dock.closeTitle": "Close panel",
   "dock.tagline": "The literature house: light up whatever today's reading asks for.",
   "dock.noneActive": "No subfeatures active.",
@@ -462,6 +465,7 @@ export const en: Record<string, string> = {
   // ---------- teleprompter ----------
   "tp.aria": "Teleprompter",
   "tp.status": "Page {page} of {total} · {speed}",
+  "tp.statusShort": "pg. {page}/{total}",
   "tp.rest.suggest": "You've been reading for {minutes} min",
   "tp.rest.ask": "Take a 20 s break?",
   "tp.rest.tip": "Look at something about six meters away for a moment: your eyes will thank you (20-20-20 rule).",

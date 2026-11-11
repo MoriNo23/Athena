@@ -61,7 +61,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   rail: { position: "left", segments: 10, theme: "egeo", showLabels: true, celebrate: true },
   filters: { preset: "auto", brightness: 100, contrast: 100, sepia: 0, saturate: 100, warmth: 0, invert: 0 },
   reading: { dailyGoal: 20, scrollStepPct: 40, wheelBoost: 1, font: "literata" },
-  immersion: { enabled: true, idleSeconds: 4, toggleKey: "h" },
+  immersion: { enabled: true, idleSeconds: 6, toggleKey: "h" },
   teleprompter: {
     wps: TELEPROMPTER_WPS_DEFAULT,
     instante: false,

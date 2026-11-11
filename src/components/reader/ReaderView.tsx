@@ -502,6 +502,38 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   // es solo por auto-ocultado de inactividad — el mensaje «mover el mouse»
   // sería falso si la UI la escondió la tecla (ahí el mouse no despierta).
   const immerseHint = useImmerseHint(chromeHidden, hiddenByKeyRef);
+  // Pista de inmersión según el puntero real: en táctil «mover el mouse» es
+  // un consejo imposible — el tap es el que despierta el chrome (hook).
+  const coarsePointer = useMemo(
+    () => typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches === true,
+    []
+  );
+
+  // ---------- Pista del peek en táctil (P2): el borde inferior hojea el libro,
+  // pero su pista solo existía con :hover — para el dedo, nunca. Se anuncia
+  // una vez por sesión (toast de 4 s); después, el :active del CSS la mantiene
+  // visible mientras el dedo pisa la zona. Mismo patrón que la pista de
+  // inmersión: encendido con reloj de 0 ms (fuera del commit) y retiro con su
+  // propio efecto — así StrictMode, que monta doble, no deja el toast colgado.
+  const [peekHintToast, setPeekHintToast] = useState(false);
+  useEffect(() => {
+    if (!coarsePointer) return;
+    const fire = window.setTimeout(() => {
+      try {
+        if (window.sessionStorage.getItem("athena.peekHintSeen") === "1") return;
+        window.sessionStorage.setItem("athena.peekHintSeen", "1");
+      } catch {
+        // sessionStorage vetado (navegación privada): se anuncia igual
+      }
+      setPeekHintToast(true);
+    }, 0);
+    return () => window.clearTimeout(fire);
+  }, [coarsePointer]);
+  useEffect(() => {
+    if (!peekHintToast) return;
+    const retire = window.setTimeout(() => setPeekHintToast(false), 4000);
+    return () => window.clearTimeout(retire);
+  }, [peekHintToast]);
 
   // ---------- Inmersión manual: la tecla configurada oculta/muestra la UI al instante ----------
   const toggleHideUi = useCallback(() => {
@@ -578,6 +610,20 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   // Lectura dual activa: toggle + PDF compañero cargado
   const dualActive = modes.toggles.dualRead && !!book.companionPath && !!book.companionPages;
   const dockVisible = dockOpen;
+
+  // Hoja móvil del dock: también responde a Escape (un role="dialog" que
+  // ignora el teclado es un diálogo a medias). Si dentro hay un popover de
+  // Radix abierto, el Escape es suyo: que lo cierre solo a él.
+  useEffect(() => {
+    if (!dockOpen || !esMovil) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (document.querySelector("[data-radix-popper-content-wrapper]")) return;
+      setDockOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [dockOpen, esMovil, setDockOpen]);
 
   const takePause = () => {
     const recap = pauseDraft.trim() || extrasRef.current.pause?.recap || "";
@@ -732,14 +778,25 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
             )}
             {dockVisible && esMovil && (
               <div data-chrome data-dock-sheet className="fixed inset-0 z-50 flex items-end" role="dialog" aria-label={t("dock.title")} data-testid="mode-dock-sheet">
+                {/* Fondo: etiqueta propia (repetir closeAria duplicaba el nombre
+                    accesible del botón de cierre del panel) */}
                 <button
                   className="absolute inset-0 cursor-default bg-black/45"
                   onClick={() => setDockOpen(false)}
-                  aria-label={t("dock.closeAria")}
+                  aria-label={t("dock.backdropAria")}
                   tabIndex={-1}
                 />
                 <div className="relative flex h-[85dvh] w-full flex-col overflow-hidden rounded-t-2xl border-t-2 border-[var(--ink)] bg-card pb-[env(safe-area-inset-bottom)] shadow-2xl">
-                  <div className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30" aria-hidden />
+                  {/* Asa VISIBLE y táctil: la ruta más rápida para cerrar la hoja
+                      (44px de alto con tap-44, no solo 8px de dibujo) */}
+                  <button
+                    className="tap-44 flex w-full shrink-0 items-center justify-center py-3"
+                    onClick={() => setDockOpen(false)}
+                    aria-label={t("dock.handleAria")}
+                    data-testid="mode-dock-handle"
+                  >
+                    <span className="h-2 w-12 rounded-full bg-muted-foreground/50" aria-hidden />
+                  </button>
                   <ModeDock
                     book={book}
                     onBookChange={onBookChange}
@@ -775,7 +832,12 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
         onPointerCancel={peek.onPeekCancel}
         data-testid="peek-hotzone"
       >
-        <div className="peek-hint pointer-events-none absolute inset-x-0 bottom-0.5 mx-auto w-fit rounded-full border border-border/60 bg-card/90 px-3 py-0.5 text-xs text-muted-foreground opacity-0 shadow-lg backdrop-blur transition-opacity duration-300">
+        <div
+          className={`peek-hint pointer-events-none absolute inset-x-0 bottom-0.5 mx-auto w-fit rounded-full border border-border/60 bg-card/90 px-3 py-0.5 text-xs text-muted-foreground shadow-lg backdrop-blur transition-opacity duration-300 ${
+            peekHintToast ? "opacity-100" : "opacity-0"
+          }`}
+          data-testid="peek-hint"
+        >
           {t("rv.peekHint")}
         </div>
       </div>
@@ -854,7 +916,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
           className="pointer-events-none fixed bottom-3 left-1/2 z-50 -translate-x-1/2 rounded-full border border-primary/40 bg-card/95 px-3 py-1 text-xs text-foreground shadow-lg backdrop-blur"
           data-testid="immerse-hint"
         >
-          {t("rv.immerseHint")}
+          {t(coarsePointer ? "rv.immerseHintTouch" : "rv.immerseHint")}
         </div>
       )}
 

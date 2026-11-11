@@ -26,9 +26,10 @@ export function EpubFontControls({ fontScale, onDelta }: EpubFontControlsProps) 
         <Button
           variant="ghost"
           size="icon"
-          // En móvil la letra vive en el menú «⋯» de la cabecera: la fila
-          // de lectura no da para más y el pulgar lo alcanza todo ahí.
-          className="tap-44 hidden h-8 w-8 font-display sm:inline-flex"
+          /* Móvil (P2): A−/A+ SIEMPRE visibles — cambiar la letra era un viaje
+            de 3 pulsaciones por el menú «⋯». La familia (Type) pasa a ser
+            elección de escritorio: se fija una vez, el tamaño se ajusta siempre. */
+          className="tap-44 h-8 w-8 font-display"
           onClick={() => onDelta(-1)}
           disabled={scale <= TELEPROMPTER_FONT_MIN}
           aria-label={t("epub.fontMinusAria")}
@@ -44,7 +45,7 @@ export function EpubFontControls({ fontScale, onDelta }: EpubFontControlsProps) 
         <Button
           variant="ghost"
           size="icon"
-          className="tap-44 hidden h-8 w-8 font-display sm:inline-flex"
+          className="tap-44 h-8 w-8 font-display"
           onClick={() => onDelta(1)}
           disabled={scale >= TELEPROMPTER_FONT_MAX}
           aria-label={t("epub.fontPlusAria")}

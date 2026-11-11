@@ -24,6 +24,8 @@ export default tseslint.config(
       "public/**",
       "db/**",
       "scripts/**",
+      // tests archivados (>7 días): solo referencia, fuera de la ejecución normal
+      "tests/archive/**",
     ],
   },
   js.configs.recommended,

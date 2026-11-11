@@ -27,7 +27,10 @@ export function ReaderFontPicker({ font, onChange }: ReaderFontPickerProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="tap-44 h-8 gap-1.5 px-2 text-xs"
+          /* Escritorio solamente: en móvil cede su sitio de la fila de lectura
+             a A−/A+ (el tamaño se ajusta a cada libro; la familia se fija una
+             vez) y sigue disponible vía ajustes sincronizados. */
+          className="tap-44 hidden h-8 gap-1.5 px-2 text-xs sm:inline-flex"
           title={t("reader.fontTip", { name: current.label })}
           aria-label={t("reader.fontAria")}
           data-testid="reader-font-picker"

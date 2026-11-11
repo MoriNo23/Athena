@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type RefObject } from "react";
+import { esTap, iniciarGesto, type GestoActivo } from "@/core/touch-gestures";
 
 /**
  * Inmersión de lectura: oculta el chrome (cabecera, dock, riel) tras N segundos
@@ -9,6 +10,11 @@ import { useEffect, type RefObject } from "react";
  * Regla de oro (spec crapper/UX): las teclas y la rueda ejecutan su acción en
  * silencio — no despiertan la UI — y solo reinician el temporizador de
  * ocultación. Así la lectura con atajos nunca interrumpe la inmersión.
+ *
+ * Táctil (APK): sin mouse no hay mousemove — el chrome dormido no volvía.
+ * El TAP sobre la pantalla lo despierta (contrato de gestos: tocar nunca
+ * avanza página, así que el tap queda libre para esto); cualquier otro roce
+ * del dedo solo rearma el temporizador, como las teclas.
  *
  * Ocultación manual (tecla): si la UI la escondió el usuario con su tecla
  * (hiddenByKeyRef), el mouse NO la despierta — solo la misma tecla la devuelve.
@@ -92,6 +98,34 @@ export function useImmersiveWake(opts: {
       arm();
     };
     window.addEventListener("mousemove", wake, { passive: true });
+    // Táctil: tap despierta (el mismo contrato del teleprompter: dedo quieto y
+    // breve). Arrastres y pulsaciones largas NO — solo rearman, como la rueda.
+    let gesto: GestoActivo | null = null;
+    const touchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) {
+        gesto = null;
+        return;
+      }
+      const t0 = e.touches[0];
+      const t = e.target as HTMLElement | null;
+      pointerOnChromeRef.current = !!t?.closest?.("[data-chrome]");
+      gesto = iniciarGesto(t0.clientX, t0.clientY, e.timeStamp);
+    };
+    const touchEnd = (e: TouchEvent) => {
+      if (gesto && e.changedTouches.length === 1) {
+        const t0 = e.changedTouches[0];
+        if (
+          esTap(gesto, t0.clientX, t0.clientY, e.timeStamp) &&
+          !hiddenByKeyRef.current
+        ) {
+          show();
+        }
+      }
+      gesto = null;
+      arm();
+    };
+    window.addEventListener("touchstart", touchStart, { passive: true });
+    window.addEventListener("touchend", touchEnd, { passive: true });
     window.addEventListener("keydown", keepAsleepKeys);
     window.addEventListener("wheel", keepAsleepWheel, { passive: true });
     arm();
@@ -99,6 +133,8 @@ export function useImmersiveWake(opts: {
       if (timer) clearTimeout(timer);
       if (rearmRef) rearmRef.current = null;
       window.removeEventListener("mousemove", wake);
+      window.removeEventListener("touchstart", touchStart);
+      window.removeEventListener("touchend", touchEnd);
       window.removeEventListener("keydown", keepAsleepKeys);
       window.removeEventListener("wheel", keepAsleepWheel);
     };

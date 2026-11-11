@@ -23,10 +23,14 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
+        /* Punto grueso (móvil): mínimo táctil de 44 px en el botón real —
+           sin apoyarse solo en .tap-44. El escritorio (sm:) conserva la
+           escala compacta original; las barras con h-8 explícito mandan
+           igualmente sobre estos defaults (tailwind-merge). */
+        default: "h-11 px-4 py-2 has-[>svg]:px-3 sm:h-9",
+        sm: "h-11 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 sm:h-8",
+        lg: "h-12 rounded-md px-6 has-[>svg]:px-4 sm:h-10",
+        icon: "size-11 sm:size-9",
       },
     },
     defaultVariants: {

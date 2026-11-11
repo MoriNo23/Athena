@@ -273,7 +273,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                       title={t(`theme.${th}`)}
                       onClick={() => setRail({ theme: th })}
                       aria-label={t("config.colorAria", { label: t(`theme.${th}`) })}
-                      className={`relative h-8 w-8 rounded-full ring-2 transition-all ${
+                      className={`tap-44 relative h-8 w-8 rounded-full ring-2 transition-all ${
                         rail.theme === th ? "ring-primary scale-110" : "ring-transparent hover:scale-105"
                       }`}
                       style={{ background: RAIL_THEMES[th].fill }}
@@ -336,7 +336,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                     <button
                       key={p.value}
                       onClick={() => setPreset(p.value)}
-                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                      className={`min-h-11 rounded-full border px-3 py-1.5 text-xs transition-colors sm:min-h-0 ${
                         filters.preset === p.value
                           ? "border-primary bg-primary/15 text-primary-on-tint font-medium"
                           : "border-border/70 text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -378,7 +378,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                       id="toggle-key-button"
                       variant={capturing ? "default" : "outline"}
                       size="sm"
-                      className="h-7 min-w-16 tabular-nums"
+                      className="h-11 min-w-16 tabular-nums sm:h-7"
                       onClick={() => {
                         setCapturing((v) => !v);
                         setKeyHint(null);
@@ -522,7 +522,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                       key={m}
                       size="sm"
                       variant={descansoMin === m ? "default" : "outline"}
-                      className="h-7 px-2.5 text-xs"
+                      className="h-11 px-2.5 text-xs sm:h-7"
                       onClick={() => setTeleprompter({ descansoMin: m })}
                       aria-pressed={descansoMin === m}
                       data-testid={`config-tp-descanso-${m}`}
@@ -568,7 +568,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                       key={modo}
                       onClick={() => setTeleprompter({ fondo: modo })}
                       data-testid={`config-tp-bg-${modo}`}
-                      className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                      className={`min-h-11 rounded-full border px-3 py-1.5 text-xs transition-colors sm:min-h-0 ${
                         tpSet.fondo === modo
                           ? "border-primary bg-primary/15 font-medium text-primary-on-tint"
                           : "border-border/70 text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -588,7 +588,7 @@ export function ConfigPanel({ open, onOpenChange, book, onPatchBook }: ConfigPan
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7"
+                        className="h-11 sm:h-7"
                         onClick={() => fondoInputRef.current?.click()}
                         data-testid="config-tp-bg-upload"
                       >
