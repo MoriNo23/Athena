@@ -1,0 +1,8 @@
+[test]
+# Archived tests (see tests/archive/README.md) are excluded from the normal
+# run: they are kept for reference only and must not be executed or reused.
+pathIgnorePatterns = ["tests/archive/**"]
+# DOM globals (happy-dom) antes de cualquier archivo de test: los módulos
+# CJS del grafo (p. ej. @testing-library/dom) se evalúan antes que los
+# side-effect imports del propio test, y `screen` se liga en su carga.
+preload = ["./tests/setup/dom.ts"]
