@@ -75,7 +75,7 @@ const defaultSettings: AppSettings = {
   },
   immersion: {
     enabled: true,
-    idleSeconds: 4,
+    idleSeconds: 6,
     toggleKey: "h",
   },
   teleprompter: {

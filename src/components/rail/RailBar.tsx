@@ -68,10 +68,12 @@ export function RailBar({
   // con la misma regla con la que se celebran los hitos (currentPage >= frontera)
   const displayPage = scrubbing ? Math.max(1, scrubPage ?? 1) : currentPage;
 
+  // Compacto 8px (h-2/w-2): a 6px el riel de las tarjetas era casi invisible
+  // en pantalla móvil de 412px con DPR 2.625.
   const trackNode = (
     <RailTrack
       trackRef={trackRef}
-      sizeClass={vertical ? (compact ? "w-1.5 h-full" : "w-2.5 h-full") : compact ? "h-1.5" : "h-2.5"}
+      sizeClass={vertical ? (compact ? "w-2 h-full" : "w-2.5 h-full") : compact ? "h-2" : "h-2.5"}
       interactive={!!onSeek && !compact}
       handlers={handlers}
       fillStyle={fillStyle}

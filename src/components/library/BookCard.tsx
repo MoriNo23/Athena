@@ -31,7 +31,9 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
   const pct = progressPct(book);
   // EPUB/PDF de carpeta recién escaneados: páginas desconocidas hasta el primer abrir
   const sinContar = book.totalPages <= 0;
-  const done = !sinContar && book.currentPage >= book.totalPages;
+  // P0: finishedAt es la fuente de verdad del "terminado" (el reset la limpia);
+  // comparar solo páginas dejaba a los libros terminados en "seguir leyendo" + ETA.
+  const done = book.finishedAt != null || (!sinContar && book.currentPage >= book.totalPages);
   const sinFichero = Boolean(book.fileMissingAt);
 
   const rate = useMemo(() => pickDailyRate(groupSessionsByDay(book.sessions)), [book.sessions]);
@@ -165,7 +167,9 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
           />
         </div>
 
-        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+        {/* Móvil: apiladas — páginas y ETA en una sola columna angosta; el
+            justify-between de una fila de 348px cortaba la ETA en huérfana. */}
+        <div className="mt-2 flex flex-col gap-0.5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <span className="tabular-nums">
             {sinContar ? t("card.pagesUnknown") : t("card.pages", { cur: book.currentPage, total: book.totalPages })}{" "}
             {!sinContar && <>· <span className="font-medium text-foreground">{pct}%</span></>}

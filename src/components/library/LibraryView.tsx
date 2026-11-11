@@ -227,12 +227,12 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-8 py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-8">
       {/* ---- Hero de Atenea ---- */}
       {/* Móvil: identidad a todo lo ancho (sello menor, subtítulo a 2 líneas)
           y las acciones vuelan a su propia fila; en el hero ya no hay icono
           destructivo a 24px de la CTA principal (vive en el menú «⋯»). */}
-      <header className="athena-hero mb-8 animate-fade-up px-5 py-6 sm:px-8 sm:py-7">
+      <header className="athena-hero mb-5 animate-fade-up px-5 py-6 sm:mb-8 sm:px-8 sm:py-7">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-56 flex-1 items-center gap-4 sm:gap-5">
             <AthenaSeal className="seal-glow h-12 w-12 shrink-0 text-primary sm:h-16 sm:w-16" />
@@ -268,7 +268,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
       {/* ---- Franja de hábitos ---- */}
       {/* 2×2 en pantallas angostas: las etiquetas largas («Libros terminados»)
            no caben en un cuarto de 390px y desbordaban la tarjeta */}
-      <section className="mb-8 grid grid-cols-2 gap-4 animate-fade-up sm:grid-cols-4" style={{ animationDelay: "60ms" }}>
+      <section className="mb-5 grid grid-cols-2 gap-4 animate-fade-up sm:mb-8 sm:grid-cols-4" style={{ animationDelay: "60ms" }}>
         <StatCard icon={<Flame className="h-4.5 w-4.5 text-primary" />} label={t("lib.streak")} value={`${stats.streak} ${stats.streak === 1 ? t("lib.day1") : t("dayN")}`} hint={stats.streak > 1 ? t("lib.streakKeep") : t("lib.streakStart")} />
         <StatCard icon={<Target className="h-4.5 w-4.5 text-primary" />} label={t("lib.dailyGoal")} value={`${stats.pagesToday}/${dailyGoal} ${t("lib.pagesShort")}`} hint={stats.pagesToday >= dailyGoal ? t("lib.goalDone") : t("lib.goalLeft", { n: Math.max(0, dailyGoal - stats.pagesToday) })} />
         <StatCard icon={<Clock3 className="h-4.5 w-4.5 text-primary" />} label={t("lib.timeToday")} value={formatMinutes(stats.minutesToday)} hint={t("lib.timeHint")} />
@@ -280,7 +280,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
 
       {/* ---- Zona de subida ---- */}
       <section
-        className={`brutal-flat mb-8 border-dashed p-6 text-center transition-all animate-fade-up ${
+        className={`brutal-flat mb-5 border-dashed p-6 text-center transition-all animate-fade-up sm:mb-8 ${
           dragOver ? "border-primary bg-primary/8 scale-[1.01]" : "border-[var(--ink)]/45"
         }`}
         style={{ animationDelay: "120ms" }}
@@ -521,12 +521,14 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
 
 function StatCard({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: string; hint: string }) {
   return (
-    <div className="brutal bg-card p-4">
+    /* flex-col + mt-auto en el valor: cuando una etiqueta envuelve a 2 líneas
+       y la vecina no, los valores de la fila 2×2 siguen alineados por abajo. */
+    <div className="brutal flex flex-col bg-card p-4">
       <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {icon}
+        <span className="shrink-0">{icon}</span>
         <span className="min-w-0 leading-snug">{label}</span>
       </div>
-      <div className="font-display text-2xl font-semibold">{value}</div>
+      <div className="mt-auto font-display text-2xl font-semibold tabular-nums">{value}</div>
       <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>
     </div>
   );

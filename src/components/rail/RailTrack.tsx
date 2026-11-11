@@ -63,8 +63,8 @@ export function RailTrack({
         style={{
           ...fillStyle,
           ...(vertical
-            ? { bottom: 0, left: 0, right: 0, height: `${shown * 100}%` } // anclado abajo: crece hacia arriba
-            : { top: 0, bottom: 0, left: 0, width: `${shown * 100}%` }),
+            ? { bottom: 0, left: 0, right: 0, height: `${shown * 100}%`, minHeight: 8 } // anclado abajo: crece hacia arriba
+            : { top: 0, bottom: 0, left: 0, width: `${shown * 100}%`, minWidth: 8 }),
           opacity: shown > 0.0005 ? 1 : 0,
         }}
       />

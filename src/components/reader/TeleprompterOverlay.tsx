@@ -602,10 +602,10 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           <span>
             {t("tp.rest.suggest", { minutes: descansoMin })} · {t("tp.rest.ask")}
           </span>
-          <Button size="sm" className="h-7 px-3 text-xs" onClick={descansarAhora} data-testid="tp-rest-take">
+          <Button size="sm" className="tap-44 h-11 px-3 text-xs sm:h-7" onClick={descansarAhora} data-testid="tp-rest-take">
             {t("tp.rest.take")}
           </Button>
-          <Button variant="ghost" size="sm" className="h-7 px-3 text-xs" onClick={descansoCerrar} data-testid="tp-rest-skip">
+          <Button variant="ghost" size="sm" className="tap-44 h-11 px-3 text-xs sm:h-7" onClick={descansoCerrar} data-testid="tp-rest-skip">
             {t("tp.rest.skip")}
           </Button>
         </div>
@@ -617,7 +617,12 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
       <div className="tp-chrome tp-header absolute inset-x-0 top-0 z-20 flex items-center gap-2 px-5 py-3">
         <div className="min-w-0 flex-1">
           <p className="truncate font-display text-sm font-semibold text-foreground/90">{book.title}</p>
-          <p className="text-xs text-muted-foreground">
+          {/* Móvil: estado corto en UNA línea (el completo envolvía a 3);
+              desktop: el completo con velocidad */}
+          <p className="truncate whitespace-nowrap text-xs text-muted-foreground sm:hidden" data-testid="tp-status-short">
+            {t("tp.statusShort", { page: pageNum, total: numPages })}
+          </p>
+          <p className="hidden truncate whitespace-nowrap text-xs text-muted-foreground sm:block">
             {t("tp.status", {
               page: pageNum,
               total: numPages,
@@ -667,7 +672,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="tap-44 h-8 w-8"
             onClick={() => setTeleprompter({ sound: !tpSet.sound })}
             aria-label={tpSet.sound ? t("tp.muteAria") : t("tp.unmuteAria")}
             data-testid="tp-sound"
@@ -679,7 +684,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8 border-primary/40 bg-primary/10 text-primary-on-tint shadow-none hover:border-primary/60 hover:bg-primary/20 dark:border-primary/40 dark:bg-primary/10 dark:hover:border-primary/60 dark:hover:bg-primary/20"
+            className="tap-44 h-8 w-8 border-primary/40 bg-primary/10 text-primary-on-tint shadow-none hover:border-primary/60 hover:bg-primary/20 dark:border-primary/40 dark:bg-primary/10 dark:hover:border-primary/60 dark:hover:bg-primary/20"
             onClick={toggleFullscreen}
             aria-label={isFullscreen ? t("tp.exitFullscreen") : t("tp.fullscreen")}
             data-testid="tp-fullscreen"
@@ -706,7 +711,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 text-xs"
+              className="tap-44 h-8 gap-1.5 text-xs"
               aria-label={t("tp.speedAria")}
               data-testid="tp-speed"
             >
@@ -750,7 +755,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 sm:h-8 sm:w-8"
+            className="tap-44 h-10 w-10 sm:h-8 sm:w-8"
             onClick={() => setPlaying((v) => !v)}
             aria-label={playing ? t("tp.pauseAria") : t("tp.playAria")}
             data-testid="tp-play"
@@ -762,7 +767,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="tap-44 h-8 w-8"
             onClick={() => setSettingsOpen(true)}
             aria-label={t("tp.settingsAria")}
             aria-haspopup="dialog"
@@ -775,7 +780,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="tap-44 h-8 w-8"
             onClick={onClose}
             aria-label={t("tp.exitAria")}
             data-testid="tp-close"
@@ -957,17 +962,19 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
         >
           {playing ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
         </Button>
+        {/* Simetría móvil: prev y next ambos cuadrados de 44px con solo icono
+            (el label del next cargaba el cluster hacia la derecha); sm: label */}
         <Button
           variant="outline"
           size="sm"
-          className="h-11 gap-1.5 px-4 text-xs sm:h-9 sm:px-3"
+          className="tap-44 h-11 w-11 justify-center px-0 text-xs sm:h-9 sm:w-auto sm:gap-1.5 sm:px-3"
           onClick={forward}
           disabled={atEnd}
           aria-label={atEnd ? t("tp.end") : pageDone ? t("tp.nextPageAria") : t("tp.nextAria")}
           data-testid="tp-next"
         >
-          {nextLabel}
-          <ChevronRight className="h-4 w-4" />
+          <span className="hidden sm:inline">{nextLabel}</span>
+          <ChevronRight className="h-5 w-5 sm:h-4 sm:w-4" />
         </Button>
         <span className="ml-2 hidden text-xs text-muted-foreground sm:inline">{t("tp.hint")}</span>
       </div>

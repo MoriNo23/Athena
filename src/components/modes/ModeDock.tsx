@@ -98,7 +98,7 @@ export function ModeDock({
           <div className="flex items-center gap-1">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" aria-label={t("dock.optionsAria")} title={t("dock.optionsTitle")}>
+                <Button variant="ghost" size="icon" className="tap-44 h-11 w-11 sm:h-7 sm:w-7" aria-label={t("dock.optionsAria")} title={t("dock.optionsTitle")}>
                   <Settings2 className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
@@ -127,7 +127,7 @@ export function ModeDock({
                 </div>
               </PopoverContent>
             </Popover>
-            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-7 sm:w-7" onClick={onClose} aria-label={t("dock.closeAria")} title={t("dock.closeTitle")}>
+            <Button variant="ghost" size="icon" className="tap-44 h-11 w-11 sm:h-7 sm:w-7" onClick={onClose} aria-label={t("dock.closeAria")} title={t("dock.closeTitle")}>
               <PanelRightClose className="h-4 w-4" />
             </Button>
           </div>
@@ -148,7 +148,7 @@ export function ModeDock({
         <TooltipProvider delayDuration={300}>
           <Tabs defaultValue={defaultTab} className="flex min-h-0 flex-1 flex-col gap-0">
             <div className="border-b border-border/60 px-2 pt-2">
-              <TabsList className="h-10 w-full justify-start overflow-x-auto rounded-none bg-transparent p-0 sm:h-8">
+              <TabsList className="tap-44 h-11 w-full justify-start overflow-x-auto rounded-none bg-transparent p-0 sm:h-8">
                 {activeKeys.map((key) => {
                   const ui = TOGGLE_UI[key];
                   const Icon = ui.icon;
