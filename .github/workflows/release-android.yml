@@ -45,7 +45,29 @@ jobs:
         run: bun test
 
       - name: Build web estática + sync Capacitor
+        # `always()`: los tests de JVM (abajo) necesitan el proyecto Gradle que
+        # genera este paso. Si la puerta de calidad falló, quizá quedó a medias
+        # —da igual: los tests de JVM son otro criterio y su rojo tiene que
+        # verse. Sin este proyecto, Gradle ni arranca.
+        if: always()
         run: bun run apk:sync
+
+      - name: Tests de lógica nativa (JVM, sin emulador)
+        # `always()`: si la puerta de calidad de bun falla, este paso también
+        # tiene que correr — su rojo tiene que ser VISIBLE en el resumen.
+        #
+        # OJO CON EL ORDEN: va DESPUÉS de `apk:sync`. El proyecto Gradle
+        # incluye capacitor-cordova-android-plugins/cordova.variables.gradle,
+        # que lo genera `cap sync`; si este paso corre antes, Gradle ni se
+        # configura («Could not read script … as it does not exist») y parece
+        # un fallo de los tests. Aquí ya existe incluso cuando bun falló,
+        # porque el paso de sync usa `if: always()`.
+        if: always()
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace 2>&1 | tee gradle-unit.log
+          exit "${PIPESTATUS[0]}"
 
       - name: Comprobar los secretos de firma
         env:
@@ -70,59 +92,6 @@ jobs:
             exit 1
           fi
           echo "✓ Los cuatro secretos de firma están presentes"
-
-      - name: Tests de lógica nativa (JVM, sin emulador)
-        # `always()`: si la puerta de calidad de bun falla, este paso también
-        # tiene que correr. Su rojo tiene que ser VISIBLE en el resumen — si
-        # no, el fallo parece de otro sitio y el diagnóstico engaña.
-        if: always()
-        # el log va a fichero para que el paso de diagnóstico (que corre
-        # también tras los tests, no solo tras el APK) pueda leerlo
-        run: |
-          # La lógica del atrás (RespuestaWeb) tiene su test JUnit: corre en la
-          # JVM y comprueba las cadenas que evaluateJavascript entrega de
-          # verdad. Va ANTES de compilar para que un APK que cierra la app al
-          # deslizar atrás no llegue a publicarse.
-          cd android
-          chmod +x gradlew
-          ./gradlew testDebugUnitTest --no-daemon --stacktrace 2>&1 | tee gradle-unit.log
-          exit "${PIPESTATUS[0]}"
-
-      - name: Diagnóstico de los tests de JVM (solo si falló)
-        # `failure()` cubre el paso anterior, sea la compilación del APK o los
-        # tests de JVM: los dos escriben su log en fichero.
-        if: failure()
-        run: |
-          # Mismo motivo que el diagnóstico de Gradle: los logs crudos de
-          # Actions no se pueden bajar por API, las anotaciones sí. Aquí se
-          # publica QUÉ test falló y con qué mensaje.
-          INFORME=$(find android/app/build/test-results -name "*.xml" 2>/dev/null | head -1)
-          if [ -z "$INFORME" ]; then
-            # los tests no llegaron a ejecutarse: el fallo es de compilación de
-            # la JVM. El log de Gradle dice por qué (símbolo no encontrado,
-            # sintaxis, dependencia…) y es lo único que sirve aquí.
-            LOG=android/gradle-unit.log
-            echo "::error::Los tests de JVM no se ejecutaron: falló su compilación."
-            if [ -f "$LOG" ]; then
-              # el bloque completo de Gradle: los 3 primeros renglones no
-              # bastan para saber si es compilación, resolución o configuración
-              awk '/What went wrong/{f=1} /Get more help|Try:/{f=0} f' "$LOG" \
-                | grep -vE '^[[:space:]]*$' | head -n 12 \
-                | while IFS= read -r l; do echo "::error::$l"; done
-              echo "::error::resultados encontrados: $(find android/app/build -name '*.xml' -path '*test-results*' 2>/dev/null | wc -l)"
-            fi
-            exit 0
-          fi
-          # una línea por cada <testcase> con <failure>
-          awk 'BEGIN{RS="<testcase"} NR>1 {
-                 nombre=""; mensaje="";
-                 if (match($0, /name="[^"]*"/)) { nombre=substr($0, RSTART+6, RLENGTH-7) }
-                 if (match($0, /<failure[^>]*message="[^"]*"/)) {
-                   mensaje=substr($0, RSTART, RLENGTH);
-                   sub(/.*message="/, "", mensaje); sub(/"$/, "", mensaje);
-                 }
-                 if (mensaje != "") printf "::error::JUnit · %s → %s\n", nombre, substr(mensaje, 1, 220);
-               }' "$INFORME"
 
       - name: Compilar APK release
         env:
