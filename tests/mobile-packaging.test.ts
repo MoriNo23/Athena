@@ -371,3 +371,86 @@ describe("empaquetado móvil · el release recibe los secretos de firma", () => 
     expect(apk).toContain("workflow_dispatch:");
   });
 });
+
+/**
+ * El icono que seguía siendo el de Capacitor.
+ *
+ * El fondo del icono adaptativo ya era sepia, el vector del pórtico existía en
+ * drawable/… y aun así el launcher seguía enseñando la X azul de la plantilla:
+ * `mipmap-anydpi-v26/ic_launcher.xml` apuntaba a `@mipmap/ic_launcher_foreground`,
+ * el PNG de Capacitor, y nadie referenciaba el vector. Ningún test miraba el
+ * dibujo, solo los colores — así que el fallo pasó el PR y llegó al release.
+ */
+describe("empaquetado móvil · el icono del launcher es el pórtico", () => {
+  // sin comentarios: el XML explica el bug antiguo citando la ruta mala
+  const sinComentarios = (t: string) => t.replace(/<!--[\s\S]*?-->/g, "");
+  const icono = sinComentarios(leer("android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml"));
+  const redondo = sinComentarios(leer("android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"));
+
+  test("el adaptive icon apunta al VECTOR, no al PNG de la plantilla", () => {
+    for (const [nombre, xml] of [["ic_launcher", icono], ["ic_launcher_round", redondo]] as const) {
+      expect(`${nombre}:${xml.includes('android:drawable="@drawable/ic_launcher_foreground"')}`).toBe(`${nombre}:true`);
+      // el PNG de Capacitor no puede volver
+      expect(xml).not.toContain('@mipmap/ic_launcher_foreground');
+    }
+  });
+
+  test("el vector existe y dibuja el pórtico, no un marco vacío", () => {
+    const vector = leer("android/app/src/main/res/drawable/ic_launcher_foreground.xml");
+    // las cuatro piezas del templo: frontón, entablamento, columnas, estilóbato
+    expect(vector).toContain("#B58A3A"); // frontón (bronce)
+    expect(vector).toContain("#E0A94E"); // tímpano y metopas (oro)
+    expect(vector).toContain("#F1EEE6"); // mármol
+    // al menos 4 columnas (un path con varios sub-trazos)
+    expect(vector.match(/M[\d.]+,[\d.]+ L/g)!.length).toBeGreaterThanOrEqual(6);
+  });
+
+  test("capa monocroma para los iconos con tema (Android 13+)", () => {
+    expect(icono).toContain("<monochrome");
+    const mono = leer("android/app/src/main/res/drawable/ic_launcher_monochrome.xml");
+    // monocroma de verdad: una sola tinta, sin bronce ni oro
+    expect(mono.toUpperCase()).not.toContain("#B58A3A");
+    expect(mono.toUpperCase()).not.toContain("#E0A94E");
+  });
+
+  test("sin restos de la plantilla de Capacitor", () => {
+    // el escudo verde/azul de la plantilla no puede estar en el proyecto
+    expect(existsSync(join(RAIZ, "android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml"))).toBe(false);
+    expect(existsSync(join(RAIZ, "android/app/src/main/res/drawable/ic_launcher_background.xml"))).toBe(false);
+  });
+
+  test("los PNG ic_launcher_foreground no vuelven (los caza el enlazador)", () => {
+    // Si existen, un adaptive icon mal escrito puede volver a apuntar a ellos y
+    // compilar sin queja: es exactamente el bug que se coló dos veces. Sin
+    // ellos, `@mipmap/ic_launcher_foreground` no enlaza y el build falla.
+    for (const dpi of ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"]) {
+      const png = `android/app/src/main/res/mipmap-${dpi}/ic_launcher_foreground.png`;
+      expect(`${png}:${existsSync(join(RAIZ, png))}`).toBe(`${png}:false`);
+    }
+  });
+
+  test("la capa monocroma cubre las mismas piezas que el frente", () => {
+    const frente = leer("android/app/src/main/res/drawable/ic_launcher_foreground.xml");
+    const mono = leer("android/app/src/main/res/drawable/ic_launcher_monochrome.xml");
+    // La monocroma omite tímpano y metopas a propósito: en una sola tinta
+    // desaparecerían. Pero lo que dibuja tiene que ser LA MISMA geometría del
+    // frente, no un dibujo aparte que se quede atrás si el pórtico se redibuja.
+    const trazados = (xml: string) => (xml.match(/android:pathData="([^"]+)"/g) ?? [])
+      .map((p) => p.slice('android:pathData="'.length, -1));
+    const delFrente = trazados(frente);
+    const deMono = trazados(mono);
+    expect(deMono.length).toBeGreaterThanOrEqual(4);
+    for (const t of deMono) {
+      expect(`${t.slice(0, 12)} en el frente: ${delFrente.includes(t)}`).toBe(`${t.slice(0, 12)} en el frente: true`);
+    }
+  });
+
+  test("el splash es del pórtico sobre sepia, no la X azul sobre blanco", () => {
+    // los PNG no se pueden leer como texto: se mira el tamaño y que exista el
+    // splash de Android 12+, que es el que manda en móviles nuevos
+    expect(existsSync(join(RAIZ, "android/app/src/main/res/values-v31/styles.xml"))).toBe(true);
+    const v31 = leer("android/app/src/main/res/values-v31/styles.xml");
+    expect(v31).toContain("windowSplashScreenBackground");
+    expect(v31).toContain("@drawable/ic_launcher_foreground");
+  });
+});

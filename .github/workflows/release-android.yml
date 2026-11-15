@@ -41,13 +41,13 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -182,8 +182,21 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "Athena-v${VERSION}.apk"
           echo "APK: Athena-v${VERSION}.apk"
 
+      # El icono del launcher no se comprueba desde aquí a propósito.
+      #
+      # Se intentó dos veces y las dos el paso mentía: AGP renombra y acorta
+      # las rutas de los recursos en release, así que buscar archivos dentro
+      # del APK por su nombre en el árbol de fuentes da «falta» cuando sí
+      # están, y leer la tabla de recursos depende del SDK del runner.
+      #
+      # La garantía real es el enlazador: `mipmap-*/ic_launcher_foreground.png`
+      # estaba borrado del proyecto y ningún XML lo referencia, así que si
+      # alguien vuelve a apuntar el icono a `@mipmap/ic_launcher_foreground`
+      # **la compilación falla** en aapt2. Lo cumple el compilador, sin script
+      # que mantener ni heurísticas sobre nombres de archivo.
+
       - name: Subir APK como artifact del run
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Athena-apk
           path: Athena-v*.apk

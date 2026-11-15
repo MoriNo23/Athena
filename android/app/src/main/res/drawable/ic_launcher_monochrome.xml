@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Capa monocroma del icono (Android 13+, iconos con el tema del sistema).
+  El launcher la trata como una silueta y la tiñe con el color del fondo de
+  pantalla, así que aquí SOLO importa la forma: una única tinta y nada de
+  detalle fino que se pierda a tamaño de launcher.
+
+  Por eso no lleva tímpano: en el icono a color el tímpano contrasta con el
+  frontón, pero aquí sería blanco sobre blanco y desaparecería. Quedan las
+  cuatro piezas que sí leen como templo: frontón, entablamento, columnas y
+  estilóbato, con la misma geometría que ic_launcher_foreground.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- frontón -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,31.32 L82.8,48.6 L25.2,48.6 Z" />
+    <!-- entablamento -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M23.76,48.6 L84.24,48.6 L84.24,52.92 L23.76,52.92 Z" />
+    <!-- columnas -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M29.52,52.92 L33.84,52.92 L33.84,70.2 L29.52,70.2 Z M42.48,52.92 L46.8,52.92 L46.8,70.2 L42.48,70.2 Z M61.2,52.92 L65.52,52.92 L65.52,70.2 L61.2,70.2 Z M74.16,52.92 L78.48,52.92 L78.48,70.2 L74.16,70.2 Z" />
+    <!-- estilóbato: dos gradas -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20.88,70.2 L87.12,70.2 L87.12,73.08 L20.88,73.08 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,73.08 L90,73.08 L90,76.68 L18,76.68 Z" />
+</vector>

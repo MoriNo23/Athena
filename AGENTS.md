@@ -74,6 +74,39 @@ que te devuelven a leer hoy.
   (Android considera que es la misma versión, o una regresión). Regla: cambio
   que merezca release → sube el parche (`2.1.0` → `2.1.1`) en el mismo PR.
   `versionCode` = mayor·100000 + menor·1000 + parche·10, así que 201010 > 201000.
+
+  **El icono del launcher tiene cuatro piezas y hay que tocar las cuatro.**
+  Este repositorio ya perdió dos rondas cambiando solo una: el fondo del icono
+  pasó a sepia, el vector del pórtico se dibujó… y el móvil seguía enseñando
+  la X azul de Capacitor, porque `mipmap-anydpi-v26/ic_launcher.xml` apuntaba
+  al PNG de la plantilla y nadie referenciaba el vector.
+
+  | Pieza | Archivo | Quién lo usa |
+  | --- | --- | --- |
+  | Icono adaptativo | `mipmap-anydpi-v26/ic_launcher{,_round}.xml` | Android 8+ (casi todo móvil) |
+  | Capa de color | `drawable/ic_launcher_foreground.xml` (vector) | el adaptativo |
+  | Capa monocroma | `drawable/ic_launcher_monochrome.xml` | iconos con tema, Android 13+ |
+  | PNG heredados | `mipmap-*/ic_launcher{,_round}.png` | Android 7 e inferiores |
+
+  Reglas: el adaptativo apunta a `@drawable/`, **nunca** a `@mipmap/`, para el
+  frente; el vector y los PNG llevan la **misma geometría** (vector: escala
+  0,36 sobre el arte de 200×126 → 72 dp de ancho, que es la zona segura;
+  PNG: arte a `72·densidad` px, centrado en el lienzo de 108 dp); el splash
+  es `drawable*/splash.png` **y** `values-v31/styles.xml` (Android 12+ ya no
+  usa el PNG). `tests/mobile-packaging.test.ts` vigila las referencias, la
+  capa monocroma y que no queden restos de la plantilla de Capacitor.
+
+  **Los PNG `mipmap-*/ic_launcher_foreground.png` no se vuelven a añadir.**
+  Fuera del proyecto, si alguien escribe `@mipmap/ic_launcher_foreground` en
+  el icono adaptativo el enlace de recursos falla y se ve en el PR. Con los
+  PNG presentes, compila tan tranquilo y el móvil vuelve a la X de Capacitor.
+
+  **No se comprueba el icono abriendo el APK en el CI.** Se intentó y el paso
+  mentía: AGP renombra y acorta las rutas de los recursos en release, así que
+  buscar archivos por su nombre en el árbol de fuentes da falsos «falta», y
+  leer la tabla de recursos depende del SDK del runner. La garantía es el
+  enlazador, más los tests del árbol de fuentes. Para mirar dentro de un APK
+  concreto: `unzip -l Athena-v*.apk | grep ic_launcher`.
 - `db/` y `public/uploads/` — estado real de la biblioteca en modo legacy
   (dentro del repo). Jamás se commitean. Con `ATHENA_HOME` (default
   `~/.local/share/athena`) los datos viven FUERA del repo.

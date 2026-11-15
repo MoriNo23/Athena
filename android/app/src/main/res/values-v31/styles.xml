@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Splash de Android 12+ (API 31). Desde Android 12 el sistema dibuja SU splash
+  con atributos propios y ya no usa el PNG de `drawable*/splash.png`; si no se
+  declaran, el sistema pone el fondo del tema y el icono del launcher, que
+  puede no coincidir. Aquí se fija el sepia de la casa y el pórtico, para que
+  la transición al WebView (también sepia, ver styles.xml) sea continua.
+
+  `windowSplashScreenAnimatedIcon` espera un drawable con la zona segura del
+  icono adaptativo: se usa el mismo vector del launcher.
+-->
+<resources>
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="android:windowSplashScreenBackground">@color/athena_ventana</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:background">@color/athena_ventana</item>
+        <!-- tras el splash, el tema de la app: sin esto se queda el del sistema -->
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>
+</resources>
