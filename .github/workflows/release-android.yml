@@ -129,6 +129,39 @@ jobs:
             | grep -vE '^[[:space:]]*$' | awk '!s[$0]++' | head -n 10 \
             | while IFS= read -r l; do emitir "$l"; done
 
+      - name: Diagnóstico de los tests de JVM (solo si fallaron)
+        # Los logs crudos de Actions no se pueden bajar por API (redirigen a
+        # otro host); las anotaciones «::error::» sí se leen. Este paso publica
+        # QUÉ test JUnit falló y con qué mensaje, o —si ni llegaron a
+        # ejecutarse— el bloque de error de Gradle. Sin esto, un fallo de la
+        # lógica del atrás parece un fallo de Gradle cualquiera.
+        if: failure()
+        run: |
+          INFORME=$(find android/app/build/test-results -name "*.xml" 2>/dev/null | head -1)
+          if [ -n "$INFORME" ]; then
+            awk 'BEGIN{RS="<testcase"} NR>1 {
+                   nombre=""; mensaje="";
+                   if (match($0, /name="[^"]*"/)) { nombre=substr($0, RSTART+6, RLENGTH-7) }
+                   if (match($0, /<failure[^>]*message="[^"]*"/)) {
+                     mensaje=substr($0, RSTART, RLENGTH);
+                     sub(/.*message="/, "", mensaje); sub(/"$/, "", mensaje);
+                   }
+                   if (mensaje != "") printf "::error::JUnit · %s → %s\n", nombre, substr(mensaje, 1, 200);
+                 }' "$INFORME"
+            exit 0
+          fi
+          # el paso de tests hace `cd android`, así que el log queda ahí dentro
+          LOG=""
+          for c in android/gradle-unit.log gradle-unit.log; do
+            [ -f "$c" ] && LOG="$c" && break
+          done
+          echo "::error::Los tests de JVM no llegaron a ejecutarse (log: ${LOG:-no encontrado})."
+          if [ -n "$LOG" ]; then
+            awk '/What went wrong/{f=1} /Get more help|^Try:/{f=0} f' "$LOG" \
+              | grep -vE '^[[:space:]]*$' | head -n 12 \
+              | while IFS= read -r l; do echo "::error::$l"; done
+          fi
+
       - name: Renombrar APK con la versión
         run: |
           VERSION=$(bun -e "console.log(require('./package.json').version)")
