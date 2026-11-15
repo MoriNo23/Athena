@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n";
+import { AthenaPortico } from "@/components/brand/AthenaPortico";
 
 /**
  * Formulario de la puerta real /login (era LockGate del change auth-api):
@@ -40,6 +41,7 @@ export function LoginForm({ destino }: { destino: string }) {
   return (
     <main className="h-dvh grid place-items-center px-6">
       <div className="brutal-flat bg-card/40 px-6 py-14 text-center animate-fade-up w-full max-w-md">
+        <AthenaPortico className="mx-auto mb-3 h-16 w-auto text-primary" />
         <p className="font-display text-3xl font-medium tracking-tight">Athena</p>
         <h2 className="font-display text-2xl font-medium mt-4">{t("lib.lockTitle")}</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">

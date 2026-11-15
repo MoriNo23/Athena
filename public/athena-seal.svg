@@ -1,12 +1,22 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="10" fill="#0f1624"/>
-  <rect x="6" y="6" width="52" height="52" stroke="#74a6d8" stroke-width="2.6"/>
-  <rect x="21" y="15" width="22" height="3.6" stroke="#74a6d8" stroke-width="2.4"/>
-  <line x1="24" y1="22.5" x2="40" y2="22.5" stroke="#74a6d8" stroke-width="2.4"/>
-  <line x1="26.5" y1="22.5" x2="26.5" y2="41.5" stroke="#74a6d8" stroke-width="2.4"/>
-  <line x1="32" y1="22.5" x2="32" y2="41.5" stroke="#74a6d8" stroke-width="2.4"/>
-  <line x1="37.5" y1="22.5" x2="37.5" y2="41.5" stroke="#74a6d8" stroke-width="2.4"/>
-  <line x1="24" y1="45.5" x2="40" y2="45.5" stroke="#74a6d8" stroke-width="2.4"/>
-  <line x1="18" y1="50.5" x2="46" y2="50.5" stroke="#74a6d8" stroke-width="2.4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Athena">
+  <!--
+    Favicon del navegador. El mismo pórtico de public/brand/athena-icon.svg,
+    pero con las formas reducidas a lo que sobrevive a 16 px: el frontón, el
+    friso y el estilóbato se convierten en tres trazos, y las cuatro columnas
+    en cuatro líneas. Un dibujo detallado a este tamaño solo deja manchas.
+  -->
+  <rect width="64" height="64" rx="10" fill="#211D16"/>
+  <g stroke="#E0A94E" stroke-width="3.2" stroke-linecap="square" fill="none">
+    <!-- frontón -->
+    <path d="M14 25 L32 13 L50 25" stroke-linejoin="miter"/>
+    <!-- friso -->
+    <line x1="13" y1="30" x2="51" y2="30"/>
+    <!-- columnas -->
+    <line x1="19" y1="36" x2="19" y2="48"/>
+    <line x1="27.6" y1="36" x2="27.6" y2="48"/>
+    <line x1="36.3" y1="36" x2="36.3" y2="48"/>
+    <line x1="45" y1="36" x2="45" y2="48"/>
+    <!-- estilóbato -->
+    <line x1="14" y1="52" x2="50" y2="52"/>
+  </g>
 </svg>

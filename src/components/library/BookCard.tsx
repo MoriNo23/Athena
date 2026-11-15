@@ -57,7 +57,7 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
 
   return (
     <article
-      className="brutal brutal-hover group flex gap-5 bg-card p-5 animate-fade-up"
+      className="brutal brutal-hover papel-ficha group flex gap-5 bg-card p-5 animate-fade-up"
       style={style}
     >
       <button

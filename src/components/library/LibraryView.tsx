@@ -39,30 +39,10 @@ import {
   UploadCloud,
 } from "lucide-react";
 import type { BookDTO } from "@/core/types";
+import { AthenaSello } from "@/components/brand/AthenaPortico";
 
 export type { BookWithSessions } from "@/hooks/use-library-books";
 import type { BookWithSessions } from "@/hooks/use-library-books";
-
-/** Sello de Athena: columna dórica geométrica en marco cuadrado.
-    Minimalista y brutalista — piedra, no caricatura. */
-function AthenaSeal({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" fill="none" className={className} aria-hidden>
-      {/* marco del sello */}
-      <rect x="6" y="6" width="52" height="52" stroke="currentColor" strokeWidth="2.6" />
-      {/* capitel: ábaco + equino */}
-      <rect x="21" y="15" width="22" height="3.6" stroke="currentColor" strokeWidth="2.2" />
-      <line x1="24" y1="22.5" x2="40" y2="22.5" stroke="currentColor" strokeWidth="2.2" />
-      {/* fuste con tres estrías */}
-      <line x1="26.5" y1="22.5" x2="26.5" y2="41.5" stroke="currentColor" strokeWidth="2.2" />
-      <line x1="32" y1="22.5" x2="32" y2="41.5" stroke="currentColor" strokeWidth="2.2" />
-      <line x1="37.5" y1="22.5" x2="37.5" y2="41.5" stroke="currentColor" strokeWidth="2.2" />
-      {/* basa y estilóbato */}
-      <line x1="24" y1="45.5" x2="40" y2="45.5" stroke="currentColor" strokeWidth="2.2" />
-      <line x1="18" y1="50.5" x2="46" y2="50.5" stroke="currentColor" strokeWidth="2.2" />
-    </svg>
-  );
-}
 
 interface LibraryViewProps {
   /** abre el lector: las tarjetas siempre pasan el libro CON sus sesiones */
@@ -274,7 +254,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
   };
 
   return (
-    <div className="chrome-safe-top mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-8">
+    <div className="papel-cuaderno chrome-safe-top mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-8">
       {/* ---- Hero de Atenea ---- */}
       {/* Móvil: identidad a todo lo ancho (sello menor, subtítulo a 2 líneas)
           y las acciones vuelan a su propia fila; en el hero ya no hay icono
@@ -282,7 +262,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
       <header className="athena-hero mb-5 animate-fade-up px-5 py-6 sm:mb-8 sm:px-8 sm:py-7">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-56 flex-1 items-center gap-4 sm:gap-5">
-            <AthenaSeal className="seal-glow h-12 w-12 shrink-0 text-primary sm:h-16 sm:w-16" />
+            <AthenaSello className="seal-glow h-12 w-12 shrink-0 text-primary sm:h-16 sm:w-16" />
             <div className="min-w-0">
               <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Athena</h1>
               <p className="mt-1 max-w-xl text-sm text-muted-foreground line-clamp-2 sm:line-clamp-none">

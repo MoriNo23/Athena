@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 244" role="img" aria-label="Athena">
+  <!--
+    Pórtico Ateniense · isotipo de Athena.
+    Geometría heredada del diseño «Pórtico Clásico» (frontón, friso, cuatro
+    columnas dóricas con estrías, estilóbato escalonado), traducida a la
+    paleta de la casa: tinta sepia, bronce y mármol cálido. Sin filtros ni
+    degradados: solo formas planas, para que se vea igual a 16 px (favicon)
+    que a 512 px, y para que la rasterización del launcher no sorprenda.
+    Si tocas las coordenadas, toca también athena-wordmark.svg: comparten el
+    mismo pórtico y deben seguir pareciendo el mismo dibujo.
+  -->
+  <g transform="translate(0 37)">
+    <!-- 1 · frontón -->
+    <polygon points="120,20 200,68 40,68" fill="#B58A3A" stroke="#2A231A" stroke-width="3.5" stroke-linejoin="round"/>
+    <!-- tímpano -->
+    <polygon points="120,33 148,58 92,58" fill="#E0A94E" stroke="#2A231A" stroke-width="2.5" stroke-linejoin="round"/>
+
+    <!-- 2 · entablamento, con las tres metopas -->
+    <rect x="36" y="68" width="168" height="12" fill="#F1EEE6" stroke="#2A231A" stroke-width="3.5"/>
+    <rect x="64" y="68" width="8" height="12" fill="#E0A94E"/>
+    <rect x="116" y="68" width="8" height="12" fill="#E0A94E"/>
+    <rect x="168" y="68" width="8" height="12" fill="#E0A94E"/>
+
+    <!-- 3 · cuatro columnas, cada una con su estría -->
+    <g fill="#F1EEE6" stroke="#2A231A" stroke-width="3">
+      <rect x="52" y="80" width="12" height="48"/>
+      <rect x="88" y="80" width="12" height="48"/>
+      <rect x="140" y="80" width="12" height="48"/>
+      <rect x="176" y="80" width="12" height="48"/>
+    </g>
+    <g stroke="#2A231A" stroke-width="2">
+      <line x1="58" y1="80" x2="58" y2="128"/>
+      <line x1="94" y1="80" x2="94" y2="128"/>
+      <line x1="146" y1="80" x2="146" y2="128"/>
+      <line x1="182" y1="80" x2="182" y2="128"/>
+    </g>
+
+    <!-- 4 · estilóbato de dos gradas -->
+    <rect x="28" y="128" width="184" height="8" fill="#F1EEE6" stroke="#2A231A" stroke-width="3.5"/>
+    <rect x="20" y="136" width="200" height="10" fill="#E0A94E" stroke="#2A231A" stroke-width="3.5"/>
+  </g>
+</svg>

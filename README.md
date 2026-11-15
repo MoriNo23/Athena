@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/brand/athena-wordmark.svg" alt="ATHENA" height="72" />
+<img src="public/brand/athena-wordmark.svg" alt="ATHENA" height="120" />
 
 ### Finish your books.
 

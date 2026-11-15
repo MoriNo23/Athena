@@ -300,7 +300,7 @@ body.gesture-lock * {
   100% { background-position: 200% 0; }
 }
 .shimmer {
-  background: linear-gradient(100deg, transparent 30%, oklch(0.66 0.03 250 / 9%) 50%, transparent 70%);
+  background: linear-gradient(100deg, transparent 30%, oklch(0.72 0.03 80 / 11%) 50%, transparent 70%);
   background-size: 200% 100%;
   animation: shimmer 1.6s linear infinite;
 }
@@ -310,7 +310,7 @@ body.gesture-lock * {
   box-shadow:
     0 1px 2px oklch(0 0 0 / 0.5),
     0 12px 40px oklch(0 0 0 / 0.45),
-    0 0 0 1px oklch(0.85 0.03 250 / 7%);
+    0 0 0 1px oklch(0.86 0.03 82 / 8%);
 }
 
 /* ---------- Capa de texto seleccionable de pdf.js (adaptada de pdf_viewer.css) ---------- */
@@ -355,7 +355,7 @@ body.gesture-lock * {
   display: contents;
 }
 .textLayer ::selection {
-  background: oklch(0.55 0.15 250 / 0.35);
+  background: oklch(0.62 0.13 75 / 0.35);
 }
 .textLayer .endOfContent {
   display: block;
@@ -393,10 +393,10 @@ body.gesture-lock * {
   overflow: hidden;
 }
 .ocrLayer span:hover {
-  background: oklch(0.55 0.15 250 / 0.12);
+  background: oklch(0.62 0.13 75 / 0.12);
 }
 .ocrLayer ::selection {
-  background: oklch(0.55 0.15 250 / 0.4);
+  background: oklch(0.62 0.13 75 / 0.4);
 }
 
 /* ---------- Candado de spoilers (notas / fichas futuras) ---------- */
@@ -480,8 +480,8 @@ body.gesture-lock * {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(120% 90% at 50% 8%, transparent 42%, oklch(0.145 0.045 253 / 0.55) 100%),
-    linear-gradient(180deg, oklch(0.145 0.045 253 / 0.42) 0%, transparent 28%, transparent 62%, oklch(0.145 0.045 253 / 0.66) 100%);
+    radial-gradient(120% 90% at 50% 8%, transparent 42%, oklch(0.16 0.014 72 / 0.55) 100%),
+    linear-gradient(180deg, oklch(0.16 0.014 72 / 0.42) 0%, transparent 28%, transparent 62%, oklch(0.16 0.014 72 / 0.66) 100%);
 }
 /* En la mañana clara la piedra se vuelve recuerdo: casi invisible, azul pálido */
 html:not(.dark) .athena-capa2__fachada {
@@ -494,9 +494,99 @@ html:not(.dark) .athena-capa2__busto {
 }
 html:not(.dark) .athena-capa2__vignette {
   background:
-    radial-gradient(120% 90% at 50% 8%, transparent 46%, oklch(0.965 0.018 235 / 0.5) 100%),
-    linear-gradient(180deg, oklch(0.965 0.018 235 / 0.4) 0%, transparent 30%, transparent 64%, oklch(0.965 0.018 235 / 0.55) 100%);
+    radial-gradient(120% 90% at 50% 8%, transparent 46%, oklch(0.955 0.014 82 / 0.5) 100%),
+    linear-gradient(180deg, oklch(0.955 0.014 82 / 0.4) 0%, transparent 30%, transparent 64%, oklch(0.955 0.014 82 / 0.55) 100%);
 }
+/* ---------- Papel: la app como un libro bien hecho ---------- */
+/* Dos texturas, cada una en su sitio. Ambas son CSS puro (gradientes
+   repetidos, ni una imagen): cero peso en el APK y cero peticiones.
+
+   REGLA DE ORO: las dos viven en capas `::before` con z-index negativo y
+   `pointer-events: none`. La textura NO puede tocar el contraste del texto:
+   se dibuja siempre por debajo de cualquier superficie (tarjetas, papeles,
+   paneles), y su intensidad está pensada para leerse como grano de papel, no
+   como dibujo. Si algún día sube la opacidad, hay que volver a pasar
+   scripts/audit-reader-contrast.py. */
+
+/* · cuaderno: la biblioteca. Rejilla de puntos tenue — el aire de un cuaderno
+     técnico, no una hoja rayada, para no competir con las portadas. */
+.papel-cuaderno {
+  position: relative;
+  isolation: isolate;
+}
+.papel-cuaderno::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--foreground) 13%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  background-position: 0 0;
+  /* desvanece hacia abajo: el papel no es infinito, la página sí */
+  mask-image: linear-gradient(180deg, oklch(0 0 0 / 0.9) 0%, oklch(0 0 0 / 0.35) 60%, transparent 100%);
+}
+html:not(.dark) .papel-cuaderno::before {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--foreground) 18%, transparent) 1px,
+    transparent 1px
+  );
+}
+
+/* · pergamino: el lector. Fibra cálida + viñeta de hoja antigua.
+     Muy leve: el texto del libro se lee ENCIMA. */
+.papel-pergamino {
+  position: relative;
+  isolation: isolate;
+}
+.papel-pergamino::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    /* fibra: dos tramas finísimas cruzadas */
+    repeating-linear-gradient(
+      92deg,
+      color-mix(in oklab, var(--reader-ink) 3.5%, transparent) 0 1px,
+      transparent 1px 5px
+    ),
+    repeating-linear-gradient(
+      2deg,
+      color-mix(in oklab, var(--reader-ink) 2.5%, transparent) 0 1px,
+      transparent 1px 7px
+    ),
+    /* viñeta: el borde de la hoja se tuesta un pelo */
+    radial-gradient(
+      130% 100% at 50% 45%,
+      transparent 55%,
+      color-mix(in oklab, var(--reader-ink) 7%, transparent) 100%
+    );
+}
+/* En la noche la fibra no se ve: el papel cálido solo existe de día. Ahí la
+   textura se queda en la viñeta, que sí aporta profundidad. */
+.dark .papel-pergamino::before {
+  background-image: radial-gradient(
+    130% 100% at 50% 45%,
+    transparent 55%,
+    oklch(0 0 0 / 22%) 100%
+  );
+}
+
+/* · tarjetas de libro: el dorso del papel, con su grano de trama */
+.papel-ficha {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--foreground) 2.5%, transparent) 0 1px,
+      transparent 1px 4px
+    );
+}
+
 /* ---------- Hero de Atenea (biblioteca) ---------- */
 .athena-hero {
   position: relative;
@@ -504,22 +594,22 @@ html:not(.dark) .athena-capa2__vignette {
   border-radius: 0;
   border: 2px solid var(--ink);
   background:
-    radial-gradient(900px 380px at 85% -20%, oklch(0.66 0.14 246 / 16%), transparent 60%),
-    radial-gradient(600px 300px at 0% 120%, oklch(0.72 0.12 220 / 9%), transparent 55%),
+    radial-gradient(900px 380px at 85% -20%, oklch(0.72 0.12 78 / 16%), transparent 60%),
+    radial-gradient(600px 300px at 0% 120%, oklch(0.78 0.1 70 / 9%), transparent 55%),
     var(--card);
   box-shadow: var(--brutal-shadow-lg);
 }
 html:not(.dark) .athena-hero {
   background:
-    radial-gradient(900px 380px at 85% -20%, oklch(0.85 0.06 240 / 45%), transparent 60%),
-    radial-gradient(600px 300px at 0% 120%, oklch(0.88 0.05 230 / 32%), transparent 55%),
+    radial-gradient(900px 380px at 85% -20%, oklch(0.86 0.07 80 / 45%), transparent 60%),
+    radial-gradient(600px 300px at 0% 120%, oklch(0.89 0.05 72 / 32%), transparent 55%),
     var(--card);
 }
 .athena-hero .seal-glow {
-  filter: drop-shadow(0 0 22px oklch(0.66 0.14 246 / 45%));
+  filter: drop-shadow(0 0 22px oklch(0.72 0.12 78 / 45%));
 }
 html:not(.dark) .athena-hero .seal-glow {
-  filter: drop-shadow(0 0 18px oklch(0.55 0.155 250 / 38%));
+  filter: drop-shadow(0 0 18px oklch(0.6 0.13 75 / 38%));
 }
 
 /* ---------- Teleprompter ---------- */
