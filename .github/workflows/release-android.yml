@@ -85,6 +85,28 @@ jobs:
           chmod +x gradlew
           ./gradlew testDebugUnitTest --no-daemon --stacktrace
 
+      - name: Diagnóstico de los tests de JVM (solo si falló)
+        if: failure()
+        run: |
+          # Mismo motivo que el diagnóstico de Gradle: los logs crudos de
+          # Actions no se pueden bajar por API, las anotaciones sí. Aquí se
+          # publica QUÉ test falló y con qué mensaje.
+          INFORME=$(find android/app/build/test-results -name "*.xml" 2>/dev/null | head -1)
+          if [ -z "$INFORME" ]; then
+            echo "::error::No hay informe de tests de JVM: el fallo fue al compilar los tests, no al ejecutarlos."
+            exit 0
+          fi
+          # una línea por cada <testcase> con <failure>
+          awk 'BEGIN{RS="<testcase"} NR>1 {
+                 nombre=""; mensaje="";
+                 if (match($0, /name="[^"]*"/)) { nombre=substr($0, RSTART+6, RLENGTH-7) }
+                 if (match($0, /<failure[^>]*message="[^"]*"/)) {
+                   mensaje=substr($0, RSTART, RLENGTH);
+                   sub(/.*message="/, "", mensaje); sub(/"$/, "", mensaje);
+                 }
+                 if (mensaje != "") printf "::error::JUnit · %s → %s\n", nombre, substr(mensaje, 1, 220);
+               }' "$INFORME"
+
       - name: Compilar APK release
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
