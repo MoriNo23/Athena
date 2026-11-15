@@ -194,3 +194,47 @@ describe("empaquetado móvil · el blanco del borde no vuelve", () => {
     expect(act.toUpperCase()).toContain(SEPIA.toUpperCase());
   });
 });
+
+/**
+ * El atrás que sacaba de la app.
+ *
+ * `evaluateJavascript` entrega JSON, no texto: una cadena JS '1' vuelve como
+ * "\"1\"". La primera versión comparaba con "1".equals(valor), que es siempre
+ * falso, así que el atrás cerraba la app en TODOS los casos aunque el código
+ * de la web fuese correcto. El bug es invisible en revisión: el nativo
+ * "pregunta a la web y la web dice que sí". Este test fija el contrato.
+ */
+describe("empaquetado móvil · el atrás pregunta de verdad", () => {
+  // sin comentarios: el propio fichero explica el bug antiguo citándolo, y un
+  // test que se lee las explicaciones se dispara solo
+  const act = leer("android/app/src/main/java/com/morino23/athena/MainActivity.java")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+
+  test("la consulta devuelve un booleano, no una cadena", () => {
+    // una cadena llega envuelta en comillas por evaluateJavascript
+    const consulta = act.replace(/\s+/g, " ").match(/CONSULTA_ATRAS = "([^"]+)"/);
+    expect(consulta).not.toBeNull();
+    expect(consulta![1]).toContain("=== true;");
+    expect(consulta![1]).not.toContain("? '1':'0'");
+  });
+
+  test("la respuesta se compara aceptando JSON y texto pelado", () => {
+    // "1".equals(valor) fue el bug; debe leerse como JSON
+    expect(act).toContain('limpio.equals("true")');
+    expect(act).toContain('limpio.equals("\\"true\\"")');
+    expect(act).not.toMatch(/"1"\.equals\(\s*valor\s*\)/);
+  });
+
+  test("la salida es explícita: si la web consume el gesto, no se llama a finish", () => {
+    const cuerpo = act.slice(act.indexOf("private void delegarAtras"));
+    expect(cuerpo).toContain("boolean consumido = esCierto(valor);");
+    expect(cuerpo).toContain("if (!consumido)");
+    expect(cuerpo).toContain("finish();");
+  });
+
+  test("deja rastro en logcat (un atrás que falla no puede ser silencioso)", () => {
+    expect(act).toContain('TAG = "AthenaAtras"');
+    expect(act).toContain("Log.i(TAG");
+  });
+});
