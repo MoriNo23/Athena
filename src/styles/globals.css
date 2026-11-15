@@ -1001,6 +1001,13 @@ html:not(.dark) .athena-hero .seal-glow {
 .peek-hotzone {
   /* invisible por sí misma; solo recoge el gesto y muestra la pista */
   touch-action: none;
+  /* Por ENCIMA de la zona de gestos de Android. `bottom-0` (Tailwind) deja la
+     franja de 20-24 px pegada al borde, que es justo el área del gesto de
+     inicio; con `android.adjustMarginsForEdgeToEdge: "auto"` el WebView ya
+     queda inserto y esta env() vale 0, y en el caso de que un dispositivo no
+     aplique el margen, la env() la levanta fuera del área del sistema. La
+     regla es sin capa y por tanto gana a la utilidad de Tailwind. */
+  bottom: env(safe-area-inset-bottom, 0px);
 }
 .peek-hotzone:hover .peek-hint {
   opacity: 1;

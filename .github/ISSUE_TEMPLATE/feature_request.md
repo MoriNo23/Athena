@@ -12,6 +12,6 @@ labels: enhancement
 
 ## Alternatives considered
 
-## PRODUCT.md check
+## Reglas de la casa (local-first)
 
 - [ ] This does not require accounts, cloud or telemetry

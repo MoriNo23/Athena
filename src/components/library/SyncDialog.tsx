@@ -46,8 +46,8 @@ function baseSana(bruta: string): string | null {
 }
 
 /**
- * Copia de la casa (Enmienda 1 de PRODUCT.md): sincronización a mano entre el
- * APK y el servidor de la dueña por la red de casa. Dos botones, ninguna
+ * Copia de la casa (sincronización a mano, sin automatizar): sincronización a
+ * mano entre el APK y el servidor de la dueña por la red de casa. Dos botones, ninguna
  * automatización: «el ordenador manda» (traer) o «el móvil manda» (enviar).
  * Solo existe en la build del APK — en self-host el servidor ES la biblioteca.
  */

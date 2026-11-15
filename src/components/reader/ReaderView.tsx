@@ -882,7 +882,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
 
       {/* Zona caliente inferior: presionar + arrastrar hacia arriba = hojear páginas */}
       <div
-        className="peek-hotzone fixed inset-x-0 bottom-0 z-40 h-5 select-none"
+        className="peek-hotzone fixed inset-x-0 bottom-0 z-40 h-6 select-none"
         onPointerDown={peek.onPeekDown}
         onPointerMove={peek.onPeekMove}
         onPointerUp={peek.onPeekUp}
