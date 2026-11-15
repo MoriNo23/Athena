@@ -23,8 +23,9 @@ import com.getcapacitor.BridgeActivity;
  * 1. `evaluateJavascript` devuelve JSON, no texto. Una cadena JS '1' llega
  *    como "\"1\"" (con comillas). Comparar con "1".equals(valor) siempre daba
  *    falso y el atrás salía de la app en TODOS los casos — el bug seguía vivo
- *    con el código correcto en la web. Se devuelve un booleano y se acepta
- *    tanto JSON (lo normal) como el texto pelado (por si cambia el transporte).
+ *    con el código correcto en la web. La lectura correcta vive en
+ *    `RespuestaWeb.esCierto()`, que tiene su propio test de JVM
+ *    (app/src/test/.../RespuestaWebTest.java) y corre en el CI.
  *
  * 2. `finish()` se llama a mano: como el callback está habilitado, el sistema
  *    ya no cierra la actividad por su cuenta y la salida tiene que ser
@@ -82,7 +83,7 @@ public class MainActivity extends BridgeActivity {
             valor -> {
                 // La web consumió el gesto (true) o no queda nada por cerrar
                 // (false): solo en el segundo caso se sale de la app.
-                boolean consumido = esCierto(valor);
+                boolean consumido = RespuestaWeb.esCierto(valor);
                 Log.i(TAG, "la web devolvió [" + valor + "] → " + (consumido ? "lo cierro yo" : "salgo de la app"));
                 if (!consumido) {
                     finish();
@@ -91,13 +92,4 @@ public class MainActivity extends BridgeActivity {
         );
     }
 
-    /**
-     * `evaluateJavascript` entrega JSON: true llega como "true", y una cadena
-     * llegaría entre comillas. Se aceptan las dos formas.
-     */
-    private static boolean esCierto(String valor) {
-        if (valor == null) return false;
-        String limpio = valor.trim();
-        return limpio.equals("true") || limpio.equals("\"true\"") || limpio.equals("1") || limpio.equals("\"1\"");
-    }
 }

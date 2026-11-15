@@ -219,16 +219,15 @@ describe("empaquetado móvil · el atrás pregunta de verdad", () => {
     expect(consulta![1]).not.toContain("? '1':'0'");
   });
 
-  test("la respuesta se compara aceptando JSON y texto pelado", () => {
-    // "1".equals(valor) fue el bug; debe leerse como JSON
-    expect(act).toContain('limpio.equals("true")');
-    expect(act).toContain('limpio.equals("\\"true\\"")');
-    expect(act).not.toMatch(/"1"\.equals\(\s*valor\s*\)/);
+  test("la respuesta se lee con la lógica probada, no con un equals suelto", () => {
+    expect(act).toContain("RespuestaWeb.esCierto(valor)");
+    // "1".equals(valor) fue el bug; no puede volver
+    expect(act).not.toContain('"1".equals(valor)');
   });
 
   test("la salida es explícita: si la web consume el gesto, no se llama a finish", () => {
     const cuerpo = act.slice(act.indexOf("private void delegarAtras"));
-    expect(cuerpo).toContain("boolean consumido = esCierto(valor);");
+    expect(cuerpo).toContain("boolean consumido = RespuestaWeb.esCierto(valor);");
     expect(cuerpo).toContain("if (!consumido)");
     expect(cuerpo).toContain("finish();");
   });
@@ -236,5 +235,56 @@ describe("empaquetado móvil · el atrás pregunta de verdad", () => {
   test("deja rastro en logcat (un atrás que falla no puede ser silencioso)", () => {
     expect(act).toContain('TAG = "AthenaAtras"');
     expect(act).toContain("Log.i(TAG");
+  });
+});
+
+/**
+ * El atrás, probado en Java de verdad.
+ *
+ * El bug original (`"1".equals(valor)` contra lo que evaluateJavascript
+ * entrega) era lógica, no configuración: un test que lee el fichero con un
+ * grep no lo habría cazado. La lógica vive ahora en RespuestaWeb, con un test
+ * JUnit que corre en la JVM (sin emulador) y que el CI ejecuta ANTES de
+ * compilar el APK. Aquí se vigila que las tres piezas sigan conectadas.
+ */
+describe("empaquetado móvil · el atrás tiene test ejecutable", () => {
+  // sin comentarios: las explicaciones citan el código roto a propósito
+  const main = leer("android/app/src/main/java/com/morino23/athena/MainActivity.java")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+  const logica = leer("android/app/src/main/java/com/morino23/athena/RespuestaWeb.java");
+  const junit = leer("android/app/src/test/java/com/morino23/athena/RespuestaWebTest.java");
+  const workflow = leer(".github/workflows/release-android.yml");
+
+  test("la actividad usa la lógica probada, no una comparación suelta", () => {
+    expect(main).toContain("RespuestaWeb.esCierto(valor)");
+    // la comparación rota no puede volver
+    expect(main).not.toContain('"1".equals(valor)');
+  });
+
+  test("el test JUnit cubre las cadenas reales de evaluateJavascript", () => {
+    // true → "true" | '1' → "\"1\"" | null → "null" | undefined → null Java
+    expect(junit).toContain('esCierto("true")');
+    expect(junit).toContain('esCierto("\\"1\\"")');
+    expect(junit).toContain('esCierto("null")');
+    expect(junit).toContain("esCierto(null)");
+  });
+
+  test("el CI ejecuta los tests de JVM antes de compilar el APK", () => {
+    // el COMANDO, no la mención: la cabecera del workflow ya nombra
+    // assembleRelease en un comentario
+    const tests = workflow.indexOf("./gradlew testDebugUnitTest");
+    const build = workflow.indexOf("./gradlew assembleRelease");
+    expect(tests).toBeGreaterThan(-1);
+    expect(build).toBeGreaterThan(-1);
+    // el test va ANTES: un APK que cierra la app no debe llegar a publicarse
+    expect(tests).toBeLessThan(build);
+  });
+
+  test("la lógica no depende de org.json (en tests de JVM son stubs)", () => {
+    // `Method not mocked`: android.jar en los unit tests no trae implementación
+    const codigo = logica.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    expect(codigo).not.toContain("org.json");
+    expect(codigo).not.toContain("JSONTokener");
   });
 });

@@ -71,6 +71,16 @@ jobs:
           fi
           echo "✓ Los cuatro secretos de firma están presentes"
 
+      - name: Tests de lógica nativa (JVM, sin emulador)
+        run: |
+          # La lógica del atrás (RespuestaWeb) tiene su test JUnit: corre en la
+          # JVM y comprueba las cadenas que evaluateJavascript entrega de
+          # verdad. Va ANTES de compilar para que un APK que cierra la app al
+          # deslizar atrás no llegue a publicarse.
+          cd android
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
       - name: Compilar APK release
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
