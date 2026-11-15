@@ -71,6 +71,14 @@ describe("empaquetado móvil · firma", () => {
     expect(gradle).toContain("ANDROID_KEY_ALIAS");
     expect(gradle).toContain("ANDROID_KEY_PASSWORD");
   });
+
+  test("el workflow se para en voz alta si falta un secreto de firma", () => {
+    const wf = leer(".github/workflows/release-android.yml");
+    // sin este paso, un secreto ausente daría un APK firmado con debug y el
+    // release saldría «bien» pero roto para quienes ya lo tienen instalado
+    expect(wf).toContain("Comprobar los secretos de firma");
+    expect(wf).toContain("ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}");
+  });
 });
 
 describe("empaquetado móvil · versión", () => {

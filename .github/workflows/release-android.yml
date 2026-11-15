@@ -3,9 +3,11 @@
 # Compila el APK firmado SIN necesidad de Android Studio en tu máquina:
 #   1. tests de la casa (incluye los del motor offline)
 #   2. build web estática + sync de Capacitor
-#   3. gradlew assembleRelease con el keystore de los SECRETS del repo
-#      (ANDROID_KEYSTORE_BASE64 + ANDROID_STORE_PASSWORD/ANDROID_KEY_ALIAS/
-#      ANDROID_KEY_PASSWORD). El keystore ya no vive en el repo.
+#   3. comprueba que los SECRETOS de firma estén presentes (si falta uno, se
+#      para: sin firma el build caería a la clave debug sin avisar) y
+#   4. gradlew assembleRelease con ese keystore. El keystore ya no vive en el
+#      repo: viaja en ANDROID_KEYSTORE_BASE64 + ANDROID_STORE_PASSWORD/
+#      ANDROID_KEY_ALIAS/ANDROID_KEY_PASSWORD.
 # El APK firmado queda como artifact «Athena-apk»; el release lo publica
 # el workflow Athena Release (release.yml), que llama a este pipeline.
 #
@@ -44,6 +46,30 @@ jobs:
 
       - name: Build web estática + sync Capacitor
         run: bun run apk:sync
+
+      - name: Comprobar los secretos de firma
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # El build.gradle cayó a firma debug si no hay firma; en CI eso NO es
+          # aceptable (un APK firmado con la clave debug no puede actualizar lo
+          # que ya está instalado). Si falta un secreto, se para aquí y en voz
+          # alta en lugar de publicar un release roto.
+          FALTAN=0
+          for v in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then
+              echo "✗ Falta el secreto $v: el APK saldría firmado con debug." >&2
+              FALTAN=1
+            fi
+          done
+          if [ "$FALTAN" != "0" ]; then
+            echo "→ Crea los cuatro secretos en Settings → Secrets and variables → Actions." >&2
+            exit 1
+          fi
+          echo "✓ Los cuatro secretos de firma están presentes"
 
       - name: Compilar APK release
         env:
