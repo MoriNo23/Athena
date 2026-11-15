@@ -50,6 +50,14 @@ jobs:
 
   apk:
     uses: ./.github/workflows/release-android.yml
+    # Un reusable workflow NO hereda los secretos del llamante. Sin este
+    # bloque el APK sale sin firma (o mejor dicho: el guard de firma lo para,
+    # que es lo correcto, pero el release no se publica).
+    secrets:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
   linux:
     uses: ./.github/workflows/release-linux.yml

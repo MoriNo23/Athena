@@ -326,3 +326,48 @@ describe("empaquetado móvil · el versionado del release", () => {
     expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 });
+
+/**
+ * El release que no se publicó.
+ *
+ * `release.yml` llama a `release-android.yml` como reusable workflow, y un
+ * reusable workflow NO hereda secretos del llamante: hay que declararlos en
+ * `on.workflow_call.secrets` y pasarlos en `secrets:` del llamante. Sin las
+ * dos mitades, GitHub no se queja, los secretos llegan vacíos, el guard de
+ * firma se para y el release no se publica — con el tag ya creado, así que la
+ * versión se queda gastada. Pasó exactamente así al primer push a main.
+ */
+describe("empaquetado móvil · el release recibe los secretos de firma", () => {
+  const SECRETOS = [
+    "ANDROID_KEYSTORE_BASE64",
+    "ANDROID_STORE_PASSWORD",
+    "ANDROID_KEY_ALIAS",
+    "ANDROID_KEY_PASSWORD",
+  ];
+  const apk = leer(".github/workflows/release-android.yml");
+  const release = leer(".github/workflows/release.yml");
+
+  test("el workflow del APK declara los secretos en workflow_call", () => {
+    const bloque = apk.slice(apk.indexOf("workflow_call:"), apk.indexOf("permissions:"));
+    for (const s of SECRETOS) {
+      expect(bloque).toContain(s);
+    }
+    // declarados y obligatorios: si falta uno, el release debe romper claro
+    expect(bloque).toContain("required: true");
+  });
+
+  test("el llamante se los pasa (un reusable workflow no los hereda)", () => {
+    const bloque = release.slice(release.indexOf("uses: ./.github/workflows/release-android.yml"));
+    const hastaSiguiente = bloque.slice(0, bloque.indexOf("linux:"));
+    for (const s of SECRETOS) {
+      // el literal de GitHub Actions, sin que JS lo interprete
+      const esperado = s + ": $" + "{{ secrets." + s + " }}";
+      expect(hastaSiguiente).toContain(esperado);
+    }
+  });
+
+  test("el disparo manual sigue funcionando (Ahora sí: los secretos del repo)", () => {
+    // workflow_dispatch usa los secretos del propio repo: no necesita bloque
+    expect(apk).toContain("workflow_dispatch:");
+  });
+});
