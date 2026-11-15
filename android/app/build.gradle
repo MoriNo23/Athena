@@ -24,11 +24,21 @@ def keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: ""
 def keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
 
 def keystoreFile = null
+def problemaFirma = null
 if (keystoreBase64?.trim()) {
     def dir = new File(buildDir, "signing")
     dir.mkdirs()
     keystoreFile = new File(dir, "athena.keystore")
-    keystoreFile.bytes = Base64.getDecoder().decode(keystoreBase64.trim())
+    // Pegado en la web de GitHub, el base64 puede traer saltos de línea (o
+    // venir envuelto a 76 columnas); el decodificador de Java los rechaza y
+    // el build moriría en la fase de configuración sin decir nada útil.
+    def limpio = keystoreBase64.replaceAll("\\s+", "")
+    try {
+        keystoreFile.bytes = Base64.getDecoder().decode(limpio)
+    } catch (Exception e) {
+        problemaFirma = "ANDROID_KEYSTORE_BASE64 no es un base64 válido (${e.class.simpleName}: ${e.message})"
+        keystoreFile = null
+    }
 } else if (keystorePath?.trim()) {
     def candidato = file(keystorePath.trim())
     if (candidato.exists()) keystoreFile = candidato
@@ -51,6 +61,15 @@ if (!firmaConocida) {
             firmaConocida = storePassword && keyAlias && keyPassword
         }
     }
+}
+
+// El secreto estaba mal: sin esto el build caería a la firma debug y el APK
+// saldría «bien» pero no podría actualizar lo que ya está instalado.
+if (problemaFirma && !firmaConocida) {
+    throw new GradleException(
+        "Firma release: ${problemaFirma}. " +
+        "Vuelve a copiarla con: base64 -w0 android/keystore/athena.keystore"
+    )
 }
 
 android {

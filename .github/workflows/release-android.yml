@@ -80,7 +80,29 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-release.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: Diagnóstico del fallo (solo si falló)
+        if: failure()
+        run: |
+          # Los logs crudos de Actions no se pueden bajar por API (redirigen a
+          # un host aparte), pero las anotaciones «::error::» sí se leen. Este
+          # paso existe para que un fallo de Gradle se entienda sin abrir la UI.
+          LOG=android/gradle-release.log
+          emitir() { local l="$1"; l="${l//%/%25}"; l="${l//$'\r'/%0D}"; echo "::error::$l"; }
+          if [ ! -f "$LOG" ]; then
+            emitir "No se generó $LOG: el fallo fue en la configuración de Gradle, antes de compilar."
+            exit 0
+          fi
+          LINEAS=$(grep -A 10 "What went wrong" "$LOG" | grep -v '^--$' | tail -n 8)
+          if [ -z "$LINEAS" ]; then
+            LINEAS=$(grep -E "error:|Could not|Failed to|Invalid|Illegal|FAILURE" "$LOG" | tail -n 8)
+          fi
+          if [ -z "$LINEAS" ]; then
+            LINEAS=$(tail -n 12 "$LOG" | grep -vE '^[[:space:]]*$')
+          fi
+          echo "$LINEAS" | while IFS= read -r l; do emitir "$l"; done
 
       - name: Renombrar APK con la versión
         run: |
