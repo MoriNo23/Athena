@@ -26,7 +26,9 @@ public final class RespuestaWeb {
      * pelado, por si algún día cambia el transporte.
      */
     public static boolean esCierto(String crudo) {
-        return "1".equals(crudo); // MUTACIÓN: la lógica rota original
+        String limpio = desenvuelve(crudo);
+        if (limpio.isEmpty()) return false;
+        return limpio.equalsIgnoreCase("true") || limpio.equals("1");
     }
 
     /**
