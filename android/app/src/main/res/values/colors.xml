@@ -6,7 +6,7 @@
       Theme.AppCompat.Light del tema padre: en cuanto una franja del WebView
       no se pinta —el hueco del displayCutout y los systemBars al girar a
       horizontal, una rotación a media carga, el hueco del teclado— se veía
-      BLANCO sobre una app sepia. Es el mismo valor que --background del tema
+      BLANCO sobre una app sepia. Es el mismo valor que el token background del tema
       oscuro (globals.css), que es el default de la app y el color del
       theme-color del APK (#211d16).
     -->
