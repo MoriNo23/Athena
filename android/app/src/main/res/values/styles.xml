@@ -13,6 +13,24 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+        <!--
+          La ventana nativa se pinta del sepia de la casa. Sin esto hereda el
+          blanco de Theme.AppCompat.Light: cualquier franja que el WebView no
+          cubra (el hueco del recorte de cámara y los systemBars al girar a
+          horizontal) salía blanca y partía la lectura por la mitad.
+        -->
+        <item name="android:windowBackground">@color/athena_ventana</item>
+        <!-- Y la ventana de fondo también, para que la app no quede "vacía"
+             durante la transición (holo gris/blanco al volver del task
+             switcher o al recrear la actividad). -->
+        <item name="android:colorBackground">@color/athena_ventana</item>
+        <!-- Las barras del sistema, del mismo sepia y con iconos claros: el
+             default de AppCompat sigue al tema del sistema y un teléfono en
+             claro pintaba las barras en claro alrededor de una app oscura. -->
+        <item name="android:statusBarColor">@color/athena_ventana</item>
+        <item name="android:navigationBarColor">@color/athena_ventana</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 
 

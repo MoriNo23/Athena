@@ -138,3 +138,59 @@ describe("empaquetado móvil · atrás de Android", () => {
     expect(leer("src/components/library/LibraryView.tsx")).toContain("setBackHandler");
   });
 });
+
+/**
+ * El blanco que rompía la lectura en horizontal.
+ *
+ * Con edge-to-edge, al girar el teléfono el sistema deja fuera del WebView la
+ * franja del recorte de cámara y de los systemBars. Ese hueco lo pinta la
+ * VENTANA nativa: si hereda el blanco de Theme.AppCompat.Light (Capacitor no
+ * fija android:windowBackground), aparece una barra blanca sobre una app
+ * sepia. La franja tiene que ser del mismo color que el fondo de la app, en
+ * los tres sitios donde se decide: el tema, el config y la actividad.
+ */
+describe("empaquetado móvil · el blanco del borde no vuelve", () => {
+  const SEPIA = "#211d16";
+
+  test("el tema pinta la ventana y las barras del sistema del sepia de la casa", () => {
+    const styles = leer("android/app/src/main/res/values/styles.xml");
+    const noActionBar = styles.slice(styles.indexOf("<style name=\"AppTheme.NoActionBar\""));
+    expect(noActionBar).toContain("<item name=\"android:windowBackground\">@color/athena_ventana</item>");
+    expect(noActionBar).toContain("<item name=\"android:navigationBarColor\">@color/athena_ventana</item>");
+    // Iconos claros: el default de AppCompat sigue al tema del SISTEMA y un
+    // teléfono en modo claro pintaba iconos oscuros sobre el sepia.
+    expect(noActionBar).toContain("<item name=\"android:windowLightNavigationBar\">false</item>");
+  });
+
+  test("athena_ventana es el mismo color que el theme-color del APK", () => {
+    const colors = leer("android/app/src/main/res/values/colors.xml");
+    const m = colors.match(/<color name="athena_ventana">(#[0-9A-Fa-f]{6})<\/color>/);
+    expect(m).not.toBeNull();
+    expect(m![1].toLowerCase()).toBe(SEPIA);
+    // y el theme-color del index.html (modo oscuro) es el mismo valor
+    const index = leer("index.html");
+    expect(index.toLowerCase()).toContain(`content="${SEPIA}"`);
+  });
+
+  test("las barras del sistema se declaran para que no heredan el índigo de Capacitor", () => {
+    // styles.xml referencia @color/colorPrimary|colorPrimaryDark|colorAccent.
+    // Capacitor los aporta (#3F51B5...): se declaran en el proyecto con el
+    // bronce de la casa. Si alguien borra colors.xml, styles.xml deja de
+    // resolver y el build muere en aapt — este test lo para antes.
+    const styles = leer("android/app/src/main/res/values/styles.xml");
+    const colors = leer("android/app/src/main/res/values/colors.xml");
+    for (const nombre of styles.matchAll(/@color\/([a-z_]+)/gi)) {
+      expect(colors).toContain(`<color name="${nombre[1]}">`);
+    }
+  });
+
+  test("el WebView no arranca blanco (capacitor.config.ts)", () => {
+    expect(leer("capacitor.config.ts").toLowerCase()).toContain(`backgroundcolor: "${SEPIA}"`);
+  });
+
+  test("la actividad repinta su ventana al recrearse", () => {
+    const act = leer("android/app/src/main/java/com/morino23/athena/MainActivity.java");
+    expect(act).toContain("setBackgroundDrawable");
+    expect(act.toUpperCase()).toContain(SEPIA.toUpperCase());
+  });
+});

@@ -13,6 +13,7 @@
  */
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { punteroGrueso } from "@/lib/plataforma";
 
 export type OcrLang = "spa" | "eng";
 
@@ -299,19 +300,12 @@ export interface RunOcrOptions {
  * (resolución alta, ~1600 px de ancho) y lo pasa por Tesseract.
  */
 /**
- * ¿Puntero grueso (móvil/tablet)? En ese caso el lienzo del OCR se paga con la
- * RAM del WebView, que comparte presupuesto con el motor WASM: 4,2 Mpx son
- * ~16 MB de mapa de bits y en un gama baja pueden matar la página.
+ * Ancho objetivo del lienzo y techo de píxeles, según el dispositivo.
+ *
+ * En táctil el lienzo se paga con la RAM del WebView, que comparte
+ * presupuesto con el motor WASM: 4,2 Mpx son ~16 MB de mapa de bits y en un
+ * gama baja pueden matar la página. 2,6 Mpx sigue dando texto reconocible.
  */
-function punteroGrueso(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(pointer: coarse)").matches
-  );
-}
-
-/** ancho objetivo del lienzo y techo de píxeles, según el dispositivo */
 function parametrosLienzo(tactil: boolean): { ancho: number; maxPx: number } {
   return tactil
     ? { ancho: 1200, maxPx: 2_600_000 }

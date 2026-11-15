@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Colores de la VENTANA nativa (no del WebView). Capacitor no fija
+      android:windowBackground, así que heredaba el blanco del
+      Theme.AppCompat.Light del tema padre: en cuanto una franja del WebView
+      no se pinta —el hueco del displayCutout y los systemBars al girar a
+      horizontal, una rotación a media carga, el hueco del teclado— se veía
+      BLANCO sobre una app sepia. Es el mismo valor que --background del tema
+      oscuro (globals.css), que es el default de la app y el color del
+      theme-color del APK (#211d16).
+    -->
+    <color name="athena_ventana">#211D16</color>
+
+    <!--
+      colorPrimary/colorPrimaryDark/colorAccent: los aporta Capacitor
+      (@capacitor/android, #3F51B5/#303F9F/#FF4081) y styles.xml los
+      referenciaba como @color/… sin que existieran en el proyecto. Se
+      declaran aquí con el bronce de la casa en vez de dejar el índigo de
+      la plantilla: solo asoman en franjas de sistema (task switcher), pero
+      el azul de plantilla rompía la armonía. Este fichero debe seguir
+      existiendo: si se borra, esos @color/… dejan de resolver y el build
+      muere en aapt.
+    -->
+    <color name="colorPrimary">#B58A3A</color>
+    <color name="colorPrimaryDark">#211D16</color>
+    <color name="colorAccent">#E0A94E</color>
+</resources>

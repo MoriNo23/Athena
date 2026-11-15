@@ -138,6 +138,8 @@ function ReaderShortcutGhost(props: {
   isFullscreen: boolean;
   entries: ShortcutGhostEntry[];
 }) {
+  // Sin pantalla completa real (APK) no hay recordatorio que dar: las teclas
+  // del fantasma incluyen M, que ahí ya no hace nada.
   if (!props.isFullscreen) return null;
   return <ShortcutGhost entries={props.entries} testId="reader-shortcut-ghost" />;
 }
@@ -530,7 +532,10 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   const noopZoomBy = useCallback(() => {}, []);
 
   // ---------- Pantalla completa ----------
-  const { isFullscreen, toggleFullscreen } = useFullscreen();
+  // `disponible` es false en el APK: el WebView ya ocupa toda la pantalla y no
+  // hay barras del navegador que esconder, así que ni el botón ni la tecla M
+  // se pintan (ver src/lib/plataforma.ts).
+  const { isFullscreen, toggleFullscreen, disponible: fullscreenDisponible } = useFullscreen();
 
   // Pantalla despierta mientras la lectura está en pantalla completa.
   useWakeLock(isFullscreen);
@@ -743,7 +748,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     <div
       data-reader-font={readerFont}
       className={cn(
-        "flex h-screen flex-col overflow-hidden",
+        "lector-marco flex h-screen flex-col overflow-hidden",
         chromeHidden && "chrome-immersed"
       )}
     >
@@ -763,6 +768,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
             onBack={onBack}
             isFullscreen={isFullscreen}
             onToggleFullscreen={toggleFullscreen}
+            canFullscreen={fullscreenDisponible}
             effectiveScale={effectiveScale}
             activeZoom={activeZoom}
             onZoomBy={isEpub ? noopZoomBy : zoomBy}

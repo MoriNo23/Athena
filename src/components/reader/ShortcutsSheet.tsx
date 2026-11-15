@@ -2,6 +2,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useI18n } from "@/lib/i18n";
+import { useFullscreen } from "@/hooks/use-fullscreen";
 import { useSettings } from "@/lib/settings";
 
 /**
@@ -19,6 +20,8 @@ export function ShortcutsSheet({
 }) {
   const { t } = useI18n();
   const toggleKey = useSettings((s) => s.immersion.toggleKey);
+  // En el APK no hay pantalla completa que ofrecer: esas filas no se listan.
+  const { disponible: fullscreenDisponible } = useFullscreen();
 
   const lector: Array<[string, string]> = [
     ["←/→", t("ghost.reader.pages")],
@@ -26,8 +29,8 @@ export function ShortcutsSheet({
     ["+/−", t("ghost.reader.zoom")],
     ["F", t("ghost.reader.fitPage")],
     ["O", t("ghost.reader.fitOptimal")],
-    ["M", t("ghost.reader.fullscreen")],
   ];
+  if (fullscreenDisponible) lector.push(["M", t("ghost.reader.fullscreen")]);
   if (toggleKey) lector.push([toggleKey.toUpperCase(), t("ghost.reader.hideUi")]);
 
   const teleprompter: Array<[string, string]> = [
@@ -38,7 +41,7 @@ export function ShortcutsSheet({
     [t("config.keySpace"), t("ghost.tp.pause")],
     ["−/+", t("ghost.tp.font")],
     ["A", t("ghost.tp.settings")],
-    ["M", t("ghost.tp.fullscreen")],
+    ...(fullscreenDisponible ? ([["M", t("ghost.tp.fullscreen")]] as Array<[string, string]>) : []),
     ["Esc", t("ghost.tp.exit")],
   ];
 

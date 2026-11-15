@@ -997,6 +997,20 @@ html:not(.dark) .athena-hero .seal-glow {
   cursor: none;
 }
 
+/* ---------- Marco del lector (recorte de cámara y barras) ---------- */
+/* Con edge-to-edge, en horizontal el costado donde vive la cámara puede
+   comerse el texto si el sistema no llega a insertar el WebView (Capacitor
+   "auto" no lo hace si el tema tiene windowOptOutEdgeToEdgeEnforcement). El
+   padding lateral deja la página fuera del recorte y pinta esa franja con el
+   papel de lectura, no con el fondo del body: la lectura sigue siendo un
+   rectángulo continuo. Verticalmente no se toca — la cabecera ya tiene su
+   chrome-safe-top y el raíz es h-screen. */
+.lector-marco {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  background: var(--reader-bg);
+}
+
 /* ---------- Zona caliente del peek (borde inferior) ---------- */
 .peek-hotzone {
   /* invisible por sí misma; solo recoge el gesto y muestra la pista */
