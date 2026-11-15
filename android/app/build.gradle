@@ -23,6 +23,12 @@ def storePassword = System.getenv("ANDROID_STORE_PASSWORD") ?: ""
 def keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: ""
 def keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
 
+// Huella SHA-256 del keystore de Athena. No es secreta (el certificado va
+// dentro del APK firmado) y sirve para detectar un ANDROID_KEYSTORE_BASE64 que
+// sea un base64 válido pero de OTRO fichero: firmar con una clave ajena es el
+// fallo más caro que puede tener este pipeline y no se ve a simple vista.
+def huellaKeystore = "ef03f1d7a1f643eb156106f30b01864672d523191378eb04d6f2dcb420493ce4"
+
 def keystoreFile = null
 def problemaFirma = null
 if (keystoreBase64?.trim()) {
@@ -33,11 +39,24 @@ if (keystoreBase64?.trim()) {
     // venir envuelto a 76 columnas); el decodificador de Java los rechaza y
     // el build moriría en la fase de configuración sin decir nada útil.
     def limpio = keystoreBase64.replaceAll("\\s+", "")
-    try {
-        keystoreFile.bytes = Base64.getDecoder().decode(limpio)
-    } catch (Exception e) {
-        problemaFirma = "ANDROID_KEYSTORE_BASE64 no es un base64 válido (${e.class.simpleName}: ${e.message})"
+    def mal = limpio =~ "[^A-Za-z0-9+/=]"
+    if (mal.find()) {
+        problemaFirma = "ANDROID_KEYSTORE_BASE64 tiene un carácter que no es base64 ('${mal.group()}') en la posición ${mal.start()} (longitud ${limpio.length()})"
         keystoreFile = null
+    } else {
+        try {
+            keystoreFile.bytes = Base64.getDecoder().decode(limpio)
+            def huella = java.util.HexFormat.of().formatHex(
+                java.security.MessageDigest.getInstance("SHA-256").digest(keystoreFile.bytes)
+            )
+            if (huella != huellaKeystore) {
+                problemaFirma = "el keystore de los secretos no es el de Athena (huella ${huella.take(16)}…, esperada ${huellaKeystore.take(16)}…)"
+                keystoreFile = null
+            }
+        } catch (Exception e) {
+            problemaFirma = "ANDROID_KEYSTORE_BASE64 no es un base64 válido (${e.class.simpleName}: ${e.message})"
+            keystoreFile = null
+        }
     }
 } else if (keystorePath?.trim()) {
     def candidato = file(keystorePath.trim())
@@ -68,7 +87,8 @@ if (!firmaConocida) {
 if (problemaFirma && !firmaConocida) {
     throw new GradleException(
         "Firma release: ${problemaFirma}. " +
-        "Vuelve a copiarla con: base64 -w0 android/keystore/athena.keystore"
+        "Vuelve a copiarla con: base64 -w0 android/keystore/athena.keystore " +
+        "(y pégala tal cual, sin envolver ni añadirle nada)."
     )
 }
 

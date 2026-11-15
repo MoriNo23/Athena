@@ -9,7 +9,8 @@
  */
 import { describe, test, expect } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join } from "node:path";
 
 const RAIZ = dirname(import.meta.dir);
@@ -70,6 +71,16 @@ describe("empaquetado móvil · firma", () => {
     expect(gradle).toContain("ANDROID_STORE_PASSWORD");
     expect(gradle).toContain("ANDROID_KEY_ALIAS");
     expect(gradle).toContain("ANDROID_KEY_PASSWORD");
+  });
+
+  test("la huella del keystore del build es la del keystore del repo", () => {
+    const gradle = leer("android/app/build.gradle");
+    const m = gradle.match(/huellaKeystore\s*=\s*"([0-9a-f]{64})"/);
+    expect(m).not.toBeNull();
+    const ruta = join(RAIZ, "android/keystore/athena.keystore");
+    if (!existsSync(ruta)) return; // en un clon limpio no hay keystore que comparar
+    const huella = createHash("sha256").update(readFileSync(ruta)).digest("hex");
+    expect(m![1]).toBe(huella);
   });
 
   test("el workflow se para en voz alta si falta un secreto de firma", () => {
