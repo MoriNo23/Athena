@@ -93,6 +93,17 @@ describe("empaquetado móvil · firma", () => {
 });
 
 describe("empaquetado móvil · versión", () => {
+  test("el build solo usa propiedades que existen en variables.gradle", () => {
+    // un nombre mal tecleado (minSdkSdkVersion) no rompe el build en local si
+    // hay keystore local: solo revienta en CI, tarde y sin contexto
+    const gradle = leer("android/app/build.gradle");
+    const vars = leer("android/variables.gradle");
+    const definidas = new Set([...vars.matchAll(/^\s*(\w+)\s*=/gm)].map((m) => m[1]));
+    const usadas = [...gradle.matchAll(/rootProject\.ext\.(\w+)/g)].map((m) => m[1]);
+    const faltan = [...new Set(usadas)].filter((u) => !definidas.has(u));
+    expect(faltan).toEqual([]);
+  });
+
   test("versionName/versionCode nacen de package.json, no se hardcodean", () => {
     const gradle = leer("android/app/build.gradle");
     expect(gradle).toContain("JsonSlurper");
