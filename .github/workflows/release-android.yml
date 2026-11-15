@@ -104,8 +104,12 @@ jobs:
             LOG=android/gradle-unit.log
             echo "::error::Los tests de JVM no se ejecutaron: falló su compilación."
             if [ -f "$LOG" ]; then
-              grep -E "error:|symbol:|location:|FAILURE|What went wrong" "$LOG" | head -n 8 \
-                | awk '!s[$0]++' | while IFS= read -r l; do echo "::error::$l"; done
+              # el bloque completo de Gradle: los 3 primeros renglones no
+              # bastan para saber si es compilación, resolución o configuración
+              awk '/What went wrong/{f=1} /Get more help|Try:/{f=0} f' "$LOG" \
+                | grep -vE '^[[:space:]]*$' | head -n 12 \
+                | while IFS= read -r l; do echo "::error::$l"; done
+              echo "::error::resultados encontrados: $(find android/app/build -name '*.xml' -path '*test-results*' 2>/dev/null | wc -l)"
             fi
             exit 0
           fi
