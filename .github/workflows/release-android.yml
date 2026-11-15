@@ -182,6 +182,58 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "Athena-v${VERSION}.apk"
           echo "APK: Athena-v${VERSION}.apk"
 
+      # El icono del launcher se arregló dos veces sin éxito porque nadie miraba
+      # dentro del APK: los archivos del repo estaban bien y el móvil seguía
+      # enseñando la X azul de Capacitor. Este paso abre el APK y comprueba lo
+      # que de verdad se instala, no lo que hay en el árbol de fuentes.
+      - name: Comprobar el icono dentro del APK
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          python3 - "$APK" << 'PYEOF'
+          import sys, re, zipfile
+          z = zipfile.ZipFile(sys.argv[1])
+          nombres = z.namelist()
+          fallos = []
+
+          def leer(n):
+              # sin comentarios: el XML explica el bug antiguo citando la ruta mala
+              t = z.read(n).decode("utf-8", "replace")
+              return re.sub(r"<!--.*?-->", "", t, flags=re.S)
+
+          # 1 · el icono adaptativo que se instala apunta al vector, no al PNG
+          for n in nombres:
+              if n.startswith("res/mipmap-anydpi-v26/ic_launcher") and n.endswith(".xml"):
+                  xml = leer(n)
+                  if "@mipmap/ic_launcher_foreground" in xml:
+                      fallos.append(f"{n} sigue apuntando al PNG de la plantilla")
+                  if "@drawable/ic_launcher_foreground" not in xml:
+                      fallos.append(f"{n} no declara el vector del pórtico")
+                  if "<monochrome" not in xml:
+                      fallos.append(f"{n} no trae capa monocroma")
+                  else:
+                      print(f"OK  {n} · vector + monochrome")
+
+          # 2 · los recursos a los que apunta existen de verdad
+          for recurso in ("res/drawable/ic_launcher_foreground.xml",
+                          "res/drawable/ic_launcher_monochrome.xml"):
+              if recurso in nombres:
+                  print(f"OK  {recurso} presente ({z.getinfo(recurso).file_size} B)")
+              elif any(r.lower() in recurso for r in nombres):
+                  print(f"OK  {recurso} presente (comprimido)")
+              else:
+                  fallos.append(f"falta {recurso}")
+
+          # 3 · el splash de Android 12+ viaja en el APK
+          if any("splash" in n and "style" in n for n in nombres):
+              print("OK  estilos de splash en el APK")
+
+          for f in fallos:
+              print(f"::error::icono · {f}")
+          if fallos:
+              sys.exit(1)
+          print("::notice::El APK instalado lleva el pórtico como icono y su capa monocroma.")
+          PYEOF
+
       - name: Subir APK como artifact del run
         uses: actions/upload-artifact@v7
         with:
