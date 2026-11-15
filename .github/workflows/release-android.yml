@@ -19,6 +19,20 @@ name: Athena Android
 on:
   workflow_dispatch:
   workflow_call:
+    # Los secretos hay que DECLARARLOS cuando el workflow se llama como
+    # reutilizable. Sin esto, el llamante no puede pasarlos, GitHub no se
+    # queja, y `secrets.ANDROID_KEYSTORE_BASE64` llega vacío: el guard de
+    # firma se para y el release no publica nada. Pasó justo así en el primer
+    # push a main con el pipeline ya corregido.
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: true
+      ANDROID_STORE_PASSWORD:
+        required: true
+      ANDROID_KEY_ALIAS:
+        required: true
+      ANDROID_KEY_PASSWORD:
+        required: true
 
 permissions:
   contents: read
