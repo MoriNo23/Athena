@@ -13,6 +13,7 @@
  */
 
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { punteroGrueso } from "@/lib/plataforma";
 
 export type OcrLang = "spa" | "eng";
 
@@ -298,19 +299,32 @@ export interface RunOcrOptions {
  * Reconoce el texto de una página: renderiza la página a un lienzo offscreen
  * (resolución alta, ~1600 px de ancho) y lo pasa por Tesseract.
  */
+/**
+ * Ancho objetivo del lienzo y techo de píxeles, según el dispositivo.
+ *
+ * En táctil el lienzo se paga con la RAM del WebView, que comparte
+ * presupuesto con el motor WASM: 4,2 Mpx son ~16 MB de mapa de bits y en un
+ * gama baja pueden matar la página. 2,6 Mpx sigue dando texto reconocible.
+ */
+function parametrosLienzo(tactil: boolean): { ancho: number; maxPx: number } {
+  return tactil
+    ? { ancho: 1200, maxPx: 2_600_000 }
+    : { ancho: 1600, maxPx: 4_200_000 };
+}
+
 export async function runOcrPage({
   doc,
   pageNum,
   lang,
   onProgress,
 }: RunOcrOptions): Promise<OcrPageResult> {
-  // 1) render offscreen a buena resolución
+  // 1) render offscreen a buena resolución (menor en táctil: ver nota de RAM)
   const page = await doc.getPage(pageNum);
   const base = page.getViewport({ scale: 1 });
-  let scale = Math.min(2.4, Math.max(1.2, 1600 / base.width));
-  const MAX_PX = 4_200_000; // techo de memoria para el lienzo
-  if (base.width * base.height * scale * scale > MAX_PX) {
-    scale = Math.sqrt(MAX_PX / (base.width * base.height));
+  const { ancho, maxPx } = parametrosLienzo(punteroGrueso());
+  let scale = Math.min(2.4, Math.max(1.2, ancho / base.width));
+  if (base.width * base.height * scale * scale > maxPx) {
+    scale = Math.sqrt(maxPx / (base.width * base.height));
   }
   const viewport = page.getViewport({ scale });
   const canvas = document.createElement("canvas");

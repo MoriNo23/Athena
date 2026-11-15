@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La biblioteca es local-first: no se sube a la copia de Google ni viaja en
+  transferencias entre dispositivos. allowBackup="false" ya lo apaga en la
+  práctica; esto lo deja explícito para cloud-backup y device-transfer
+  (API 31+) por si el atributo del manifest cambia en el futuro.
+-->
+<data-extraction-rules xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="UnusedResources">
+    <cloud-backup>
+        <exclude domain="root" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+    </device-transfer>
+</data-extraction-rules>

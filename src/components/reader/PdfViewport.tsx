@@ -195,6 +195,48 @@ export function PdfViewport({
     return () => el.removeEventListener("wheel", handler);
   }, [wheelBoost]);
 
+  // ---- Pinch-to-zoom (móvil): dos dedos, el gesto que el WebView no hace ----
+  // Capacitor desactiva el zoom nativo y el zoom del PDF eran solo botones;
+  // con dos dedos sobre la página escalamos igual que con Ctrl+rueda. Solo se
+  // impide el scroll cuando hay dos dedos: el dedo único sigue desplazando.
+  const zoomGestureRef = useRef(onZoomGesture);
+  useEffect(() => {
+    zoomGestureRef.current = onZoomGesture;
+  }, [onZoomGesture]);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    let base: number | null = null;
+    const distancia = (t: TouchList) =>
+      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const onStart = (e: TouchEvent) => {
+      base = e.touches.length === 2 ? distancia(e.touches) : null;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || base == null || base <= 0) return;
+      const d = distancia(e.touches);
+      if (d <= 0) return;
+      const factor = d / base;
+      if (Math.abs(factor - 1) < 0.02) return; // ruido del dedo
+      e.preventDefault(); // dos dedos = zoom, no desplazamiento
+      zoomGestureRef.current(factor);
+      base = d;
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) base = null;
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd, { passive: true });
+    el.addEventListener("touchcancel", onEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onEnd);
+    };
+  }, []);
+
   // ---- Cambio de página: hacia el inicio de la página ----
   // Sin animación en la carga/restauración inicial (el componente ya nace en la página guardada).
   // Reset INSTANTÁNEO: el fundido de la página nueva es el único movimiento del giro.

@@ -179,7 +179,8 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     [fontScale, setTeleprompter]
   );
 
-  const { isFullscreen, toggleFullscreen } = useFullscreen();
+  // En el APK `disponible` es false: el WebView ya ocupa toda la pantalla.
+  const { isFullscreen, toggleFullscreen, disponible: fullscreenDisponible } = useFullscreen();
   const [uiHidden, setUiHidden] = useState(false);
   const [speedOpen, setSpeedOpen] = useState(false);
   /** P4: ajustes del teleprompter DENTRO del modo (tecla A) */
@@ -501,10 +502,10 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
       { keys: "Espacio", action: t("ghost.tp.pause") },
       { keys: "−/+", action: t("ghost.tp.font") },
       { keys: "A", action: t("ghost.tp.settings") },
-      { keys: "M", action: t("ghost.tp.fullscreen") },
+      ...(fullscreenDisponible ? [{ keys: "M", action: t("ghost.tp.fullscreen") }] : []),
       { keys: "Esc", action: t("ghost.tp.exit") },
     ],
-    [t]
+    [t, fullscreenDisponible]
   );
 
   /** La columna viva se renderiza POR PÁGINAS: cada página es un wrapper
@@ -680,6 +681,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
             {tpSet.sound ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </Button>
         </Tip>
+        {fullscreenDisponible && (
         <Tip label={isFullscreen ? t("tp.exitFullscreen") : t("tp.fullscreen")}>
           <Button
             variant="outline"
@@ -692,6 +694,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </Button>
         </Tip>
+        )}
         {/* Auto también vive en la sheet: en móvil fuera de la barra */}
         <Tip label={auto ? t("tp.autoOnTip") : t("tp.autoOffTip")}>
           <Button

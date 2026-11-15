@@ -1,31 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 408 120" role="img" aria-label="ATHENA">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 408 330" role="img" aria-label="ATHENA">
+  <!--
+    Athena · logotipo completo: el pórtico arriba, el nombre debajo.
+
+    El dibujo del pórtico es el mismo de athena-icon.svg (arte de 200×126,
+    aquí escalado y centrado sobre las letras). El wordmark es monoline y va
+    HECHO CON TRAZOS, no con texto: así no depende de qué fuentes tenga el
+    visor (GitHub, navegador, APK) y se ve idéntico en todas partes. Los
+    trazos llevan `style` (no atributo) y varían con prefers-color-scheme,
+    que es lo que GitHub respeta en modo oscuro; las formas del pórtico no
+    cambian porque su paleta funciona sobre los dos fondos.
+
+    Si mueves el pórtico, mueve también athena-icon.svg y
+    src/components/brand/AthenaPortico.tsx: son el mismo dibujo.
+  -->
   <style>
-    .ink { stroke: #1d2330; }
-    .brand { stroke: #3a72c4; }
+    .ink { stroke: #2a231a; }
+    .brand { stroke: #b58a3a; }
     @media (prefers-color-scheme: dark) {
-      .ink { stroke: #e9edf5; }
-      .brand { stroke: #7fb2e8; }
+      .ink { stroke: #f1eee6; }
+      .brand { stroke: #e0a94e; }
     }
   </style>
-  <!-- ATHENA · wordmark monoline: la primera A en color de marca, el resto en tinta -->
-  <g fill="none" stroke-width="10" stroke-linecap="butt">
-    <g class="brand" stroke-linejoin="miter">
-      <path d="M10 100 L33 20 L56 100" />
-      <path d="M21 66 L45 66" />
+
+  <!-- ····· 1 · pórtico (arte 200×126 → 168×106, centrado) ····· -->
+  <g transform="translate(103.2 8) scale(0.84)">
+    <polygon points="120,20 200,68 40,68" fill="#B58A3A" stroke="#2A231A" stroke-width="3.5" stroke-linejoin="round"/>
+    <polygon points="120,33 148,58 92,58" fill="#E0A94E" stroke="#2A231A" stroke-width="2.5" stroke-linejoin="round"/>
+    <rect x="36" y="68" width="168" height="12" fill="#F1EEE6" stroke="#2A231A" stroke-width="3.5"/>
+    <rect x="64" y="68" width="8" height="12" fill="#E0A94E"/>
+    <rect x="116" y="68" width="8" height="12" fill="#E0A94E"/>
+    <rect x="168" y="68" width="8" height="12" fill="#E0A94E"/>
+    <g fill="#F1EEE6" stroke="#2A231A" stroke-width="3">
+      <rect x="52" y="80" width="12" height="48"/>
+      <rect x="88" y="80" width="12" height="48"/>
+      <rect x="140" y="80" width="12" height="48"/>
+      <rect x="176" y="80" width="12" height="48"/>
     </g>
-    <g class="ink" stroke-linejoin="miter">
-      <path d="M78 20 L124 20 M101 20 L101 100" />
-      <!-- la H: dos pies y travesaño al mismo nivel que la A delantera -->
-      <path d="M146 20 L146 100" />
-      <path d="M190 20 L190 100" />
-      <path d="M146 60 L190 60" />
-      <path d="M260 20 L214 20 L214 100 L260 100 M214 60 L252 60" />
+    <g stroke="#2A231A" stroke-width="2">
+      <line x1="58" y1="80" x2="58" y2="128"/>
+      <line x1="94" y1="80" x2="94" y2="128"/>
+      <line x1="146" y1="80" x2="146" y2="128"/>
+      <line x1="182" y1="80" x2="182" y2="128"/>
     </g>
-    <!-- la N: sus uniones son agudas, el bisel corta la punta que deja el miter -->
-    <path class="ink" stroke-linejoin="bevel" d="M282 100 L282 20 L328 100 L328 20" />
-    <g class="ink" stroke-linejoin="miter">
-      <path d="M350 100 L373 20 L396 100" />
-      <path d="M361 66 L385 66" />
+    <rect x="28" y="128" width="184" height="8" fill="#F1EEE6" stroke="#2A231A" stroke-width="3.5"/>
+    <rect x="20" y="136" width="200" height="10" fill="#E0A94E" stroke="#2A231A" stroke-width="3.5"/>
+  </g>
+
+  <!-- ····· 2 · wordmark ATHENA (110 de alto, de 40 a 368) ····· -->
+  <g transform="translate(13.2 152) scale(0.94)">
+    <g fill="none" stroke-width="10" stroke-linecap="butt">
+      <!-- A : la primera letra en bronce, la marca de la casa -->
+      <path class="brand" stroke-linejoin="miter" d="M10 130 L33 20 L56 130" />
+      <path class="brand" d="M21 86 L45 86" />
+      <!-- T -->
+      <path class="ink" d="M78 20 L124 20 M101 20 L101 130" />
+      <!-- H -->
+      <path class="ink" d="M146 20 L146 130 M190 20 L190 130 M146 75 L190 75" />
+      <!-- E -->
+      <path class="ink" d="M214 20 L214 130 M214 20 L260 20 M214 75 L250 75 M214 130 L260 130" />
+      <!-- N : fuste, diagonal y fuste; el bevel corta la punta que deja el miter -->
+      <path class="ink" stroke-linejoin="bevel" d="M282 130 L282 20 L328 130 L328 20" />
+      <!-- A -->
+      <path class="ink" stroke-linejoin="miter" d="M350 130 L373 20 L396 130" />
+      <path class="ink" d="M361 86 L385 86" />
     </g>
   </g>
+
+  <!-- ····· 3 · filete de cierre: bronce · punto de acento · bronce ····· -->
+  <rect x="18" y="304" width="164" height="4" fill="#B58A3A" />
+  <rect x="198" y="300" width="12" height="12" fill="#E0A94E" stroke="#2A231A" stroke-width="2.5" />
+  <rect x="226" y="304" width="164" height="4" fill="#B58A3A" />
 </svg>

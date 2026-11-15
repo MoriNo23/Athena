@@ -170,11 +170,39 @@
       return out;
     }
 
+    // ------------------------------------------------- portadas (data URL)
+    // En APK los <img> NO pasan por el fetch parcheado: la portada tiene que
+    // viajar como data URL. Convertir TODOS los blobs en CADA GET /api/books
+    // (y precargarlos en memoria) era el cuello de botella de la biblioteca:
+    // la data URL se cachea por nombre y sólo se re-convierte si falta.
+    function cubreCache() {
+      var c = meta.get("__covers__");
+      return c && typeof c === "object" ? c : {};
+    }
+    function dataUrlDeCover(nombre, dataUrl) {
+      if (!nombre || !dataUrl) return;
+      var c = cubreCache();
+      c[nombre] = dataUrl;
+      meta.set("__covers__", c);
+    }
+    function olvidarCubre(nombre) {
+      if (!nombre) return;
+      var c = cubreCache();
+      if (!Object.prototype.hasOwnProperty.call(c, nombre)) return;
+      delete c[nombre];
+      meta.set("__covers__", c);
+    }
     function coverDataUrlDe(b) {
       if (!b.coverPath || !b.coverPath.startsWith("/uploads/")) return Promise.resolve(null);
-      var blob = files.read(baseName(b.coverPath));
+      var nombre = baseName(b.coverPath);
+      var cacheda = cubreCache()[nombre];
+      if (cacheda) return Promise.resolve(cacheda);
+      var blob = files.read(nombre);
       if (!blob) return Promise.resolve(null);
-      return Promise.resolve(blobToDataUrl(blob)).then(function (url) { return url || null; });
+      return Promise.resolve(blobToDataUrl(blob)).then(function (url) {
+        if (url) dataUrlDeCover(nombre, url);
+        return url || null;
+      });
     }
 
     /** sesiones agregadas por día (espejo del GROUP BY de GET /api/books) */
@@ -212,7 +240,10 @@
           // vencido: la basura se purga de verdad (ficheros incluidos)
           var f = (snap && snap.files) || {};
           ["pdf", "cover", "companion"].forEach(function (k) {
-            if (f[k]) files.del(`__papelera__${id}__${f[k]}`);
+            if (f[k]) {
+              files.del(`__papelera__${id}__${f[k]}`);
+              if (k === "cover") olvidarCubre(f[k]);
+            }
           });
           delete undo[id];
           cambio = true;
@@ -284,6 +315,7 @@
           var pCover = Promise.resolve();
           if (cover && typeof cover === "string" && cover.startsWith("data:image/")) {
             coverPath = `/uploads/${id}-cover.png`;
+            dataUrlDeCover(`${id}-cover.png`, cover);
             pCover = Promise.resolve(dataUrlABlob(cover)).then(function (blob) {
               return blob ? files.write(`${id}-cover.png`, blob) : null;
             });
@@ -422,6 +454,8 @@
       var files_ = { pdf: esCarpeta ? "" : baseName(book.filePath) };
       if (book.coverPath && book.coverPath.startsWith("/uploads/")) files_.cover = baseName(book.coverPath);
       if (book.companionPath) files_.companion = baseName(book.companionPath);
+      // la portada deja de servirse como data URL: se olvida su caché
+      olvidarCubre(files_.cover);
 
       // mover ficheros a papelera (renombra; deshacer los devuelve)
       var movimientos = [];
@@ -619,7 +653,9 @@
       return Promise.resolve({
         status: 200,
         blob: blob,
-        headers: { "Content-Type": "image/png", "Cache-Control": "no-store" },
+        // la portada puede ser jpg/webp (subirCover acepta las dos): el tipo
+        // real del blob, no un png fijado
+        headers: { "Content-Type": blob.type || "image/png", "Cache-Control": "no-store" },
       });
     }
 
@@ -643,6 +679,7 @@
           // la respuesta lleva la portada como data URL: la vista previa del
           // diálogo (etiqueta <img>) no pasa por fetch y así se ve al instante
           return Promise.resolve(blobToDataUrl(file.blob)).then(function (url) {
+            if (url) dataUrlDeCover(nombre, url);
             return json(200, { book: url ? Object.assign({}, actualizado, { coverPath: url }) : actualizado });
           });
         });
@@ -1361,6 +1398,30 @@
    */
   function crearFilesAsync(meta) {
     var memoria = new Map();
+    // LRU con tope: el libro abierto pesa hasta 200 MB. Sin tope, ver cuatro
+    // libros deja ocho blobs grandes vivos en el WebView (y la portada de
+    // TODOS los libros seguía precargada en cada lista). Expulsa los más
+    // antiguos que la petición en curso no haya pedido.
+    var MAX_MEMORIA = 8;
+    var protegidos = new Set();
+    function expulsar() {
+      if (memoria.size <= MAX_MEMORIA) return;
+      var candidatos = [];
+      memoria.forEach(function (_blob, nombre) {
+        if (!protegidos.has(nombre)) candidatos.push(nombre);
+      });
+      while (memoria.size > MAX_MEMORIA && candidatos.length > 0) {
+        memoria.delete(candidatos.shift());
+      }
+    }
+    function tocar(nombre) {
+      var b = memoria.get(nombre);
+      if (b) {
+        memoria.delete(nombre);
+        memoria.set(nombre, b);
+      }
+    }
+
     var opfsOk = typeof navigator !== "undefined" && navigator.storage && typeof navigator.storage.getDirectory === "function";
 
     function dir() {
@@ -1389,6 +1450,9 @@
     function escribeIdb(nombre, blob) {
       var f = meta.get("__files__") || {};
       f[nombre] = blob;
+      // confirmar: si la cuota está llena, el store revienta aquí y el error
+      // llega claro (antes meta.set lo tragaba en silencio)
+      if (typeof meta.escribirYConfirmar === "function") return meta.escribirYConfirmar("__files__", f);
       meta.set("__files__", f);
       return Promise.resolve();
     }
@@ -1399,26 +1463,43 @@
       return Promise.resolve();
     }
 
+    /** OPFS si se puede; si no, IndexedDB. Sin sitio en ninguno: «espacio». */
+    function escribeEnDisco(nombre, blob) {
+      var p = opfsOk
+        ? escribeOpfs(nombre, blob).catch(function () { return escribeIdb(nombre, blob); })
+        : escribeIdb(nombre, blob);
+      return p.catch(function (e) {
+        var codigo = e && e.name ? String(e.name) : "";
+        if (codigo.indexOf("Quota") >= 0 || codigo.indexOf("exceeded") >= 0) throw new Error("espacio");
+        throw e;
+      });
+    }
+
     return {
       /** precarga: nombres → memoria (OPFS o IDB) */
       preparar: function (nombres) {
+        protegidos = new Set(nombres || []);
         var pendientes = [];
         nombres.forEach(function (n) {
           if (n && !memoria.has(n)) pendientes.push(n);
         });
-        if (pendientes.length === 0) return Promise.resolve();
+        if (pendientes.length === 0) {
+          expulsar();
+          return Promise.resolve();
+        }
         return Promise.all(
           pendientes.map(function (n) {
             var p = opfsOk ? leeOpfs(n).then(function (b) { return b || leeIdb(n); }) : leeIdb(n);
             return p.then(function (b) { memoria.set(n, b); });
           })
-        ).then(function () {});
+        ).then(function () { expulsar(); });
       },
       write: function (nombre, blob) {
         memoria.set(nombre, blob);
-        return opfsOk ? escribeOpfs(nombre, blob).catch(function () { return escribeIdb(nombre, blob); }) : escribeIdb(nombre, blob);
+        return escribeEnDisco(nombre, blob);
       },
       read: function (nombre) {
+        tocar(nombre);
         return memoria.get(nombre) || null;
       },
       del: function (nombre) {
@@ -1430,7 +1511,7 @@
         if (!blob) return Promise.resolve();
         memoria.set(a, blob);
         memoria.delete(de);
-        var p1 = opfsOk ? escribeOpfs(a, blob).catch(function () { return escribeIdb(a, blob); }) : escribeIdb(a, blob);
+        var p1 = escribeEnDisco(a, blob);
         var p2 = opfsOk ? borraOpfs(de).catch(function () { return borraIdb(de); }) : borraIdb(de);
         return Promise.all([p1, p2]).then(function () {});
       },
@@ -1467,11 +1548,12 @@
     }
     function idbSet(clave, valor) {
       return db().then(function (d) {
-        return new Promise(function (resolve) {
+        return new Promise(function (resolve, reject) {
           var tx = d.transaction("kv", "readwrite");
           tx.objectStore("kv").put(valor, clave);
           tx.oncomplete = function () { resolve(); };
-          tx.onerror = function () { resolve(); };
+          tx.onerror = function () { reject(tx.error || new Error("idb")); };
+          tx.onabort = function () { reject(tx.error || new Error("idb")); };
         });
       });
     }
@@ -1479,7 +1561,7 @@
     function cargar() {
       if (cargado) return Promise.resolve();
       return idbGet("__todas__claves__").then(function (claves) {
-        var lista = claves || ["books", "sessions", "vocab", "badges", "undo", "settings", "__files__"];
+        var lista = claves || ["books", "sessions", "vocab", "badges", "undo", "settings", "__files__", "__covers__"];
         return Promise.all(lista.map(function (k) { return idbGet(k).then(function (v) { memoria[k] = v; }); }));
       }).then(function () { cargado = true; });
     }
@@ -1490,18 +1572,26 @@
         memoria[clave] = valor;
         var claves = idbClaves();
         if (claves.indexOf(clave) < 0) claves.push(clave);
-        void idbSet("__todas__claves__", claves);
-        void idbSet(clave, valor);
+        void idbSet("__todas__claves__", claves).catch(function () {});
+        void idbSet(clave, valor).catch(function () {});
+      },
+      /** escritura confirmada: resuelve cuando el store la aceptó (cuota) */
+      escribirYConfirmar: function (clave, valor) {
+        memoria[clave] = valor;
+        var claves = idbClaves();
+        if (claves.indexOf(clave) < 0) claves.push(clave);
+        void idbSet("__todas__claves__", claves).catch(function () {});
+        return idbSet(clave, valor);
       },
       del: function (clave) {
         delete memoria[clave];
         var claves = idbClaves().filter(function (k) { return k !== clave; });
-        void idbSet("__todas__claves__", claves);
+        void idbSet("__todas__claves__", claves).catch(function () {});
       },
     };
     function idbClaves() {
       var c = memoria["__todas__claves__"];
-      return Array.isArray(c) ? c : ["books", "sessions", "vocab", "badges", "undo", "settings", "__files__"];
+      return Array.isArray(c) ? c : ["books", "sessions", "vocab", "badges", "undo", "settings", "__files__", "__covers__"];
     }
   }
 
@@ -1530,6 +1620,18 @@
 
     var meta = crearMetaIdb();
     var files = crearFilesAsync(meta);
+
+    // La biblioteca pesa hasta 200 MB por libro: sin persistencia el
+    // navegador puede desalojar IndexedDB/OPFS bajo presión de almacenamiento
+    // (y la biblioteca local-first desaparecería sin avisar).
+    if (typeof navigator !== "undefined" && navigator.storage && typeof navigator.storage.persist === "function") {
+      navigator.storage
+        .persist()
+        .then(function (ok) {
+          window.__athenaPersistencia = ok ? "si" : "no";
+        })
+        .catch(function () {});
+    }
     var núcleo = createCore({ files: files, meta: meta, blobToDataUrl: blobADataUrl });
     var router = núcleo.crearRouter({});
     var fetchNativo = window.fetch.bind(window);
@@ -1687,8 +1789,14 @@
         }
       }
       if (metodo === "GET" && pathname === "/api/books") {
+        // sólo las portadas sin data URL cacheada: con la caché ya poblada la
+        // lista no toca OPFS ni precarga nada (antes cargaba TODAS)
+        var cubre = meta.get("__covers__") || {};
         (meta.get("books") || []).forEach(function (b) {
-          if (b.coverPath && b.coverPath.startsWith("/uploads/")) nombres.push(baseName(b.coverPath));
+          if (b.coverPath && b.coverPath.startsWith("/uploads/")) {
+            var nombre = baseName(b.coverPath);
+            if (!cubre[nombre]) nombres.push(nombre);
+          }
         });
       }
       return nombres;
@@ -1772,6 +1880,14 @@
       });
     }
 
+    /** el error de una petición local, con un mensaje que se pueda enseñar */
+    function mensajeOffline(e) {
+      var codigo = e && e.name ? String(e.name) : "";
+      if (e && e.message === "espacio") return "No queda espacio en el dispositivo";
+      if (codigo.indexOf("Quota") >= 0 || codigo.indexOf("exceeded") >= 0) return "No queda espacio en el dispositivo";
+      return "Error interno offline";
+    }
+
     // ---- parche fetch
     window.fetch = function (input, init) {
       // pdf.js v6 pasa un objeto URL (no un string ni un Request): .url no
@@ -1796,7 +1912,7 @@
           return atender(metodo, url, init, { formData: fd });
         }).then(responder, function (e) {
           console.error("[athena-offline]", metodo, url, e);
-          return new Response(JSON.stringify({ error: "Error interno offline" }), { status: 500, headers: { "Content-Type": "application/json" } });
+          return new Response(JSON.stringify({ error: mensajeOffline(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
         });
       }
       if (body && typeof body === "string") {
@@ -1804,7 +1920,7 @@
       }
       return atender(metodo, url, init, bodyParseado).then(responder, function (e) {
         console.error("[athena-offline]", metodo, url, e);
-        return new Response(JSON.stringify({ error: "Error interno offline" }), { status: 500, headers: { "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: mensajeOffline(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
       });
     };
 
@@ -1883,7 +1999,7 @@
       }, function (e) {
         console.error("[athena-offline] XHR", self._metodo, self._url, e);
         self._status = 500;
-        self._responseText = JSON.stringify({ error: "Error interno offline" });
+        self._responseText = JSON.stringify({ error: mensajeOffline(e) });
         self._terminar();
       });
     };

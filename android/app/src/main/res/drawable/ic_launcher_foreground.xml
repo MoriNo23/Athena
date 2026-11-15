@@ -1,0 +1,45 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108"
+    android:alpha="0.94">
+
+    <!--
+      Pórtico de Athena · capa de frente del icono adaptativo.
+      Es el mismo dibujo de public/brand/athena-icon.svg (arte de 200×126,
+      centrado en el lienzo de 108 dp: el dibujo queda dentro de la zona
+      segura de 66 dp, así que ningún recorte de launcher se lo come).
+      Colores de la casa: bronce #B58A3A (frontón), #E0A94E (tímpano,
+      metopas, estilóbato) y mármol #F1EEE6 (friso, columnas).
+      Si mueves el pórtico, mueve también el SVG: son el mismo dibujo.
+    -->
+
+    <!-- frontón -->
+    <path
+        android:fillColor="#B58A3A"
+        android:pathData="M54,31.32 L82.8,48.6 L25.2,48.6 Z" />
+    <!-- tímpano -->
+    <path
+        android:fillColor="#E0A94E"
+        android:pathData="M54,36 L64.08,45 L43.92,45 Z" />
+    <!-- entablamento -->
+    <path
+        android:fillColor="#F1EEE6"
+        android:pathData="M23.76,48.6 L84.24,48.6 L84.24,52.92 L23.76,52.92 Z" />
+    <!-- metopas -->
+    <path
+        android:fillColor="#E0A94E"
+        android:pathData="M33.84,48.6 L36.72,48.6 L36.72,52.92 L33.84,52.92 Z M52.56,48.6 L55.44,48.6 L55.44,52.92 L52.56,52.92 Z M71.28,48.6 L74.16,48.6 L74.16,52.92 L71.28,52.92 Z" />
+    <!-- columnas -->
+    <path
+        android:fillColor="#F1EEE6"
+        android:pathData="M29.52,52.92 L33.84,52.92 L33.84,70.2 L29.52,70.2 Z M42.48,52.92 L46.8,52.92 L46.8,70.2 L42.48,70.2 Z M61.2,52.92 L65.52,52.92 L65.52,70.2 L61.2,70.2 Z M74.16,52.92 L78.48,52.92 L78.48,70.2 L74.16,70.2 Z" />
+    <!-- estilóbato: dos gradas -->
+    <path
+        android:fillColor="#F1EEE6"
+        android:pathData="M20.88,70.2 L87.12,70.2 L87.12,73.08 L20.88,73.08 Z" />
+    <path
+        android:fillColor="#E0A94E"
+        android:pathData="M18,73.08 L90,73.08 L90,76.68 L18,76.68 Z" />
+</vector>

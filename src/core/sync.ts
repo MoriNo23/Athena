@@ -1,6 +1,6 @@
 /**
- * Copia de la casa (Enmienda 1 de PRODUCT.md): sincronización directa entre
- * dispositivos de la dueña — el APK (motor offline) ↔ el servidor — por LAN,
+ * Copia de la casa (sincronización a mano, sin automatizar): sincronización
+ * directa entre dispositivos de la dueña — el APK (motor offline) ↔ el servidor — por LAN,
  * SIEMPRE a mano («el dispositivo que manda»), nunca en segundo plano.
  *
  * Este módulo es el lado SERVIDOR de las reglas de fusión: recibe el estado

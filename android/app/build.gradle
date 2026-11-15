@@ -1,13 +1,99 @@
 apply plugin: 'com.android.application'
 
-// Firma release de la casa (docs/APK-OFFLINE.md): keystore propio en
-// android/keystore/. Firma ESTABLE entre builds → el APK se actualiza sin
-// desinstalar. Si el fichero de propiedades no existe (repo sin keystore),
-// la release cae a firma debug para no romper la compilación.
-def keystorePropsFile = rootProject.file("keystore/athena.properties")
-def keystoreProps = new Properties()
-if (keystorePropsFile.exists()) {
-    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+// ---- Versión: nace de package.json, no se mantiene a mano ----
+// versionName = la del paquete; versionCode = mayor*100000 + menor*1000 +
+// parche*10. Crecimiento monótono con cada versión semver: no hay que
+// acordarse de subirlo y no se puede desincronizar del release.
+def paquete = new groovy.json.JsonSlurper().parse(file("../../package.json"))
+def partesVersion = paquete.version.toString().tokenize('.')
+def vMayor = partesVersion.size() > 0 ? partesVersion[0].toInteger() : 0
+def vMenor = partesVersion.size() > 1 ? partesVersion[1].toInteger() : 0
+def vParche = partesVersion.size() > 2 ? partesVersion[2].toInteger() : 0
+def versionCodeCalculado = vMayor * 100000 + vMenor * 1000 + vParche * 10
+
+// ---- Firma release: el keystore vive en SECRETS del CI, no en el repo ----
+// Preferencia: variables de entorno (ANDROID_KEYSTORE_BASE64 o
+// ANDROID_KEYSTORE_PATH + contraseñas). Como respaldo para el build local,
+// el fichero keystore/athena.properties si existe (está en .gitignore).
+// Sin ninguna de las dos cosas, la release cae a la firma debug para no
+// romper la compilación.
+def keystoreBase64 = System.getenv("ANDROID_KEYSTORE_BASE64") ?: ""
+def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: ""
+// Ojo: dentro de `signingConfigs { release { … } }` Groovy resuelve primero la
+// variable local, así que `storePassword storePassword` intentaría «llamar» a
+// la String local (String.call()) en vez de fijar la propiedad. Por eso las
+// locales NO se llaman igual que las propiedades de SigningConfig.
+def storePass = System.getenv("ANDROID_STORE_PASSWORD") ?: ""
+def keyAliasName = System.getenv("ANDROID_KEY_ALIAS") ?: ""
+def keyPass = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
+
+// Huella SHA-256 del keystore de Athena. No es secreta (el certificado va
+// dentro del APK firmado) y sirve para detectar un ANDROID_KEYSTORE_BASE64 que
+// sea un base64 válido pero de OTRO fichero: firmar con una clave ajena es el
+// fallo más caro que puede tener este pipeline y no se ve a simple vista.
+def huellaKeystore = "ef03f1d7a1f643eb156106f30b01864672d523191378eb04d6f2dcb420493ce4"
+
+def keystoreFile = null
+def problemaFirma = null
+if (keystoreBase64?.trim()) {
+    def dir = new File(buildDir, "signing")
+    dir.mkdirs()
+    keystoreFile = new File(dir, "athena.keystore")
+    // Pegado en la web de GitHub, el base64 puede traer saltos de línea (o
+    // venir envuelto a 76 columnas); el decodificador de Java los rechaza y
+    // el build moriría en la fase de configuración sin decir nada útil.
+    def limpio = keystoreBase64.replaceAll("\\s+", "")
+    def mal = limpio =~ "[^A-Za-z0-9+/=]"
+    if (mal.find()) {
+        problemaFirma = "ANDROID_KEYSTORE_BASE64 tiene un carácter que no es base64 ('${mal.group()}') en la posición ${mal.start()} (longitud ${limpio.length()})"
+        keystoreFile = null
+    } else {
+        try {
+            keystoreFile.bytes = Base64.getDecoder().decode(limpio)
+            def huella = java.util.HexFormat.of().formatHex(
+                java.security.MessageDigest.getInstance("SHA-256").digest(keystoreFile.bytes)
+            )
+            if (huella != huellaKeystore) {
+                problemaFirma = "el keystore de los secretos no es el de Athena (huella ${huella.take(16)}…, esperada ${huellaKeystore.take(16)}…)"
+                keystoreFile = null
+            }
+        } catch (Exception e) {
+            problemaFirma = "ANDROID_KEYSTORE_BASE64 no es un base64 válido (${e.class.simpleName}: ${e.message})"
+            keystoreFile = null
+        }
+    }
+} else if (keystorePath?.trim()) {
+    def candidato = file(keystorePath.trim())
+    if (candidato.exists()) keystoreFile = candidato
+}
+
+def firmaConocida = keystoreFile != null && storePass && keyAliasName && keyPass
+
+// Respaldo local (build desde el ordenador de la dueña, sin secretos en CI)
+if (!firmaConocida) {
+    def propsFile = rootProject.file("keystore/athena.properties")
+    if (propsFile.exists()) {
+        def props = new Properties()
+        propsFile.withInputStream { props.load(it) }
+        def f = props['storeFile'] ? file(props['storeFile']) : null
+        if (f && f.exists()) {
+            keystoreFile = f
+            storePass = props['storePassword'] ?: ""
+            keyAliasName = props['keyAlias'] ?: ""
+            keyPass = props['keyPassword'] ?: ""
+            firmaConocida = storePass && keyAliasName && keyPass
+        }
+    }
+}
+
+// El secreto estaba mal: sin esto el build caería a la firma debug y el APK
+// saldría «bien» pero no podría actualizar lo que ya está instalado.
+if (problemaFirma && !firmaConocida) {
+    throw new GradleException(
+        "Firma release: ${problemaFirma}. " +
+        "Vuelve a copiarla con: base64 -w0 android/keystore/athena.keystore " +
+        "(y pégala tal cual, sin envolver ni añadirle nada)."
+    )
 }
 
 android {
@@ -17,8 +103,8 @@ android {
         applicationId "com.morino23.athena"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "2.1.0"
+        versionCode versionCodeCalculado
+        versionName paquete.version
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -27,12 +113,12 @@ android {
         }
     }
     signingConfigs {
-        if (keystorePropsFile.exists()) {
+        if (firmaConocida) {
             release {
-                storeFile file(keystoreProps['storeFile'])
-                storePassword keystoreProps['storePassword']
-                keyAlias keystoreProps['keyAlias']
-                keyPassword keystoreProps['keyPassword']
+                storeFile keystoreFile
+                storePassword storePass
+                keyAlias keyAliasName
+                keyPassword keyPass
             }
         }
     }
@@ -40,7 +126,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (keystorePropsFile.exists()) {
+            if (firmaConocida) {
                 signingConfig signingConfigs.release
             }
         }
@@ -55,6 +141,9 @@ repositories {
 
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+    // OnBackPressedCallback / getOnBackPressedDispatcher (MainActivity): lo
+    // trae appcompat por debajo, pero la callback de atrás se compila aquí.
+    implementation "androidx.activity:activity:$androidxActivityVersion"
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"

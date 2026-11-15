@@ -601,7 +601,7 @@ export const pt: Record<string, string> = {
   "pause.recapPh": "Ao voltar, isto te religa: o que está acontecendo agora, o que seus personagens sabem até aqui?",
   "pause.keepReading": "Ler mais um pouco",
   "pause.take": "Salvar e pausar",
-  "ocr.launchTip": "Esta página é uma imagem: reconheça o texto dela com OCR (o motor baixa só na primeira vez e fica em cache)",
+  "ocr.launchTip": "Esta página é uma imagem: reconheça o texto dela com OCR (o motor baixa só na primeira vez, precisa de internet, e fica em cache)",
   "ocr.confidenceTip": "Confiança média do reconhecimento",
   "ocr.langEspa": "Reconhecer em espanhol",
   "ocr.langEng": "Reconhecer em inglês",

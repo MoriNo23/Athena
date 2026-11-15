@@ -47,6 +47,9 @@ interface ReaderHeaderProps {
   onBack: () => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
+  /** false en el APK y donde el navegador no da pantalla completa: el botón
+      no se pinta (no hay barras que esconder) */
+  canFullscreen?: boolean;
   effectiveScale: number;
   activeZoom: ZoomPresetId | "custom" | null;
   onZoomBy: (factor: number) => void;
@@ -97,6 +100,7 @@ export function ReaderHeader({
   onBack,
   isFullscreen,
   onToggleFullscreen,
+  canFullscreen = true,
   effectiveScale,
   activeZoom,
   onZoomBy,
@@ -132,7 +136,7 @@ export function ReaderHeader({
   const [draftPagina, setDraftPagina] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   return (
-    <header data-chrome data-chrome-kind="header" className="flex min-h-14 shrink-0 flex-col border-b border-border/60 bg-card/40 px-3 py-1.5">
+    <header data-chrome data-chrome-kind="header" className="chrome-safe-top-sm flex min-h-14 shrink-0 flex-col border-b border-border/60 bg-card/40 px-3 py-1.5">
       {/* Fila 1 — identidad: volver, título, (escritorio: telemetría), vista y «⋯» */}
       <div className="flex items-center gap-1">
         <Tip label={t("reader.back")}>
@@ -173,7 +177,10 @@ export function ReaderHeader({
           </span>
         </div>
 
-        {/* Pantalla completa: la acción de vista más útil — acento, etiqueta y sitio propio */}
+        {/* Pantalla completa: solo donde esconde algo. En el APK el WebView ya
+            ocupa toda la pantalla, así que el botón no existe (y pedir el API
+            ahí dejaba los huecos del recorte de cámara sin pintar). */}
+        {canFullscreen && (
         <Tip label={t("reader.fullscreen")}>
           <Button
             variant={isFullscreen ? "secondary" : "outline"}
@@ -197,6 +204,7 @@ export function ReaderHeader({
             </span>
           </Button>
         </Tip>
+        )}
 
         {/* Poco frecuente: vocabulario, ajustes del riel y — en móvil — el modo
             Página/Texto del PDF (la fila de lectura ya no da para más) */}

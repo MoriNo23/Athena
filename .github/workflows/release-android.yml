@@ -3,7 +3,11 @@
 # Compila el APK firmado SIN necesidad de Android Studio en tu máquina:
 #   1. tests de la casa (incluye los del motor offline)
 #   2. build web estática + sync de Capacitor
-#   3. gradlew assembleRelease con el keystore de android/keystore/
+#   3. comprueba que los SECRETOS de firma estén presentes (si falta uno, se
+#      para: sin firma el build caería a la clave debug sin avisar) y
+#   4. gradlew assembleRelease con ese keystore. El keystore ya no vive en el
+#      repo: viaja en ANDROID_KEYSTORE_BASE64 + ANDROID_STORE_PASSWORD/
+#      ANDROID_KEY_ALIAS/ANDROID_KEY_PASSWORD.
 # El APK firmado queda como artifact «Athena-apk»; el release lo publica
 # el workflow Athena Release (release.yml), que llama a este pipeline.
 #
@@ -41,13 +45,122 @@ jobs:
         run: bun test
 
       - name: Build web estática + sync Capacitor
+        # `always()`: los tests de JVM (abajo) necesitan el proyecto Gradle que
+        # genera este paso. Si la puerta de calidad falló, quizá quedó a medias
+        # —da igual: los tests de JVM son otro criterio y su rojo tiene que
+        # verse. Sin este proyecto, Gradle ni arranca.
+        if: always()
         run: bun run apk:sync
 
-      - name: Compilar APK release
+      - name: Tests de lógica nativa (JVM, sin emulador)
+        # `always()`: si la puerta de calidad de bun falla, este paso también
+        # tiene que correr — su rojo tiene que ser VISIBLE en el resumen.
+        #
+        # OJO CON EL ORDEN: va DESPUÉS de `apk:sync`. El proyecto Gradle
+        # incluye capacitor-cordova-android-plugins/cordova.variables.gradle,
+        # que lo genera `cap sync`; si este paso corre antes, Gradle ni se
+        # configura («Could not read script … as it does not exist») y parece
+        # un fallo de los tests. Aquí ya existe incluso cuando bun falló,
+        # porque el paso de sync usa `if: always()`.
+        if: always()
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew testDebugUnitTest --no-daemon --stacktrace 2>&1 | tee gradle-unit.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: Comprobar los secretos de firma
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          # El build.gradle cayó a firma debug si no hay firma; en CI eso NO es
+          # aceptable (un APK firmado con la clave debug no puede actualizar lo
+          # que ya está instalado). Si falta un secreto, se para aquí y en voz
+          # alta en lugar de publicar un release roto.
+          FALTAN=0
+          for v in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!v}" ]; then
+              echo "✗ Falta el secreto $v: el APK saldría firmado con debug." >&2
+              FALTAN=1
+            fi
+          done
+          if [ "$FALTAN" != "0" ]; then
+            echo "→ Crea los cuatro secretos en Settings → Secrets and variables → Actions." >&2
+            exit 1
+          fi
+          echo "✓ Los cuatro secretos de firma están presentes"
+
+      - name: Compilar APK release
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-release.log
+          exit "${PIPESTATUS[0]}"
+
+      - name: Diagnóstico del fallo (solo si falló)
+        if: failure()
+        run: |
+          # Los logs crudos de Actions no se pueden bajar por API (redirigen a
+          # un host aparte), pero las anotaciones «::error::» sí se leen. Este
+          # paso existe para que un fallo de Gradle se entienda sin abrir la UI.
+          LOG=android/gradle-release.log
+          emitir() { local l="$1"; l="${l//%/%25}"; l="${l//$'\r'/%0D}"; echo "::error::$l"; }
+          if [ ! -f "$LOG" ]; then
+            emitir "No se generó $LOG: el fallo fue en la configuración de Gradle, antes de compilar."
+            exit 0
+          fi
+          # el bloque «What went wrong … Try» es el resumen que Gradle deja al
+          # final; los frames del script (build.gradle:NN) dicen la línea
+          LINEAS=$(awk '/What went wrong/{f=1} /Get more help/{f=0} f' "$LOG" \
+            | grep -v '^--$' | grep -vE '^[[:space:]]*$' | head -n 3)
+          # el «Caused by» más profundo es la causa de verdad; los frames del
+          # script (build.gradle:NN) dicen en qué línea
+          MARCO=$(grep -A 2 "Caused by" "$LOG" | grep -v '^--$' | grep -vE '^[[:space:]]*$' | head -n 7)
+          FUENTE=$(grep -E "build\.gradle:[0-9]+" "$LOG" | sed 's/^[[:space:]]*//' | head -n 4)
+          printf '%s\n%s\n%s\n' "$LINEAS" "$MARCO" "$FUENTE" \
+            | grep -vE '^[[:space:]]*$' | awk '!s[$0]++' | head -n 10 \
+            | while IFS= read -r l; do emitir "$l"; done
+
+      - name: Diagnóstico de los tests de JVM (solo si fallaron)
+        # Los logs crudos de Actions no se pueden bajar por API (redirigen a
+        # otro host); las anotaciones «::error::» sí se leen. Este paso publica
+        # QUÉ test JUnit falló y con qué mensaje, o —si ni llegaron a
+        # ejecutarse— el bloque de error de Gradle. Sin esto, un fallo de la
+        # lógica del atrás parece un fallo de Gradle cualquiera.
+        if: failure()
+        run: |
+          INFORME=$(find android/app/build/test-results -name "*.xml" 2>/dev/null | head -1)
+          if [ -n "$INFORME" ]; then
+            awk 'BEGIN{RS="<testcase"} NR>1 {
+                   nombre=""; mensaje="";
+                   if (match($0, /name="[^"]*"/)) { nombre=substr($0, RSTART+6, RLENGTH-7) }
+                   if (match($0, /<failure[^>]*message="[^"]*"/)) {
+                     mensaje=substr($0, RSTART, RLENGTH);
+                     sub(/.*message="/, "", mensaje); sub(/"$/, "", mensaje);
+                   }
+                   if (mensaje != "") printf "::error::JUnit · %s → %s\n", nombre, substr(mensaje, 1, 200);
+                 }' "$INFORME"
+            exit 0
+          fi
+          # el paso de tests hace `cd android`, así que el log queda ahí dentro
+          LOG=""
+          for c in android/gradle-unit.log gradle-unit.log; do
+            [ -f "$c" ] && LOG="$c" && break
+          done
+          echo "::error::Los tests de JVM no llegaron a ejecutarse (log: ${LOG:-no encontrado})."
+          if [ -n "$LOG" ]; then
+            awk '/What went wrong/{f=1} /Get more help|^Try:/{f=0} f' "$LOG" \
+              | grep -vE '^[[:space:]]*$' | head -n 12 \
+              | while IFS= read -r l; do echo "::error::$l"; done
+          fi
 
       - name: Renombrar APK con la versión
         run: |

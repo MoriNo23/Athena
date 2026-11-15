@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!--
+      Fondo del icono adaptativo: el sepia hondo de la ventana (#211D16), el
+      mismo de athena_ventana. Antes era #FFFFFF: un cuadrado blanco puro en
+      el launcher, que es justo el color que la app ya no usa en ningún sitio.
+    -->
+    <color name="ic_launcher_background">#211D16</color>
 </resources>
