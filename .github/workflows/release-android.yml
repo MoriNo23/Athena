@@ -72,6 +72,10 @@ jobs:
           echo "✓ Los cuatro secretos de firma están presentes"
 
       - name: Tests de lógica nativa (JVM, sin emulador)
+        # `always()`: si la puerta de calidad de bun falla, este paso también
+        # tiene que correr. Su rojo tiene que ser VISIBLE en el resumen — si
+        # no, el fallo parece de otro sitio y el diagnóstico engaña.
+        if: always()
         run: |
           # La lógica del atrás (RespuestaWeb) tiene su test JUnit: corre en la
           # JVM y comprueba las cadenas que evaluateJavascript entrega de

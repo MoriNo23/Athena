@@ -260,6 +260,9 @@ describe("empaquetado móvil · el atrás tiene test ejecutable", () => {
     expect(main).toContain("RespuestaWeb.esCierto(valor)");
     // la comparación rota no puede volver
     expect(main).not.toContain('"1".equals(valor)');
+    // y en la lógica tampoco puede quedar la comparación cruda
+    const logicaSinComentarios = logica.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    expect(logicaSinComentarios).not.toContain('"1".equals(crudo)');
   });
 
   test("el test JUnit cubre las cadenas reales de evaluateJavascript", () => {
