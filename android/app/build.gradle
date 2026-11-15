@@ -19,9 +19,13 @@ def versionCodeCalculado = vMayor * 100000 + vMenor * 1000 + vParche * 10
 // romper la compilación.
 def keystoreBase64 = System.getenv("ANDROID_KEYSTORE_BASE64") ?: ""
 def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: ""
-def storePassword = System.getenv("ANDROID_STORE_PASSWORD") ?: ""
-def keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: ""
-def keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
+// Ojo: dentro de `signingConfigs { release { … } }` Groovy resuelve primero la
+// variable local, así que `storePassword storePassword` intentaría «llamar» a
+// la String local (String.call()) en vez de fijar la propiedad. Por eso las
+// locales NO se llaman igual que las propiedades de SigningConfig.
+def storePass = System.getenv("ANDROID_STORE_PASSWORD") ?: ""
+def keyAliasName = System.getenv("ANDROID_KEY_ALIAS") ?: ""
+def keyPass = System.getenv("ANDROID_KEY_PASSWORD") ?: ""
 
 // Huella SHA-256 del keystore de Athena. No es secreta (el certificado va
 // dentro del APK firmado) y sirve para detectar un ANDROID_KEYSTORE_BASE64 que
@@ -63,7 +67,7 @@ if (keystoreBase64?.trim()) {
     if (candidato.exists()) keystoreFile = candidato
 }
 
-def firmaConocida = keystoreFile != null && storePassword && keyAlias && keyPassword
+def firmaConocida = keystoreFile != null && storePass && keyAliasName && keyPass
 
 // Respaldo local (build desde el ordenador de la dueña, sin secretos en CI)
 if (!firmaConocida) {
@@ -74,10 +78,10 @@ if (!firmaConocida) {
         def f = props['storeFile'] ? file(props['storeFile']) : null
         if (f && f.exists()) {
             keystoreFile = f
-            storePassword = props['storePassword'] ?: ""
-            keyAlias = props['keyAlias'] ?: ""
-            keyPassword = props['keyPassword'] ?: ""
-            firmaConocida = storePassword && keyAlias && keyPassword
+            storePass = props['storePassword'] ?: ""
+            keyAliasName = props['keyAlias'] ?: ""
+            keyPass = props['keyPassword'] ?: ""
+            firmaConocida = storePass && keyAliasName && keyPass
         }
     }
 }
@@ -112,9 +116,9 @@ android {
         if (firmaConocida) {
             release {
                 storeFile keystoreFile
-                storePassword storePassword
-                keyAlias keyAlias
-                keyPassword keyPassword
+                storePassword storePass
+                keyAlias keyAliasName
+                keyPassword keyPass
             }
         }
     }

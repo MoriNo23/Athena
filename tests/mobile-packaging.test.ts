@@ -73,6 +73,16 @@ describe("empaquetado móvil · firma", () => {
     expect(gradle).toContain("ANDROID_KEY_PASSWORD");
   });
 
+  test("las variables de firma no tapan las propiedades de SigningConfig", () => {
+    // `storePassword storePassword` dentro de signingConfigs: Groovy resuelve
+    // la variable local antes que el delegate y intenta llamar a una String
+    // (String.call()) → el build revienta al configurar, solo en CI
+    const gradle = leer("android/app/build.gradle");
+    const colapsan =
+      gradle.match(/^[ \t]*(storeFile|storePassword|keyAlias|keyPassword)[ \t]+\1[ \t]*$/gm) ?? [];
+    expect(colapsan).toEqual([]);
+  });
+
   test("la huella del keystore del build es la del keystore del repo", () => {
     const gradle = leer("android/app/build.gradle");
     const m = gradle.match(/huellaKeystore\s*=\s*"([0-9a-f]{64})"/);
