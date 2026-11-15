@@ -132,7 +132,7 @@ export function ReaderHeader({
   const [draftPagina, setDraftPagina] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   return (
-    <header data-chrome data-chrome-kind="header" className="flex min-h-14 shrink-0 flex-col border-b border-border/60 bg-card/40 px-3 py-1.5">
+    <header data-chrome data-chrome-kind="header" className="chrome-safe-top-sm flex min-h-14 shrink-0 flex-col border-b border-border/60 bg-card/40 px-3 py-1.5">
       {/* Fila 1 — identidad: volver, título, (escritorio: telemetría), vista y «⋯» */}
       <div className="flex items-center gap-1">
         <Tip label={t("reader.back")}>

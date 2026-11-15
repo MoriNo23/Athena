@@ -1207,3 +1207,19 @@ blockquote + .epub-p {
 .epub-peek-card p {
   font-family: var(--reader-font);
 }
+
+/* ---------- Safe-area del chrome (A2 · apk-edge-to-edge) ----------
+   Con `android.adjustMarginsForEdgeToEdge: "auto"` Capacitor le pone márgenes
+   al WebView y estos env() valen 0; quedan como red de seguridad para que la
+   cabecera de la biblioteca y la del lector no queden bajo el notch si el
+   WebView llega a dibujar a pantalla completa. Se SUMAN al padding de la casa
+   (py-5 en biblioteca, py-1.5 en la cabecera del lector, pb-4 en el riel). */
+.chrome-safe-top {
+  padding-top: calc(1.25rem + env(safe-area-inset-top, 0px));
+}
+.chrome-safe-top-sm {
+  padding-top: calc(0.375rem + env(safe-area-inset-top, 0px));
+}
+.chrome-safe-bottom {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}

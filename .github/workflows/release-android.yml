@@ -3,7 +3,9 @@
 # Compila el APK firmado SIN necesidad de Android Studio en tu máquina:
 #   1. tests de la casa (incluye los del motor offline)
 #   2. build web estática + sync de Capacitor
-#   3. gradlew assembleRelease con el keystore de android/keystore/
+#   3. gradlew assembleRelease con el keystore de los SECRETS del repo
+#      (ANDROID_KEYSTORE_BASE64 + ANDROID_STORE_PASSWORD/ANDROID_KEY_ALIAS/
+#      ANDROID_KEY_PASSWORD). El keystore ya no vive en el repo.
 # El APK firmado queda como artifact «Athena-apk»; el release lo publica
 # el workflow Athena Release (release.yml), que llama a este pipeline.
 #
@@ -44,6 +46,11 @@ jobs:
         run: bun run apk:sync
 
       - name: Compilar APK release
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd android
           chmod +x gradlew

@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useSettings } from "@/lib/settings";
 import { useI18n } from "@/lib/i18n";
+import { setBackHandler } from "@/lib/back-handler";
 import { HeroMenu } from "@/components/library/HeroMenu";
 import { BadgeShelf } from "@/components/library/BadgeShelf";
 import { EditBookDialog } from "@/components/library/EditBookDialog";
@@ -126,6 +127,52 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
   const [relinkDraft, setRelinkDraft] = useState("");
   const [relinking, setRelinking] = useState(false);
 
+  // ---------- Back de Android: cierra los diálogos antes de salir ----------
+  // Sin esto el atrás terminaba la actividad con cualquier diálogo abierto.
+  useEffect(() => {
+    setBackHandler(() => {
+      if (relinkTarget) {
+        setRelinkTarget(null);
+        return true;
+      }
+      if (carpetaOpen) {
+        setCarpetaOpen(false);
+        return true;
+      }
+      if (deleteTarget) {
+        setDeleteTarget(null);
+        return true;
+      }
+      if (editTarget) {
+        setEditTarget(null);
+        return true;
+      }
+      if (resetTarget) {
+        setResetTarget(null);
+        return true;
+      }
+      if (resetAllOpen) {
+        setResetAllOpen(false);
+        return true;
+      }
+      return false;
+    });
+    return () => setBackHandler(null);
+  }, [
+    relinkTarget,
+    carpetaOpen,
+    deleteTarget,
+    editTarget,
+    resetTarget,
+    resetAllOpen,
+    setRelinkTarget,
+    setCarpetaOpen,
+    setDeleteTarget,
+    setEditTarget,
+    setResetTarget,
+    setResetAllOpen,
+  ]);
+
   const abrirCarpeta = async () => {
     setCarpetaDraft("");
     setCarpetaOpen(true);
@@ -227,7 +274,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-8">
+    <div className="chrome-safe-top mx-auto w-full max-w-6xl px-4 py-5 sm:px-8 sm:py-8">
       {/* ---- Hero de Atenea ---- */}
       {/* Móvil: identidad a todo lo ancho (sello menor, subtítulo a 2 líneas)
           y las acciones vuelan a su propia fila; en el hero ya no hay icono

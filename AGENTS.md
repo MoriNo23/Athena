@@ -60,8 +60,12 @@ que te devuelven a leer hoy.
   standalone, tarball/.deb) y el CLI `scripts/athena`. Sin lógica de
   negocio aquí. `sync-pdfjs.mjs` deja los recursos de pdf.js en
   `public/pdfjs/` (gitignored: salen de node_modules).
-- `android/` — proyecto Capacitor/Gradle del APK. `android/keystore/` —
-  firma del APK (riesgo conocido y aceptado por la dueña).
+- `android/` — proyecto Capacitor/Gradle del APK. La firma **no** vive en el
+  repo: el keystore va en los secretos del CI (`ANDROID_KEYSTORE_BASE64` +
+  `ANDROID_STORE_PASSWORD`/`ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD`) y
+  `android/keystore/` está en `.gitignore`. `android/app/build.gradle` lee la
+  versión de `package.json` (`versionName` + `versionCode` derivado), así que
+  no hay versión hardcodeada que desincronizar.
 - `db/` y `public/uploads/` — estado real de la biblioteca en modo legacy
   (dentro del repo). Jamás se commitean. Con `ATHENA_HOME` (default
   `~/.local/share/athena`) los datos viven FUERA del repo.

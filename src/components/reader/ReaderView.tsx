@@ -19,6 +19,7 @@ import { useEmbeddedFocus } from "@/hooks/use-embedded-focus";
 import { useScrollStep } from "@/hooks/use-scroll-step";
 import { usePdfTextMode } from "@/hooks/use-pdf-text-mode";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { setBackHandler } from "@/lib/back-handler";
 import { RailBar } from "@/components/rail/RailBar";
 import { PdfViewport } from "@/components/reader/PdfViewport";
 import { EpubViewport } from "@/components/reader/EpubViewport";
@@ -181,7 +182,7 @@ function ReaderRail({
       </div>
     );
   return (
-    <div data-chrome data-chrome-kind="railbar" className="border-t border-border/60 bg-card/40 px-4 pb-4 pt-2 sm:px-10">
+    <div data-chrome data-chrome-kind="railbar" className="chrome-safe-bottom border-t border-border/60 bg-card/40 px-4 pb-4 pt-2 sm:px-10">
       {children}
     </div>
   );
@@ -427,7 +428,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
   /** Selección desde el carrusel peek: callback estable (el gesto reengancha
       su listener de teclas con cada identidad nueva, y el lector re-renderiza
       cada segundo por el cronómetro de la sesión). */
-  const { setPeek: setPeekOpen } = peek;
+  const { peekOpen, setPeek: setPeekOpen } = peek;
   const peekSelectPage = useCallback(
     (p: number) => {
       setPeekOpen(false);
@@ -435,6 +436,62 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     },
     [setPeekOpen, silentJumpTo]
   );
+
+  // ---------- Back de Android: la web decide qué cerrar ----------
+  // Sin esto el atrás terminaba la actividad siempre (Capacitor no registra
+  // OnBackPressedCallback). Orden de prioridad: lo más encima en la pila de
+  // interfaz primero; si no hay nada, vuelve a la biblioteca.
+  useEffect(() => {
+    setBackHandler(() => {
+      if (peekOpen) {
+        setPeekOpen(false);
+        return true;
+      }
+      if (tpOpen) {
+        setTpOpen(false);
+        return true;
+      }
+      if (dockOpen) {
+        setDockOpen(false);
+        return true;
+      }
+      if (panelOpen) {
+        setPanelOpen(false);
+        return true;
+      }
+      if (vocabOpen) {
+        setVocabOpen(false);
+        return true;
+      }
+      if (syncOpen) {
+        setSyncOpen(false);
+        return true;
+      }
+      if (pauseDialogOpen) {
+        dismissPause();
+        return true;
+      }
+      onBack();
+      return true;
+    });
+    return () => setBackHandler(null);
+  }, [
+    peekOpen,
+    setPeekOpen,
+    tpOpen,
+    setTpOpen,
+    dockOpen,
+    setDockOpen,
+    panelOpen,
+    setPanelOpen,
+    vocabOpen,
+    setVocabOpen,
+    syncOpen,
+    setSyncOpen,
+    pauseDialogOpen,
+    dismissPause,
+    onBack,
+  ]);
 
   // ---------- Zoom ----------
   const {

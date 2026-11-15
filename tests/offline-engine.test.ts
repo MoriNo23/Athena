@@ -395,6 +395,48 @@ describe("motor offline · ficheros (file / cover / companion)", () => {
   });
 });
 
+describe("motor offline · caché de portadas (data URL)", () => {
+  test("la data URL se cachea: si el blob desaparece, la lista sigue sirviendo la portada", async () => {
+    const a = adaptador();
+    const subida = await subirLibro(a.handle, { cover: true, fileName: "con-portada.pdf" });
+    const id = subida.json.book.id as string;
+
+    const primera: Resp = await a.handle("GET", "/api/books", "", ctxJson({}));
+    const url1 = primera.json.books[0].coverUrl as string;
+    expect(url1).toStartWith("data:image/png;base64,");
+
+    // el blob de la portada deja de existir: sólo la caché puede responder
+    a.files.delete(`${id}-cover.png`);
+    const segunda: Resp = await a.handle("GET", "/api/books", "", ctxJson({}));
+    expect(segunda.json.books[0].coverUrl).toBe(url1);
+  });
+
+  test("subir una portada nueva también alimenta la caché", async () => {
+    const a = adaptador();
+    const { json } = await subirLibro(a.handle);
+    const id = json.book.id as string;
+    const img = new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" });
+    await a.handle(
+      "POST",
+      `/api/books/${id}/cover`,
+      "",
+      ctxForm({}, { name: "portada.png", type: "image/png", size: 4, blob: img })
+    );
+    const lista: Resp = await a.handle("GET", "/api/books", "", ctxJson({}));
+    expect(lista.json.books[0].coverUrl).toStartWith("data:image/png;base64,");
+  });
+
+  test("borrar el libro olvida la portada cacheada", async () => {
+    const a = adaptador();
+    const { json } = await subirLibro(a.handle, { cover: true, fileName: "a-borrar.pdf" });
+    const id = json.book.id as string;
+    await a.handle("GET", "/api/books", "", ctxJson({})); // pobla la caché
+    await a.handle("DELETE", `/api/books/${id}`, "", ctxJson({}));
+    const lista: Resp = await a.handle("GET", "/api/books", "", ctxJson({}));
+    expect(lista.json.books).toHaveLength(0);
+  });
+});
+
 describe("motor offline · ajustes", () => {
   test("GET inicial con defaults + created:true; PUT persiste y _doc sobrevive", async () => {
     const a = adaptador();

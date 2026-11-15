@@ -50,6 +50,10 @@ prompt
 # pdf.js assets synced from node_modules by scripts/sync-pdfjs.mjs
 /public/pdfjs/
 
+# firma del APK: el keystore y sus contraseñas viven en los secretos del CI
+# (ANDROID_KEYSTORE_BASE64 y compañías). Nunca en el repo.
+android/keystore/
+
 # test evidence and heavy artifacts
 scripts/*.png
 scripts/*.pdf
