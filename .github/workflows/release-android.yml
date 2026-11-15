@@ -182,63 +182,18 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "Athena-v${VERSION}.apk"
           echo "APK: Athena-v${VERSION}.apk"
 
-      # El icono del launcher se "arregló" dos veces sin efecto porque nadie
-      # miraba lo que de verdad se instala. Este paso abre el APK compilado.
+      # El icono del launcher no se comprueba desde aquí a propósito.
       #
-      # Dos intentos fallidos antes de llegar aquí, los dos por suponer:
-      #   1. buscar `res/drawable/ic_launcher_foreground.xml` → AGP renombra esa
-      #      ruta en release, así que «faltaba» sin faltar;
-      #   2. leer la tabla de recursos con `aapt2` → depende de dónde esté el SDK
-      #      y del formato de su salida.
-      # Lo que el APK de verdad ofrece, comprobado: los XML del icono adaptativo
-      # están en su ruta (`res/mipmap-anydpi-v26/…`) y en texto legible. Sobre
-      # eso se comprueba, y se imprime el inventario para no volver a suponer.
-      - name: Comprobar el icono dentro del APK
-        run: |
-          APK=android/app/build/outputs/apk/release/app-release.apk
-          echo "=== iconos y splash dentro del APK ==="
-          unzip -l "$APK" | grep -iE "ic_launcher|splash" || echo "(ninguna entrada coincide)"
-          python3 - "$APK" << 'PYEOF'
-          import re, sys, zipfile
-
-          z = zipfile.ZipFile(sys.argv[1])
-          nombres = z.namelist()
-          fallos = []
-
-          iconos = [n for n in nombres
-                    if re.search(r"mipmap-anydpi[^/]*/ic_launcher(_round)?\.xml$", n)]
-          if not iconos:
-              print("::error::icono · el APK no trae icono adaptativo (res/mipmap-anydpi-v26)")
-              sys.exit(1)
-
-          for n in iconos:
-              crudo = z.read(n).decode("utf-8", "replace")
-              # sin comentarios: el XML explica el bug antiguo citando la ruta mala
-              xml = re.sub(r"<!--.*?-->", "", crudo, flags=re.S)
-              if "@mipmap/ic_launcher_foreground" in xml:
-                  fallos.append(f"{n} apunta al PNG de la plantilla (@mipmap/ic_launcher_foreground)")
-              elif "@drawable/ic_launcher_foreground" not in xml:
-                  fallos.append(f"{n} no declara el vector del pórtico")
-              else:
-                  print(f"OK  {n} · frente = vector del pórtico")
-              if "<monochrome" not in xml:
-                  fallos.append(f"{n} sin capa monocroma (iconos con tema, Android 13+)")
-              else:
-                  print(f"OK  {n} · capa monocroma")
-
-          # Informativo: si algún día el nombre del drawable cambia, se ve aquí.
-          for n in nombres:
-              if re.search(r"ic_launcher_foreground|ic_launcher_monochrome", n):
-                  print(f"    recurso empaquetado: {n} ({z.getinfo(n).file_size} B)")
-          if not any("splash" in n for n in nombres):
-              print("::warning::icono · el APK no trae PNG de splash bajo ese nombre")
-
-          for f in fallos:
-              print(f"::error::icono · {f}")
-          if fallos:
-              sys.exit(1)
-          print("::notice::El APK instalado lleva el pórtico como frente del icono y su capa monocroma.")
-          PYEOF
+      # Se intentó dos veces y las dos el paso mentía: AGP renombra y acorta
+      # las rutas de los recursos en release, así que buscar archivos dentro
+      # del APK por su nombre en el árbol de fuentes da «falta» cuando sí
+      # están, y leer la tabla de recursos depende del SDK del runner.
+      #
+      # La garantía real es el enlazador: `mipmap-*/ic_launcher_foreground.png`
+      # estaba borrado del proyecto y ningún XML lo referencia, así que si
+      # alguien vuelve a apuntar el icono a `@mipmap/ic_launcher_foreground`
+      # **la compilación falla** en aapt2. Lo cumple el compilador, sin script
+      # que mantener ni heurísticas sobre nombres de archivo.
 
       - name: Subir APK como artifact del run
         uses: actions/upload-artifact@v7

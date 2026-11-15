@@ -419,6 +419,32 @@ describe("empaquetado móvil · el icono del launcher es el pórtico", () => {
     expect(existsSync(join(RAIZ, "android/app/src/main/res/drawable/ic_launcher_background.xml"))).toBe(false);
   });
 
+  test("los PNG ic_launcher_foreground no vuelven (los caza el enlazador)", () => {
+    // Si existen, un adaptive icon mal escrito puede volver a apuntar a ellos y
+    // compilar sin queja: es exactamente el bug que se coló dos veces. Sin
+    // ellos, `@mipmap/ic_launcher_foreground` no enlaza y el build falla.
+    for (const dpi of ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"]) {
+      const png = `android/app/src/main/res/mipmap-${dpi}/ic_launcher_foreground.png`;
+      expect(`${png}:${existsSync(join(RAIZ, png))}`).toBe(`${png}:false`);
+    }
+  });
+
+  test("la capa monocroma cubre las mismas piezas que el frente", () => {
+    const frente = leer("android/app/src/main/res/drawable/ic_launcher_foreground.xml");
+    const mono = leer("android/app/src/main/res/drawable/ic_launcher_monochrome.xml");
+    // La monocroma omite tímpano y metopas a propósito: en una sola tinta
+    // desaparecerían. Pero lo que dibuja tiene que ser LA MISMA geometría del
+    // frente, no un dibujo aparte que se quede atrás si el pórtico se redibuja.
+    const trazados = (xml: string) => (xml.match(/android:pathData="([^"]+)"/g) ?? [])
+      .map((p) => p.slice('android:pathData="'.length, -1));
+    const delFrente = trazados(frente);
+    const deMono = trazados(mono);
+    expect(deMono.length).toBeGreaterThanOrEqual(4);
+    for (const t of deMono) {
+      expect(`${t.slice(0, 12)} en el frente: ${delFrente.includes(t)}`).toBe(`${t.slice(0, 12)} en el frente: true`);
+    }
+  });
+
   test("el splash es del pórtico sobre sepia, no la X azul sobre blanco", () => {
     // los PNG no se pueden leer como texto: se mira el tamaño y que exista el
     // splash de Android 12+, que es el que manda en móviles nuevos
