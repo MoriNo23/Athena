@@ -66,6 +66,14 @@ que te devuelven a leer hoy.
   `android/keystore/` está en `.gitignore`. `android/app/build.gradle` lee la
   versión de `package.json` (`versionName` + `versionCode` derivado), así que
   no hay versión hardcodeada que desincronizar.
+
+  **Subir la versión ANTES de mergear a `main`.** Cada push a `main` publica
+  un release y mueve el tag `v<versión>`: si la versión no cambia, el release
+  `v2.1.0` se reescribe con otra APK y el `versionCode` queda igual, así que
+  los móviles que ya la tienen instalada **no la reciben como actualización**
+  (Android considera que es la misma versión, o una regresión). Regla: cambio
+  que merezca release → sube el parche (`2.1.0` → `2.1.1`) en el mismo PR.
+  `versionCode` = mayor·100000 + menor·1000 + parche·10, así que 201010 > 201000.
 - `db/` y `public/uploads/` — estado real de la biblioteca en modo legacy
   (dentro del repo). Jamás se commitean. Con `ATHENA_HOME` (default
   `~/.local/share/athena`) los datos viven FUERA del repo.

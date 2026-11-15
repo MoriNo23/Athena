@@ -291,3 +291,38 @@ describe("empaquetado móvil · el atrás tiene test ejecutable", () => {
     expect(codigo).not.toContain("JSONTokener");
   });
 });
+
+/**
+ * Versionado: que el merge a main no publique una versión que los móviles
+ * ignoran.
+ *
+ * Cada push a `main` publica un release y mueve el tag `v<versión>`. Si la
+ * versión no ha cambiado, el tag se reescribe con otra APK y el versionCode
+ * queda idéntico: Android trata el nuevo APK como la MISMA versión, así que
+ * quien ya tenga la app instalada no recibe la actualización. Es un fallo
+ * silencioso — el release sale verde y el móvil no se entera.
+ */
+describe("empaquetado móvil · el versionado del release", () => {
+  const pkg = JSON.parse(leer("package.json")) as { version: string };
+
+  /** la MISMA fórmula que android/app/build.gradle */
+  function versionCode(version: string): number {
+    const [mayor = 0, menor = 0, parche = 0] = version.split(".").map(Number);
+    return mayor * 100000 + menor * 1000 + parche * 10;
+  }
+
+  test("build.gradle deriva el versionCode con la fórmula documentada", () => {
+    const gradle = leer("android/app/build.gradle");
+    expect(gradle).toContain("vMayor * 100000 + vMenor * 1000 + vParche * 10");
+  });
+
+  test("el versionCode es mayor que el del release publicado (v2.1.0)", () => {
+    // 2.1.0 → 201000. Si esto falla, mergear publicaría un APK que los
+    // móviles con la 2.1.0 instalada no reciben como actualización.
+    expect(versionCode(pkg.version)).toBeGreaterThan(201000);
+  });
+
+  test("la versión es semver con tres partes", () => {
+    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+});
