@@ -96,13 +96,15 @@ jobs:
             exit 0
           fi
           # el bloque «What went wrong … Try» es el resumen que Gradle deja al
-          # final: ahí está la causa, no en el stack que viene después
+          # final; los frames del script (build.gradle:NN) dicen la línea
           LINEAS=$(awk '/What went wrong/{f=1} /Get more help/{f=0} f' "$LOG" \
-            | grep -v '^--$' | grep -vE '^[[:space:]]*$' | head -n 12)
-          if [ -z "$LINEAS" ]; then
-            LINEAS=$(grep -E "error:|Could not|Failed to|Invalid|Illegal|FAILURE" "$LOG" | tail -n 8)
+            | grep -v '^--$' | grep -vE '^[[:space:]]*$' | head -n 5)
+          MARCO=$(grep -E "^[[:space:]]+at .*\.gradle[^ ]*:[0-9]+" "$LOG" | sed 's/^[[:space:]]*//' | head -n 5)
+          if [ -z "$MARCO" ]; then
+            MARCO=$(grep -E "error:|Could not|Failed to|Invalid|Illegal|FAILURE|No signature" "$LOG" | tail -n 5)
           fi
-          echo "$LINEAS" | while IFS= read -r l; do emitir "$l"; done
+          printf '%s\n%s\n' "$LINEAS" "$MARCO" | grep -vE '^[[:space:]]*$' | head -n 10 \
+            | while IFS= read -r l; do emitir "$l"; done
 
       - name: Renombrar APK con la versión
         run: |
