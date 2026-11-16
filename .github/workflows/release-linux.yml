@@ -59,7 +59,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq appstream
-          appstreamcli validate --no-net packaging/linux/athena.metainfo.xml
+          appstreamcli validate --no-net packaging/linux/io.github.morino23.athena.appdata.xml
 
       # El smoke test arranca el AppImage DE VERDAD, pero con un AppRun de
       # prueba: `--appimage-extract-and-run` y un AppRun que solo imprime lo
@@ -91,12 +91,13 @@ jobs:
           APP=$(ls release/Athena-*-x86_64.AppImage)
           sudo apt-get install -y -qq squashfs-tools
           unsquashfs -l "$APP" > /tmp/contenido.txt
+          ID=io.github.morino23.athena
           for fichero in \
             squashfs-root/.DirIcon \
-            squashfs-root/athena.png \
-            squashfs-root/athena.desktop \
-            squashfs-root/usr/share/metainfo/athena.metainfo.xml \
-            squashfs-root/usr/share/applications/athena.desktop; do
+            "squashfs-root/$ID.png" \
+            "squashfs-root/$ID.desktop" \
+            "squashfs-root/usr/share/metainfo/$ID.appdata.xml" \
+            "squashfs-root/usr/share/applications/$ID.desktop"; do
             grep -qx "$fichero" /tmp/contenido.txt \
               || { echo "::error::falta $fichero dentro del AppImage"; exit 1; }
             echo "OK  $fichero"

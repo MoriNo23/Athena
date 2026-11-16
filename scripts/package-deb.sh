@@ -8,9 +8,9 @@
 #   /opt/athena/                 la app (ficheros rastreados + build)
 #   /usr/bin/athena              el CLI de la casa (copia, no symlink a /opt)
 #   /usr/share/doc/athena/       copyright (MIT) + INICIO-RAPIDO.txt
-#   /usr/share/applications/athena.desktop
-#   /usr/share/metainfo/athena.metainfo.xml
-#   /usr/share/icons/hicolor/256x256/apps/athena.png
+#   /usr/share/applications/io.github.morino23.athena.desktop
+#   /usr/share/metainfo/io.github.morino23.athena.appdata.xml
+#   /usr/share/icons/hicolor/256x256/apps/io.github.morino23.athena.png
 #   DEBIAN/{control,postinst,postrm}
 #
 # La jerarquía compartida con el AppImage la monta scripts/linux-install-tree.sh:

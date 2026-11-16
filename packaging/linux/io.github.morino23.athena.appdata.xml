@@ -7,8 +7,13 @@
   appimagetool valida este archivo al empaquetar y avisaba de que faltaba.
 
   Reglas que respeta (las exige la especificación de AppStream, no es estilo):
-  · el archivo se llama como el id — athena.metainfo.xml — y vive en
-    usr/share/metainfo/;
+  · el archivo se llama como el id y el .desktop, y vive en usr/share/metainfo/;
+  · la extensión es .appdata.xml, no .metainfo.xml, y NO es un descuido:
+    appimagetool solo busca .appdata.xml y avisa de que faltan los metadatos
+    aunque el archivo esté ahí con el nombre nuevo. Es un bug conocido suyo
+    (AppImage/appimagetool#141, #77) y la propia especificación de AppStream
+    acepta las dos extensiones por compatibilidad histórica. Con
+    .appdata.xml lo encuentran los dos: appimagetool y appstreamcli;
   · `<id>` es DNS inverso y no lleva guiones ni dígitos al principio de segmento;
   · `<metadata_license>` es SPDX y de la lista permitida (MIT encaja);
   · `<project_license>` sí puede ser cualquier licencia: aquí MIT;
@@ -37,7 +42,7 @@
     </p>
   </description>
 
-  <launchable type="desktop-id">athena.desktop</launchable>
+  <launchable type="desktop-id">io.github.morino23.athena.desktop</launchable>
 
   <url type="homepage">https://github.com/MoriNo23/Athena</url>
   <url type="bugtracker">https://github.com/MoriNo23/Athena/issues</url>

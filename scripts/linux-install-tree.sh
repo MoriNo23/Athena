@@ -7,7 +7,7 @@
 #   usr/bin/athena                  el CLI (symlink a la app: ROOT = $0/..)
 #   usr/share/athena/               la app (server-dist + dist + arranque)
 #   usr/share/applications/athena.desktop
-#   usr/share/metainfo/athena.metainfo.xml    (AppStream: centro de software)
+#   usr/share/metainfo/<id>.appdata.xml       (AppStream: centro de software)
 #   usr/share/icons/hicolor/256x256/apps/athena.png
 #
 # Lo llaman package-appimage.sh (para el AppDir) y package-deb.sh (para la raíz
@@ -28,6 +28,10 @@ ATAJOS_APPIMAGE=no
 [ "${2:-}" = "--atajos-appimage" ] && ATAJOS_APPIMAGE=si
 
 VERSION=$(node -e "console.log(require('./package.json').version)")
+# El id AppStream manda: .desktop, icono y metainfo se llaman igual que él.
+# Si no coinciden, appimagetool no encuentra los metadatos y avisa de que
+# faltan aunque el archivo esté ahí.
+APP_ID="io.github.morino23.athena"
 
 [ -f server-dist/server.cjs ] || { echo "Falta server-dist/ — ejecuta antes: bun run build" >&2; exit 1; }
 [ -f dist/index.html ] || { echo "Falta dist/ — ejecuta antes: bun run build" >&2; exit 1; }
@@ -62,14 +66,14 @@ cp "$NODE_BIN" "$DESTINO/usr/bin/node"
 ln -sf ../share/athena/scripts/athena "$DESTINO/usr/bin/athena"
 
 # 4) escritorio: Icon= sin extensión, y el archivo se llama como el id
-cat > "$DESTINO/usr/share/applications/athena.desktop" <<EOF
+cat > "$DESTINO/usr/share/applications/$APP_ID.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=Athena
 GenericName=Lector de libros
 Comment=Finish your books — PDF/EPUB local-first con riel de progreso
 Exec=athena start
-Icon=athena
+Icon=$APP_ID
 Terminal=false
 Categories=Education;Literature;
 Keywords=lector;reader;PDF;EPUB;
@@ -77,16 +81,16 @@ StartupWMClass=athena
 EOF
 
 # 5) icono y metadatos AppStream (mismos datos para AppImage y .deb)
-cp packaging/linux/athena.png "$DESTINO/usr/share/icons/hicolor/256x256/apps/athena.png"
-cp packaging/linux/athena.metainfo.xml "$DESTINO/usr/share/metainfo/athena.metainfo.xml"
+cp packaging/linux/athena.png "$DESTINO/usr/share/icons/hicolor/256x256/apps/$APP_ID.png"
+cp "packaging/linux/$APP_ID.appdata.xml" "$DESTINO/usr/share/metainfo/$APP_ID.appdata.xml"
 
 # 6) atajos en la raíz del árbol, solo para AppImage. `.DirIcon` tiene que ser
 #    un PNG de verdad: appimagetool rechaza el SVG y ya avisa de que la próxima
 #    versión negará a construir. Copia, no symlink al SVG.
 if [ "$ATAJOS_APPIMAGE" = si ]; then
-  cp packaging/linux/athena.png "$DESTINO/athena.png"
+  cp packaging/linux/athena.png "$DESTINO/$APP_ID.png"
   cp packaging/linux/athena.png "$DESTINO/.DirIcon"
-  cp "$DESTINO/usr/share/applications/athena.desktop" "$DESTINO/athena.desktop"
+  cp "$DESTINO/usr/share/applications/$APP_ID.desktop" "$DESTINO/$APP_ID.desktop"
   echo "Atajos de AppDir añadidos en la raíz (.DirIcon PNG, athena.desktop)"
 fi
 

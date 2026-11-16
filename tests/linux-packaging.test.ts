@@ -27,7 +27,7 @@ describe("paquete Linux · AppImage y AppStream", () => {
   });
 
   test("el metainfo cumple lo que appstreamcli exige", () => {
-    const xml = leer("packaging/linux/athena.metainfo.xml");
+    const xml = leer("packaging/linux/io.github.morino23.athena.appdata.xml");
     const valor = (etiqueta: string) =>
       xml.match(new RegExp(`<${etiqueta}[^>]*>([^<]+)</${etiqueta}>`))?.[1]?.trim();
 
@@ -50,7 +50,7 @@ describe("paquete Linux · AppImage y AppStream", () => {
     expect(xml).toContain("<description>");
     expect(xml.match(/<p>/g)!.length).toBeGreaterThanOrEqual(1);
     // el lanzador apunta al .desktop que instalamos
-    expect(valor("launchable")).toBe("athena.desktop");
+    expect(valor("launchable")).toBe("io.github.morino23.athena.desktop");
     // las capturas son URLs absolutas, como pide la especificación
     for (const url of xml.match(/<image type="source">([^<]+)<\/image>/g) ?? []) {
       expect(url).toMatch(/https:\/\/[^<]+\.png<\/image>/);
@@ -84,9 +84,11 @@ describe("paquete Linux · AppImage y AppStream", () => {
     const wf = leer(".github/workflows/release-linux.yml");
     // no basta con que exista en el AppDir: se mira el contenido del squashfs
     expect(wf).toContain("unsquashfs -l");
-    for (const f of [".DirIcon", "athena.png", "athena.metainfo.xml", "athena.desktop"]) {
-      expect(`${f}: ${wf.includes(f)}`).toBe(`${f}: true`);
-    }
+    expect(wf).toContain(".DirIcon");
+    // una sola variable para el id: si se escribe a mano en cada ruta, alguna
+    // se queda con el nombre viejo y appimagetool no encuentra los metadatos
+    expect(wf).toContain("ID=io.github.morino23.athena");
+    expect(wf).toContain("squashfs-root/usr/share/metainfo/$ID.appdata.xml");
   });
 
   test("AppImage y .deb salen del MISMO instalador", () => {

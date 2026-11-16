@@ -70,7 +70,7 @@ file "$APPDIR/.DirIcon" | grep -qi "PNG image" || {
   echo "El .DirIcon tiene que ser un PNG (appimagetool rechaza SVG): $(file -b "$APPDIR/.DirIcon")" >&2
   exit 1
 }
-[ -f "$APPDIR/usr/share/metainfo/athena.metainfo.xml" ] || {
+[ -f "$APPDIR/usr/share/metainfo/io.github.morino23.athena.appdata.xml" ] || {
   echo "Falta el metainfo AppStream en $APPDIR/usr/share/metainfo/" >&2
   echo "  appimagetool avisa de que la app no saldrá con cara en el centro de software." >&2
   echo "  Lo genera scripts/linux-install-tree.sh desde packaging/linux/." >&2
