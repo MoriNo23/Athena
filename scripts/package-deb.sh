@@ -6,9 +6,16 @@
 # .github/workflows/release-linux.yml justo después de `bun run build`.
 #
 #   /opt/athena/                 la app (ficheros rastreados + build)
-#   /usr/bin/athena              symlink al CLI (scripts/athena)
+#   /usr/bin/athena              el CLI de la casa (copia, no symlink a /opt)
 #   /usr/share/doc/athena/       copyright (MIT) + INICIO-RAPIDO.txt
+#   /usr/share/applications/athena.desktop
+#   /usr/share/metainfo/athena.metainfo.xml
+#   /usr/share/icons/hicolor/256x256/apps/athena.png
 #   DEBIAN/{control,postinst,postrm}
+#
+# La jerarquía compartida con el AppImage la monta scripts/linux-install-tree.sh:
+# antes este script solo copiaba la app a /opt y el paquete salía SIN icono ni
+# metadatos AppStream, así que no aparecía con cara en ningún menú.
 #
 # Los datos de la persona NUNCA van en el paquete: viven en la casa de datos
 # (~/.local/share/athena o ATHENA_HOME) y sobreviven al paquete. El runtime
@@ -26,15 +33,21 @@ DEB="release/athena_${VERSION}_amd64.deb"
 command -v dpkg-deb >/dev/null 2>&1 || { echo "Falta dpkg-deb (viene con dpkg en Debian/Ubuntu)."; exit 1; }
 
 rm -rf "$DEBROOT"
-mkdir -p "$APP" "$DEBROOT/DEBIAN" "$DEBROOT/usr/bin" "$DOC"
+mkdir -p "$APP" "$DEBROOT/DEBIAN" "$DOC"
 
-# 1) App: ficheros rastreados del repo + build de producción precompilado
+# 1) App: ficheros rastreados del repo + build de producción precompilado.
+#    (usr/share/athena/ es la ubicación estándar; /opt/athena del paquete
+#    anterior se conserva como enlace para no romper instalaciones previas.)
 git archive --format=tar HEAD | tar -x -C "$APP"
 cp -r server-dist "$APP/server-dist"
 cp -r dist "$APP/dist"
 
-# 2) CLI en el PATH (scripts/athena resuelve su raíz con readlink -f: el symlink vale)
-ln -s /opt/athena/scripts/athena "$DEBROOT/usr/bin/athena"
+# 2) Escritorio, icono y metadatos: la misma jerarquía que el AppImage
+bash scripts/linux-install-tree.sh "$DEBROOT"
+#    /opt/athena se mantiene como enlace a la app real: las instalaciones del
+#    paquete anterior lo esperaban ahí y no cuesta nada no romperlas.
+mkdir -p "$DEBROOT/opt"
+ln -s /usr/share/athena "$DEBROOT/opt/athena"
 
 # 3) Documentación
 cat > "$DOC/INICIO-RAPIDO.txt" <<EOF
@@ -46,7 +59,7 @@ no instala dependencias: descomprime nada, ejecuta y a leer.
 
 ARRANQUE:
   athena start       # → http://localhost:3000   (en tu red: athena start --lan)
-  (equivalente: node /opt/athena/server-dist/server.cjs)
+  (equivalente: node /usr/share/athena/server-dist/server.cjs)
 
 La BD se crea sola en el primer arranque (~/.local/share/athena).
 Tus datos viven FUERA del paquete (o \$ATHENA_HOME): sobreviven a
@@ -132,6 +145,7 @@ cat > "$DEBROOT/DEBIAN/postrm" <<'EOF'
 set -e
 rm -rf /opt/athena/node_modules 2>/dev/null || true
 rmdir /opt/athena 2>/dev/null || true
+rm -rf /usr/share/athena 2>/dev/null || true
 echo "Athena desinstalada. Tus datos siguen en tu casa de datos."
 exit 0
 EOF

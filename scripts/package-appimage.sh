@@ -26,22 +26,14 @@ esac
 [ -f server-dist/server.cjs ] || { echo "Falta server-dist/ — ejecuta antes: bun run build" >&2; exit 1; }
 [ -f dist/index.html ] || { echo "Falta dist/ — ejecuta antes: bun run build" >&2; exit 1; }
 
-# 1) standalone (ensamblado único de la casa: server-dist + dist + arranque)
-node scripts/complete-standalone.mjs
-
-# 2) AppDir: el programa en usr/share/athena, el runtime en usr/bin
+# 1) AppDir completo: app, runtime, .desktop, icono PNG y metadatos AppStream.
+#    Todo eso vive en scripts/linux-install-tree.sh, compartido con el .deb:
+#    antes cada script montaba su propia jerarquía y este se quedaba sin icono
+#    válido (appimagetool lo avisaba: .DirIcon SVG).
 rm -rf "$APPDIR"
-mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/athena"
-for entrada in server-dist dist package.json LICENSE; do
-  cp -r "standalone/${entrada}" "$APPDIR/usr/share/athena/${entrada}"
-done
+bash scripts/linux-install-tree.sh "$APPDIR" --atajos-appimage
 
-# 3) Node del host viaja dentro (≥ 23.4: node:sqlite estable, cero dependencias)
-NODE_BIN="$(command -v node)"
-[ -n "$NODE_BIN" ] || { echo "No hay node en el PATH" >&2; exit 1; }
-cp "$NODE_BIN" "$APPDIR/usr/bin/node"
-
-# 4) AppRun — cd al programa (el servidor sirve dist/ desde cwd) y exec node
+# 2) AppRun — el servidor sirve dist/ desde cwd, así que se entra al programa
 cat > "$APPDIR/AppRun" <<'EOF'
 #!/bin/sh
 # Athena AppImage: el servidor corre desde la imagen de solo lectura; la
@@ -55,22 +47,7 @@ exec "$HERE/usr/bin/node" server-dist/server.cjs "$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
-# 5) escritorio + icono (el sello de la casa)
-cat > "$APPDIR/athena.desktop" <<EOF
-[Desktop Entry]
-Type=Application
-Name=Athena
-GenericName=Lector de libros
-Comment=Finish your books — PDF/EPUB local-first con riel de progreso
-Exec=athena
-Icon=athena
-Terminal=true
-Categories=Education;Literature;
-StartupWMClass=athena
-EOF
-cp public/athena-seal.svg "$APPDIR/athena.svg"
-
-# 6) appimagetool (se descarga una vez; APPIMAGE_EXTRACT_AND_RUN: sin FUSE,
+# 3) appimagetool (se descarga una vez; APPIMAGE_EXTRACT_AND_RUN: sin FUSE,
 #    igual de válido en el sandbox que en los runners de GitHub)
 mkdir -p release
 if [ ! -x "$HERRAMIENTA" ]; then
@@ -80,7 +57,18 @@ if [ ! -x "$HERRAMIENTA" ]; then
   chmod +x "$HERRAMIENTA"
 fi
 
-# 7) empaquetar
+# 4) comprobar lo que appimagetool exige, ANTES de empaquetar. Si esto falla,
+#    el mensaje dice qué archivo es y no hay que leer un log de 200 líneas.
+[ -f "$APPDIR/.DirIcon" ] || { echo "Falta $APPDIR/.DirIcon" >&2; exit 1; }
+file "$APPDIR/.DirIcon" | grep -qi "PNG image" || {
+  echo "El .DirIcon tiene que ser un PNG (appimagetool rechaza SVG): $(file -b "$APPDIR/.DirIcon")" >&2
+  exit 1
+}
+[ -f "$APPDIR/usr/share/metainfo/athena.metainfo.xml" ] || {
+  echo "Falta el metainfo AppStream en el AppDir" >&2; exit 1
+}
+
+# 5) empaquetar
 rm -f "release/${NOMBRE}.AppImage"
 APPIMAGE_EXTRACT_AND_RUN=1 ARCH=x86_64 "$HERRAMIENTA" "$APPDIR" "release/${NOMBRE}.AppImage"
 

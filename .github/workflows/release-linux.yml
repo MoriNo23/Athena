@@ -51,6 +51,16 @@ jobs:
       - name: Empaquetar .deb (Debian/Ubuntu)
         run: bash scripts/package-deb.sh
 
+      # appimagetool valida el metainfo al empaquetar y avisaba de que no lo
+      # tenía; con appstreamcli instalado la validación es la oficial. Va como
+      # paso propio para que un metainfo roto se vea como tal y no como
+      # «falló el AppImage».
+      - name: Validar metadatos AppStream
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq appstream
+          appstreamcli validate --no-net packaging/linux/athena.metainfo.xml
+
       - name: Empaquetar .AppImage (portable, Node incluido)
         run: bash scripts/package-appimage.sh
 
@@ -65,6 +75,12 @@ jobs:
             if [ "$i" = 30 ]; then echo "el AppImage no llegó a servir"; kill $PID; exit 1; fi
           done
           kill $PID || true
+
+          # el .DirIcon que appimagetool exige: tiene que viajar en la imagen
+          unsquashfs -l "$APP" >/dev/null 2>&1 || sudo apt-get install -y -qq squashfs-tools
+          unsquashfs -l "$APP" | grep -qx "squashfs-root/.DirIcon" \
+            || { echo "el AppImage no lleva .DirIcon"; exit 1; }
+          echo ".DirIcon presente en el AppImage"
 
       - name: Subir paquetes como artifact del run
         uses: actions/upload-artifact@v7
