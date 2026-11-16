@@ -26,7 +26,12 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    # Versión FIJA, no `ubuntu-latest` a propósito: la etiqueta está migrando a
+    # Ubuntu 26.04 (termina el 19-nov-2026), emitía un aviso en cada job del
+    # resumen del run, y el día del cambio el pipeline se habría movido solo.
+    # Subirlo a ubuntu-26.04 es una decisión aparte y probada. Lo mismo en los
+    # otros workflows.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 

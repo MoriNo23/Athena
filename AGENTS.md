@@ -134,6 +134,24 @@ icono y el `.deb` no, así que la app no aparecía con cara en ningún menú.
   como su `<id>` (lo exige la especificación), `<metadata_license>` es SPDX y
   de la lista permitida, y el texto de `<description>` va en `<p>`.
 
+### El resumen del run se lee: cero avisos de relleno
+
+Lo que aparece arriba del log de un run son las **anotaciones**. Si ahí hay
+avisos que no son un problema, la persona aprende a ignorar el bloque… y con
+él, el aviso que sí importaba (así se colaron durante semanas el `.DirIcon`
+inválido y el AppStream que faltaban, con el job en verde).
+
+- **Runners con versión fija**: `ubuntu-24.04`, nunca `ubuntu-latest`. La
+  etiqueta se mueve sola —está migrando a Ubuntu 26.04, termina el
+  19-nov-2026— y cada job emitía su aviso en el resumen. Subir a 26.04 es una
+  decisión aparte, probada, no un cambio de martes.
+- **Nada de `::notice::` para decir «todo bien»**: el verde del job ya lo dice,
+  y cada notice es otra entrada que hay que leer y descartar. Las anotaciones
+  son para lo que hay que mirar: `::error::` con el motivo, `::warning::` con
+  lo que conviene saber.
+- Cuando un paso falla, **cada línea del error va como anotación**: GitHub solo
+  muestra la primera del mensaje, y un error de una línea no se diagnostica.
+
 ### La raíz se queda limpia (regla anti-caos)
 
 El repositorio se percibe por su raíz: si la raíz parece un cajón, el repo

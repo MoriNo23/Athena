@@ -120,6 +120,30 @@ describe("paquete Linux · AppImage y AppStream", () => {
     expect(leer("scripts/package-deb.sh")).not.toContain("--atajos-appimage");
   });
 
+  test("los runners están fijados: la etiqueta latest se mueve sola", () => {
+    // `ubuntu-latest` está migrando a Ubuntu 26.04 (termina el 19-nov-2026).
+    // Con la etiqueta flotante cada job escupía un aviso en el resumen del run
+    // y, el día del cambio, el pipeline se habría movido sin tocar el código.
+    const workflows = ["ci.yml", "release.yml", "release-android.yml", "release-linux.yml"];
+    for (const w of workflows) {
+      // sin comentarios: el propio workflow explica por qué ya no usa
+      // `ubuntu-latest`, y buscar la cadena a pelo se dispara con eso
+      const texto = leer(`.github/workflows/${w}`).replace(/^\s*#.*$/gm, "");
+      expect(`${w} sin latest: ${!texto.includes("ubuntu-latest")}`).toBe(`${w} sin latest: true`);
+      expect(`${w} fijado: ${texto.includes("runs-on: ubuntu-24.04")}`).toBe(`${w} fijado: true`);
+    }
+  });
+
+  test("el resumen del run no lleva avisos que no sean un problema", () => {
+    // El `::notice::` de «todo bien» hacía justo lo contrario de lo que buscaba:
+    // añadía otra entrada al resumen que el usuario tenía que leer y descartar.
+    // El verde del job ya dice que fue bien.
+    const workflows = ["ci.yml", "release.yml", "release-android.yml", "release-linux.yml"];
+    for (const w of workflows) {
+      expect(`${w}: ${/::notice::/.test(leer(`.github/workflows/${w}`))}`).toBe(`${w}: false`);
+    }
+  });
+
   test("el .deb no deja el CLI roto", () => {
     // scripts/athena resuelve ROOT como dirname(readlink -f $0)/.. y arranca
     // $ROOT/server-dist/server.cjs: una copia suelta en usr/bin apuntaría a
