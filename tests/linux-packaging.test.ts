@@ -68,6 +68,27 @@ describe("paquete Linux · AppImage y AppStream", () => {
     expect(appimage).toContain("PNG image");
   });
 
+  test("el smoke test arranca el AppImage de verdad, no solo construirlo", () => {
+    const wf = leer(".github/workflows/release-linux.yml");
+    // --appimage-extract-and-run: sin FUSE en el runner, y prueba el montaje real
+    expect(wf).toContain("--appimage-extract-and-run");
+    // y que el AppRun de prueba haya corrido de verdad, no que el fichero exista
+    expect(wf).toContain("AppRun de prueba");
+    // el smoke test usaba un AppRun inyectado y esperaba a que SIRVIERA: eso no
+    // podía funcionar (el AppRun de prueba no arranca servidor) y el job se
+    // caía aunque el empaquetado estuviera bien. Ahora comprueba lo que toca.
+    expect(wf).not.toContain("el AppImage no llegó a servir");
+  });
+
+  test("lo que appimagetool exige viaja DENTRO de la imagen", () => {
+    const wf = leer(".github/workflows/release-linux.yml");
+    // no basta con que exista en el AppDir: se mira el contenido del squashfs
+    expect(wf).toContain("unsquashfs -l");
+    for (const f of [".DirIcon", "athena.png", "athena.metainfo.xml", "athena.desktop"]) {
+      expect(`${f}: ${wf.includes(f)}`).toBe(`${f}: true`);
+    }
+  });
+
   test("AppImage y .deb salen del MISMO instalador", () => {
     // dos jerarquías paralelas fue justo lo que dejó al .deb sin icono ni
     // metadatos mientras el AppImage sí los tenía

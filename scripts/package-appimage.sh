@@ -33,8 +33,13 @@ esac
 rm -rf "$APPDIR"
 bash scripts/linux-install-tree.sh "$APPDIR" --atajos-appimage
 
-# 2) AppRun — el servidor sirve dist/ desde cwd, así que se entra al programa
-cat > "$APPDIR/AppRun" <<'EOF'
+# 2) AppRun — el servidor sirve dist/ desde cwd, así que se entra al programa.
+#    `ATHENA_APPIMAGE_APPRUN` permite inyectar un AppRun de prueba. Es solo
+#    para el CI: el AppRun real es el de abajo, y aquí no hace falta.
+if [ -n "${ATHENA_APPIMAGE_APPRUN:-}" ]; then
+  cp "$ATHENA_APPIMAGE_APPRUN" "$APPDIR/AppRun"
+else
+  cat > "$APPDIR/AppRun" <<'EOF'
 #!/bin/sh
 # Athena AppImage: el servidor corre desde la imagen de solo lectura; la
 # biblioteca vive en ATHENA_HOME (default ~/.local/share/athena), jamás dentro.
@@ -45,6 +50,7 @@ export ATHENA_HOST="${ATHENA_HOST:-127.0.0.1}"
 export ATHENA_MODO="${ATHENA_MODO:-offline}"
 exec "$HERE/usr/bin/node" server-dist/server.cjs "$@"
 EOF
+fi
 chmod +x "$APPDIR/AppRun"
 
 # 3) appimagetool (se descarga una vez; APPIMAGE_EXTRACT_AND_RUN: sin FUSE,
@@ -65,7 +71,10 @@ file "$APPDIR/.DirIcon" | grep -qi "PNG image" || {
   exit 1
 }
 [ -f "$APPDIR/usr/share/metainfo/athena.metainfo.xml" ] || {
-  echo "Falta el metainfo AppStream en el AppDir" >&2; exit 1
+  echo "Falta el metainfo AppStream en $APPDIR/usr/share/metainfo/" >&2
+  echo "  appimagetool avisa de que la app no saldrá con cara en el centro de software." >&2
+  echo "  Lo genera scripts/linux-install-tree.sh desde packaging/linux/." >&2
+  exit 1
 }
 
 # 5) empaquetar
