@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
@@ -122,7 +122,6 @@ jobs:
             fi
           done
           [ -z "$falta" ] || exit 1
-          echo "::notice::El AppImage lleva icono, lanzador y metadatos AppStream"
 
       - name: Subir paquetes como artifact del run
         uses: actions/upload-artifact@v7
