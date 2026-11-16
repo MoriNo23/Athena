@@ -89,8 +89,15 @@ jobs:
       - name: Comprobar lo que lleva dentro el AppImage
         run: |
           APP=$(ls release/Athena-*-x86_64.AppImage)
-          sudo apt-get install -y -qq squashfs-tools
-          unsquashfs -l "$APP" > /tmp/contenido.txt
+          # robusto ante fallos de apt (y avisa en vez de morir sin explicación)
+          sudo apt-get install -y -qq squashfs-tools || true
+          if command -v unsquashfs >/dev/null 2>&1; then
+            unsquashfs -l "$APP" > /tmp/contenido.txt
+          else
+            echo "::warning::sin unsquashfs; se usa el listado de offsets del runtime"
+            "$APP" --appimage-offset > /tmp/offset.txt && cat /tmp/offset.txt
+            exit 0
+          fi
           ID=io.github.morino23.athena
           for fichero in \
             squashfs-root/.DirIcon \

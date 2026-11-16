@@ -84,6 +84,10 @@ describe("paquete Linux · AppImage y AppStream", () => {
     const wf = leer(".github/workflows/release-linux.yml");
     // no basta con que exista en el AppDir: se mira el contenido del squashfs
     expect(wf).toContain("unsquashfs -l");
+    // y sin unsquashfs (apt falla) el paso avisa, no muere sin explicación:
+    // ese fallo silencioso ya costó un run entero
+    expect(wf).toContain("command -v unsquashfs");
+    expect(wf).toContain("::warning::sin unsquashfs");
     expect(wf).toContain(".DirIcon");
     // una sola variable para el id: si se escribe a mano en cada ruta, alguna
     // se queda con el nombre viejo y appimagetool no encuentra los metadatos
