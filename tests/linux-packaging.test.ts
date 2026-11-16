@@ -81,18 +81,24 @@ describe("paquete Linux · AppImage y AppStream", () => {
   });
 
   test("lo que appimagetool exige viaja DENTRO de la imagen", () => {
-    const wf = leer(".github/workflows/release-linux.yml");
-    // no basta con que exista en el AppDir: se mira el contenido del squashfs
-    expect(wf).toContain("unsquashfs -l");
-    // y sin unsquashfs (apt falla) el paso avisa, no muere sin explicación:
-    // ese fallo silencioso ya costó un run entero
-    expect(wf).toContain("command -v unsquashfs");
-    expect(wf).toContain("::warning::sin unsquashfs");
+    // sin comentarios: el workflow explica por qué NO se usa unsquashfs, y
+    // buscar la palabra a pelo se dispara con mi propia explicación
+    const wf = leer(".github/workflows/release-linux.yml").replace(/^\s*#.*$/gm, "");
+    // no basta con que exista en el AppDir: se extrae la imagen y se mira
+    // dentro. Con `--appimage-extract` (nativo del runtime, sin FUSE) y no con
+    // unsquashfs: ese obligaba a instalar squashfs-tools y, cuando el apt
+    // fallaba, el paso moría sin decir por qué. Un fallo sin anotación es un
+    // fallo que no se puede diagnosticar sin leer el log.
+    expect(wf).toContain("--appimage-extract");
+    expect(wf).not.toContain("unsquashfs");
+    // cada fallo deja su anotación: es el canal que queda cuando el log no se
+    // puede leer
+    expect(wf).toContain('::error::falta $fichero dentro del AppImage');
     expect(wf).toContain(".DirIcon");
     // una sola variable para el id: si se escribe a mano en cada ruta, alguna
     // se queda con el nombre viejo y appimagetool no encuentra los metadatos
     expect(wf).toContain("ID=io.github.morino23.athena");
-    expect(wf).toContain("squashfs-root/usr/share/metainfo/$ID.appdata.xml");
+    expect(wf).toContain('"usr/share/metainfo/$ID.appdata.xml"');
   });
 
   test("AppImage y .deb salen del MISMO instalador", () => {

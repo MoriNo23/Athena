@@ -86,29 +86,35 @@ jobs:
 
       # El .DirIcon y el metainfo no solo tienen que existir en el AppDir:
       # tienen que viajar dentro de la imagen que se publica.
+      #
+      # Se extrae con `--appimage-extract` (nativo del runtime, sin FUSE) y no
+      # con `unsquashfs`: ese obligaba a instalar squashfs-tools en el runner, y
+      # cuando el apt fallaba el paso moría sin decir por qué. Cada fallo de
+      # aquí deja ahora su anotación, que es el único canal que me queda cuando
+      # no puedo leer el log.
       - name: Comprobar lo que lleva dentro el AppImage
         run: |
           APP=$(ls release/Athena-*-x86_64.AppImage)
-          # robusto ante fallos de apt (y avisa en vez de morir sin explicación)
-          sudo apt-get install -y -qq squashfs-tools || true
-          if command -v unsquashfs >/dev/null 2>&1; then
-            unsquashfs -l "$APP" > /tmp/contenido.txt
-          else
-            echo "::warning::sin unsquashfs; se usa el listado de offsets del runtime"
-            "$APP" --appimage-offset > /tmp/offset.txt && cat /tmp/offset.txt
-            exit 0
-          fi
           ID=io.github.morino23.athena
+          rm -rf /tmp/extraido && mkdir -p /tmp/extraido && cd /tmp/extraido
+          "$APP" --appimage-extract > /tmp/extraccion.txt 2>&1 || {
+            echo "::error::el AppImage no se puede extraer:"; tail -5 /tmp/extraccion.txt; exit 1; }
+          falta=""
           for fichero in \
-            squashfs-root/.DirIcon \
-            "squashfs-root/$ID.png" \
-            "squashfs-root/$ID.desktop" \
-            "squashfs-root/usr/share/metainfo/$ID.appdata.xml" \
-            "squashfs-root/usr/share/applications/$ID.desktop"; do
-            grep -qx "$fichero" /tmp/contenido.txt \
-              || { echo "::error::falta $fichero dentro del AppImage"; exit 1; }
-            echo "OK  $fichero"
+            .DirIcon \
+            "$ID.png" \
+            "$ID.desktop" \
+            "usr/share/metainfo/$ID.appdata.xml" \
+            "usr/share/applications/$ID.desktop"; do
+            if [ -e "squashfs-root/$fichero" ]; then
+              echo "OK  $fichero"
+            else
+              echo "::error::falta $fichero dentro del AppImage"
+              falta=1
+            fi
           done
+          [ -z "$falta" ] || exit 1
+          echo "::notice::El AppImage lleva icono, lanzador y metadatos AppStream"
 
       - name: Subir paquetes como artifact del run
         uses: actions/upload-artifact@v7
