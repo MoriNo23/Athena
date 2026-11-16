@@ -94,6 +94,9 @@ describe("paquete Linux · AppImage y AppStream", () => {
     // cada fallo deja su anotación: es el canal que queda cuando el log no se
     // puede leer
     expect(wf).toContain('::error::falta $fichero dentro del AppImage');
+    // el paso hace `cd /tmp/extraido` antes de usar $APP: con una ruta relativa
+    // el AppImage «no existía» y el run se cayó por eso, no por el paquete
+    expect(wf).toContain('APP="$PWD/$(ls release/Athena-*-x86_64.AppImage)"');
     expect(wf).toContain(".DirIcon");
     // una sola variable para el id: si se escribe a mano en cada ruta, alguna
     // se queda con el nombre viejo y appimagetool no encuentra los metadatos

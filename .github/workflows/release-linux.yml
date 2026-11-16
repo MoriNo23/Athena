@@ -94,7 +94,9 @@ jobs:
       # no puedo leer el log.
       - name: Comprobar lo que lleva dentro el AppImage
         run: |
-          APP=$(ls release/Athena-*-x86_64.AppImage)
+          # ruta ABSOLUTA: el script se va a /tmp/extraido antes de usarla, y
+          # una relativa deja de existir en cuanto se cambia de directorio
+          APP="$PWD/$(ls release/Athena-*-x86_64.AppImage)"
           ID=io.github.morino23.athena
           rm -rf /tmp/extraido && mkdir -p /tmp/extraido && cd /tmp/extraido
           if ! "$APP" --appimage-extract > /tmp/extraccion.txt 2>&1; then
