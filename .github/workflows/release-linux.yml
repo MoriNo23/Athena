@@ -97,8 +97,14 @@ jobs:
           APP=$(ls release/Athena-*-x86_64.AppImage)
           ID=io.github.morino23.athena
           rm -rf /tmp/extraido && mkdir -p /tmp/extraido && cd /tmp/extraido
-          "$APP" --appimage-extract > /tmp/extraccion.txt 2>&1 || {
-            echo "::error::el AppImage no se puede extraer:"; tail -5 /tmp/extraccion.txt; exit 1; }
+          if ! "$APP" --appimage-extract > /tmp/extraccion.txt 2>&1; then
+            echo "::error::el AppImage no se puede extraer"
+            # cada línea como anotación: solo la primera llega al resumen, y un
+            # error de una línea no se puede diagnosticar
+            grep -v '^[[:space:]]*$' /tmp/extraccion.txt | tail -6 \
+              | while IFS= read -r l; do echo "::error::extracción: $l"; done
+            exit 1
+          fi
           falta=""
           for fichero in \
             .DirIcon \
