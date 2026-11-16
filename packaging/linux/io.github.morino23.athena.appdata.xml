@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Metadatos AppStream de Athena.
+
+  Para qué sirve: que la app aparezca con nombre, icono, capturas y licencia en
+  centros de software y en AppImageHub, en vez de como «un binario más».
+  appimagetool valida este archivo al empaquetar y avisaba de que faltaba.
+
+  Reglas que respeta (las exige la especificación de AppStream, no es estilo):
+  · el archivo se llama como el id y el .desktop, y vive en usr/share/metainfo/;
+  · la extensión es .appdata.xml, no .metainfo.xml, y NO es un descuido:
+    appimagetool solo busca .appdata.xml y avisa de que faltan los metadatos
+    aunque el archivo esté ahí con el nombre nuevo. Es un bug conocido suyo
+    (AppImage/appimagetool#141, #77) y la propia especificación de AppStream
+    acepta las dos extensiones por compatibilidad histórica. Con
+    .appdata.xml lo encuentran los dos: appimagetool y appstreamcli;
+  · `<id>` es DNS inverso y no lleva guiones ni dígitos al principio de segmento;
+  · `<metadata_license>` es SPDX y de la lista permitida (MIT encaja);
+  · `<project_license>` sí puede ser cualquier licencia: aquí MIT;
+  · el contenido de `<description>` va en `<p>`, nunca suelto;
+  · las capturas son URLs absolutas https, con su `<image>` de tipo `source`.
+-->
+<component type="desktop-application">
+  <id>io.github.morino23.athena</id>
+
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Athena</name>
+  <summary>Lector local-first de PDF y EPUB con riel de progreso</summary>
+
+  <description>
+    <p>
+      Athena es una app de lectura para tu propio ordenador: riel de progreso,
+      racha de lectura, insignias por libros terminados, lectura dual con PDF
+      compañero, OCR, diccionario y modo teleprompter.
+    </p>
+    <p>
+      Todo corre en tu máquina. Sin nube, sin cuentas y sin telemetría: la
+      biblioteca vive en ~/.local/share/athena (o en ATHENA_HOME) y sobrevive a
+      actualizaciones y a desinstalar el paquete.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.morino23.athena.desktop</launchable>
+
+  <url type="homepage">https://github.com/MoriNo23/Athena</url>
+  <url type="bugtracker">https://github.com/MoriNo23/Athena/issues</url>
+  <url type="vcs-browser">https://github.com/MoriNo23/Athena</url>
+
+  <developer id="io.github.morino23">
+    <name>MoriNo23</name>
+  </developer>
+
+  <categories>
+    <category>Education</category>
+    <category>Literature</category>
+  </categories>
+
+  <keywords>
+    <keyword>lector</keyword>
+    <keyword>reader</keyword>
+    <keyword>PDF</keyword>
+    <keyword>EPUB</keyword>
+    <keyword>local-first</keyword>
+  </keywords>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>La biblioteca, con el riel de progreso de cada libro</caption>
+      <image type="source">https://raw.githubusercontent.com/MoriNo23/Athena/main/.github/assets/library-dark.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>El lector, con las texturas de la casa</caption>
+      <image type="source">https://raw.githubusercontent.com/MoriNo23/Athena/main/.github/assets/reader-dark.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Modo teleprompter, letra a letra</caption>
+      <image type="source">https://raw.githubusercontent.com/MoriNo23/Athena/main/.github/assets/teleprompter.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="2.1.3" date="2026-11-15">
+      <description>
+        <p>El icono de Android pasa a ser el pórtico de la casa, con capa monocroma.</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1"/>
+</component>

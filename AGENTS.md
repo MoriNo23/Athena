@@ -111,6 +111,29 @@ que te devuelven a leer hoy.
   (dentro del repo). Jamás se commitean. Con `ATHENA_HOME` (default
   `~/.local/share/athena`) los datos viven FUERA del repo.
 
+### El paquete Linux se instala desde un solo sitio
+
+`scripts/linux-install-tree.sh <destino> [--atajos-appimage]` es el único que
+sabe cómo se instala Athena en Linux: `usr/share/athena` (app), `usr/bin/athena`
+(symlink al CLI), `.desktop`, icono `hicolor/256x256` y metainfo AppStream.
+`package-deb.sh` y `package-appimage.sh` lo llaman; **nunca montan su propia
+jerarquía**. Dos jerarquías paralelas fueron justo el fallo: el AppImage tenía
+icono y el `.deb` no, así que la app no aparecía con cara en ningún menú.
+
+- `--atajos-appimage` añade `.DirIcon` y el `.desktop` a la raíz del AppDir,
+  que es donde la especificación de AppDir los exige. En un `.deb` esos dos
+  archivos sueltos en la raíz sobran y confunden al gestor.
+- **`.DirIcon` tiene que ser un PNG**, copia y no symlink al SVG. appimagetool
+  ya rechaza el SVG («hard to parse») y su aviso dice que la próxima versión
+  negará a construir el AppImage. Antes esto era un warning con el job en
+  verde, o sea un release que se caería solo sin tocar el código.
+- El CLI **no** está en `standalone/`; se copia de `scripts/athena`. Sin él el
+  symlink de `usr/bin/athena` queda roto y el paquete no tiene `athena start`.
+- Metadatos AppStream en `packaging/linux/athena.metainfo.xml`, validados con
+  `appstreamcli validate --no-net` como paso propio del CI. El archivo se llama
+  como su `<id>` (lo exige la especificación), `<metadata_license>` es SPDX y
+  de la lista permitida, y el texto de `<description>` va en `<p>`.
+
 ### La raíz se queda limpia (regla anti-caos)
 
 El repositorio se percibe por su raíz: si la raíz parece un cajón, el repo

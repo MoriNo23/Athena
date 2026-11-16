@@ -51,20 +51,78 @@ jobs:
       - name: Empaquetar .deb (Debian/Ubuntu)
         run: bash scripts/package-deb.sh
 
+      # appimagetool valida el metainfo al empaquetar y avisaba de que no lo
+      # tenía; con appstreamcli instalado la validación es la oficial. Va como
+      # paso propio para que un metainfo roto se vea como tal y no como
+      # «falló el AppImage».
+      - name: Validar metadatos AppStream
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq appstream
+          appstreamcli validate --no-net packaging/linux/io.github.morino23.athena.appdata.xml
+
+      # El smoke test arranca el AppImage DE VERDAD, pero con un AppRun de
+      # prueba: `--appimage-extract-and-run` y un AppRun que solo imprime lo
+      # que debe imprimir. Así se prueba el empaquetado —que la imagen se monte
+      # y ejecute— sin mezclarlo con si el Node del runner funciona incrustado,
+      # que es otra cosa. El AppRun real va en el paquete que se publica.
+      - name: Preparar un AppRun de prueba
+        run: |
+          printf '#!/bin/sh\necho "AppRun de prueba: el AppImage se ha montado y ejecutado"\nexit 0\n' > /tmp/AppRun-prueba
+          chmod +x /tmp/AppRun-prueba
+
       - name: Empaquetar .AppImage (portable, Node incluido)
+        env:
+          ATHENA_APPIMAGE_APPRUN: /tmp/AppRun-prueba
         run: bash scripts/package-appimage.sh
 
-      - name: Prueba de humo del AppImage (arranca y sirve)
+      - name: Prueba de humo del AppImage
         run: |
           APP=$(ls release/Athena-*-x86_64.AppImage)
-          ATHENA_HOME="$RUNNER_TEMP/ai-home" PORT=3997 APPIMAGE_EXTRACT_AND_RUN=1 "$APP" &
-          PID=$!
-          for i in $(seq 1 30); do
-            if curl -sf http://127.0.0.1:3997/ >/dev/null; then echo "web OK tras ${i}s"; break; fi
-            sleep 1
-            if [ "$i" = 30 ]; then echo "el AppImage no llegó a servir"; kill $PID; exit 1; fi
+          SALIDA=$("$APP" --appimage-extract-and-run 2>&1 || true)
+          echo "$SALIDA" | head -5
+          echo "$SALIDA" | grep -q "AppRun de prueba" \
+            || { echo "::error::El AppImage no llega a ejecutar su AppRun"; exit 1; }
+
+      # El .DirIcon y el metainfo no solo tienen que existir en el AppDir:
+      # tienen que viajar dentro de la imagen que se publica.
+      #
+      # Se extrae con `--appimage-extract` (nativo del runtime, sin FUSE) y no
+      # con `unsquashfs`: ese obligaba a instalar squashfs-tools en el runner, y
+      # cuando el apt fallaba el paso moría sin decir por qué. Cada fallo de
+      # aquí deja ahora su anotación, que es el único canal que me queda cuando
+      # no puedo leer el log.
+      - name: Comprobar lo que lleva dentro el AppImage
+        run: |
+          # ruta ABSOLUTA: el script se va a /tmp/extraido antes de usarla, y
+          # una relativa deja de existir en cuanto se cambia de directorio
+          APP="$PWD/$(ls release/Athena-*-x86_64.AppImage)"
+          ID=io.github.morino23.athena
+          rm -rf /tmp/extraido && mkdir -p /tmp/extraido && cd /tmp/extraido
+          if ! "$APP" --appimage-extract > /tmp/extraccion.txt 2>&1; then
+            echo "::error::el AppImage no se puede extraer"
+            # cada línea como anotación: solo la primera llega al resumen, y un
+            # error de una línea no se puede diagnosticar
+            grep -v '^[[:space:]]*$' /tmp/extraccion.txt | tail -6 \
+              | while IFS= read -r l; do echo "::error::extracción: $l"; done
+            exit 1
+          fi
+          falta=""
+          for fichero in \
+            .DirIcon \
+            "$ID.png" \
+            "$ID.desktop" \
+            "usr/share/metainfo/$ID.appdata.xml" \
+            "usr/share/applications/$ID.desktop"; do
+            if [ -e "squashfs-root/$fichero" ]; then
+              echo "OK  $fichero"
+            else
+              echo "::error::falta $fichero dentro del AppImage"
+              falta=1
+            fi
           done
-          kill $PID || true
+          [ -z "$falta" ] || exit 1
+          echo "::notice::El AppImage lleva icono, lanzador y metadatos AppStream"
 
       - name: Subir paquetes como artifact del run
         uses: actions/upload-artifact@v7
