@@ -8,6 +8,8 @@ import {
   teleprompterPageContaining,
   teleprompterPrunableLimit,
   lastLineFirstIndex,
+  headingHoldMs,
+  headingFadeMs,
   msPorUnidad,
   type TeleprompterBlock,
 } from "@/core/teleprompter";
@@ -49,6 +51,8 @@ interface UseTeleprompterPlayerOpts {
   stageViewAnchor: (oldIndex: number, newIndex: number) => void;
   /** Auto: al agotar la página sigue sola */
   auto: boolean;
+  /** Títulos como texto normal: sin coreografía, misma cadencia que el cuerpo */
+  plainHeadings: boolean;
   /** palabras por segundo activas (null = Instantánea). SOLO el paso null↔número
       reinicia el motor: los cambios en vivo los lee delayAt por ref */
   wps: number | null;
@@ -93,6 +97,7 @@ export function useTeleprompterPlayer({
   scrollToChar,
   stageViewAnchor,
   auto,
+  plainHeadings,
   wps,
   tick,
 }: UseTeleprompterPlayerOpts) {
@@ -364,6 +369,7 @@ export function useTeleprompterPlayer({
       paintedRef.current = n;
     };
     const syncHeadings = (n: number) => {
+      if (plainHeadings) return;
       for (const b of stream.blocks) {
         if (!b.heading) continue;
         spans[b.start]?.closest<HTMLElement>(".tp-block")?.classList.toggle("on", n > b.start);
@@ -420,7 +426,9 @@ export function useTeleprompterPlayer({
     syncHeadings(i);
 
     const headingAt = (idx: number) =>
-      stream.blocks.find((b) => b.heading && idx >= b.start && idx < b.start + b.length);
+      plainHeadings
+        ? undefined
+        : stream.blocks.find((b) => b.heading && idx >= b.start && idx < b.start + b.length);
 
     // hueco al final de la ventana: la siguiente aún carga pero el libro sigue
     // — no declarar fin; el relleno relanza el motor desde donde quedó
@@ -461,19 +469,26 @@ export function useTeleprompterPlayer({
       const heading = headingAt(i);
       const end = heading ? heading.start + heading.length : i + 1;
       for (let k = i; k < end; k++) spans[k]?.classList.add("on");
-      if (heading) spans[i]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
+      if (heading) {
+        spans[i]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
+        const vel = wpsRef.current ?? TELEPROMPTER_WPS_DEFAULT;
+        root.style.setProperty("--tp-heading-fade", `${headingFadeMs(vel)}ms`);
+      }
       if (stream.steps[i]?.char.trim()) tick();
       paintedRef.current = end;
 
-      // la orden de vista de un título ancla el INICIO del bloque en la zona
-      // cómoda: la cámara no se sumerge el alto del bloque entero
-      scrollToChar(heading ? heading.start : end - 1);
+      // el título se centra en la zona cómoda: un encabezado de dos líneas no
+      // queda partido por el borde al llegar el cuerpo
+      scrollToChar(heading ? heading.start + Math.floor(heading.length / 2) : end - 1);
       i = end;
       litRef.current = i;
       setLit(i);
       markIfLastLine(i - 1);
 
-      schedule(delayAt(i));
+      // el piso del título garantiza que la coreografía termine antes del
+      // siguiente paso; en modo «texto» rige el tempo normal
+      const velActiva = wpsRef.current ?? TELEPROMPTER_WPS_DEFAULT;
+      schedule(heading ? Math.max(delayAt(i), headingHoldMs(velActiva)) : delayAt(i));
     };
 
     /** Espera planeada del paso que empieza en `idx`: unidades de tempo → ms
@@ -501,7 +516,7 @@ export function useTeleprompterPlayer({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [win, stream, totalChars, pageOffsets, numPages, playing, pageDone, bookDone, auto, instante, tick, scrollToChar, pruneFront, crossBoundaries, markIfLastLine, firePageRead, scrollRef, spansRef]);
+  }, [win, stream, totalChars, pageOffsets, numPages, playing, pageDone, bookDone, auto, plainHeadings, instante, tick, scrollToChar, pruneFront, crossBoundaries, markIfLastLine, firePageRead, scrollRef, spansRef]);
 
   // ---------- Auto: el revelado instantáneo descansa antes de seguir ----------
   useEffect(() => {
@@ -533,7 +548,9 @@ export function useTeleprompterPlayer({
     const limit = pageOffsets[crossedRef.current + 1] ?? totalChars;
     if (spans.length === 0 || cur >= limit || cur >= spans.length) return;
     setPlaying(false);
-    const heading = stream.blocks.find((b) => b.heading && cur >= b.start && cur < b.start + b.length);
+    const heading = plainHeadings
+      ? undefined
+      : stream.blocks.find((b) => b.heading && cur >= b.start && cur < b.start + b.length);
     const end = heading ? heading.start + heading.length : cur + 1;
     for (let k = cur; k < end; k++) spans[k]?.classList.add("on");
     if (heading) spans[heading.start]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
@@ -542,7 +559,7 @@ export function useTeleprompterPlayer({
     setLit(end);
     markIfLastLine(end - 1);
     scrollToChar(end - 1);
-  }, [pageOffsets, scrollToChar, spansRef, stream, totalChars, markIfLastLine]);
+  }, [pageOffsets, scrollToChar, spansRef, stream, totalChars, markIfLastLine, plainHeadings]);
 
   /** `Shift+→`: salto a la página siguiente. Sin cruce de DOM: enciende el
       resto de la página en curso (ya está en la columna), anuncia la
@@ -560,7 +577,7 @@ export function useTeleprompterPlayer({
     const end = Math.min(pageOffsets[crossedRef.current + 1] ?? totalChars, spans.length);
     for (let k = litRef.current; k < end; k++) spans[k]?.classList.add("on");
     for (const b of stream.blocks) {
-      if (b.heading && end > b.start && b.start >= litRef.current) {
+      if (!plainHeadings && b.heading && end > b.start && b.start >= litRef.current) {
         spans[b.start]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
       }
     }
@@ -572,7 +589,7 @@ export function useTeleprompterPlayer({
     crossBoundaries(litRef.current);
     setPageDone(false);
     setPlaying(true);
-  }, [crossBoundaries, numPages, pageOffsets, setLit, spansRef, stream, totalChars, winRef, markIfLastLine]);
+  }, [crossBoundaries, numPages, pageOffsets, setLit, spansRef, stream, totalChars, winRef, markIfLastLine, plainHeadings]);
 
   // ---------- rebobinado ----------
   const loadPreviousPage = useCallback(() => {
@@ -667,7 +684,7 @@ export function useTeleprompterPlayer({
     const end = Math.min(pageOffsets[crossedRef.current + 1] ?? totalChars, spans.length);
     for (let k = litRef.current; k < end; k++) spans[k]?.classList.add("on");
     for (const b of stream.blocks) {
-      if (b.heading && end > b.start) {
+      if (!plainHeadings && b.heading && end > b.start) {
         spans[b.start]?.closest<HTMLElement>(".tp-block")?.classList.add("on");
       }
     }
@@ -680,7 +697,7 @@ export function useTeleprompterPlayer({
     // compás de quietud (pageDone) y el flujo sigue solo; sin Auto, espera.
     if (win && win.start + crossedRef.current < numPages) setPageDone(true);
     else setBookDone(true);
-  }, [bookDone, pageDone, playing, win, crossBoundaries, numPages, pageOffsets, totalChars, stream, spansRef, markIfLastLine]);
+  }, [bookDone, pageDone, playing, win, crossBoundaries, numPages, pageOffsets, totalChars, stream, spansRef, markIfLastLine, plainHeadings]);
 
   return { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne, stepForward, goToNextPage, goToPrevPage };
 }

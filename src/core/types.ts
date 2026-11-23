@@ -276,6 +276,8 @@ export interface TeleprompterSettings {
   fondoFiltro: number;
   /** tarjetas por frase: los bloques largos se parten en frases legibles */
   tarjetasPorFrase: boolean;
+  /** títulos: coreografía con respiro propio o misma cadencia que el texto */
+  headingStyle: "coreografiados" | "texto";
   /** P2: pausar a mostrar las figuras (EPUB incorporadas, PDF renderizadas) */
   pausaImagen: boolean;
   /** P2: cuánto se muestra cada figura (ms), independiente de la velocidad */

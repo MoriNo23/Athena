@@ -667,11 +667,29 @@ html:not(.dark) .athena-hero .seal-glow {
    abajo mientras se enciende, en vez de saltar de golpe al llegar la cámara. */
 .tp-block-h.on {
   opacity: 1;
-  animation: tp-heading-in 900ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  /* Dos tiempos: entra atenuado y sube, luego se enciende. La duración del
+     fundido la publica el motor en --tp-heading-fade para que el tempo y el
+     movimiento hablen la misma unidad. */
+  animation:
+    tp-heading-enter var(--tp-heading-enter, 300ms) ease-out both,
+    tp-heading-fade var(--tp-heading-fade, 900ms) ease-out both;
 }
-@keyframes tp-heading-in {
+@keyframes tp-heading-enter {
   from { opacity: 0.55; transform: translateY(0.3em); }
-  to { opacity: 1; transform: none; }
+  to { opacity: 0.55; transform: none; }
+}
+@keyframes tp-heading-fade {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+/* «Título como texto normal»: mismo fundido por carácter que el cuerpo, sin
+   coreografía de bloque. Mantiene la jerarquía visual (tamaño y peso). */
+[data-heading-style="texto"] .tp-block-h.on {
+  animation: none;
+  opacity: 1;
+}
+[data-heading-style="texto"] .tp-block-h .tp-ch.on {
+  transition: opacity 130ms ease-out, color 130ms ease-out;
 }
 /* el título no se enciende letra a letra: lo revela el bloque entero */
 .tp-block-h .tp-ch {

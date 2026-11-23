@@ -27,6 +27,7 @@ test("saneaAjustes(null): todo a defaults de la casa", () => {
       fondoRuta: "",
       fondoFiltro: 55,
       tarjetasPorFrase: true,
+      headingStyle: "coreografiados",
       pausaImagen: true,
       imagenHoldMs: 5000,
       descansoMin: 0,

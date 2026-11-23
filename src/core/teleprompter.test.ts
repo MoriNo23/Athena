@@ -9,6 +9,10 @@ import {
   teleprompterPrunableLimit,
   teleprompterRewind,
   lastLineFirstIndex,
+  headingHoldMs,
+  headingFadeMs,
+  TELEPROMPTER_HEADING_FLOOR_MS,
+  TELEPROMPTER_HEADING_FADE_MS,
   TELEPROMPTER_COMMA_PAUSE_LETTERS,
   TELEPROMPTER_DASH_PAUSE_LETTERS,
   TELEPROMPTER_HEADING_PAUSE_LETTERS,
@@ -210,6 +214,27 @@ describe("puntuación española", () => {
     // las tarjetas del mismo bloque se pegan con un espacio: sin pausa extra
     // (el 10 del espacio es la pausa de punto, no la de párrafo)
     expect(mismo.steps[5].units).toBe(1);
+  });
+});
+
+describe("cadencia de títulos y encabezados", () => {
+  const titulo = (t: string): TeleprompterBlock => ({ kind: "h1", text: t });
+  const subtitulo = (t: string): TeleprompterBlock => ({ kind: "h2", text: t });
+
+  test("piso de espera: a velocidad alta la animación no se corta", () => {
+    // 4 pal/s: 1 unidad = ~42 ms; 12 unidades = ~500 ms. El piso manda.
+    expect(headingHoldMs(4.0)).toBe(TELEPROMPTER_HEADING_FLOOR_MS);
+    expect(headingFadeMs(4.0)).toBe(TELEPROMPTER_HEADING_FADE_MS);
+    // A velocidad lenta el tempo da más aire al título, nunca menos.
+    expect(headingHoldMs(0.5)).toBeGreaterThan(TELEPROMPTER_HEADING_FLOOR_MS);
+  });
+
+  test("dos títulos seguidos tienen compás propio sin doblar la suma", () => {
+    const s = buildTeleprompterStream([titulo("Capítulo I"), subtitulo("La llegada")], false);
+    expect(s.blocks[0].heading).toBe(true);
+    expect(s.blocks[1].heading).toBe(true);
+    const segundo = s.blocks[1].start;
+    expect(s.steps[segundo].units).toBeGreaterThanOrEqual(12);
   });
 });
 

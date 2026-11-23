@@ -88,6 +88,7 @@
       teleprompter: {
         wps: 2.5, instante: false, sound: true, auto: false, fontScale: 1,
         fondo: "tema", fondoRuta: "", fondoFiltro: 55, tarjetasPorFrase: true,
+        headingStyle: "coreografiados",
         pausaImagen: true, imagenHoldMs: 5000, descansoMin: 0,
       },
       modes: {

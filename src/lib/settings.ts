@@ -88,6 +88,7 @@ const defaultSettings: AppSettings = {
     fondoRuta: "",
     fondoFiltro: TELEPROMPTER_FONDO_FILTRO_DEFAULT,
     tarjetasPorFrase: true,
+    headingStyle: "coreografiados",
     pausaImagen: true, // P2: el teleprompter se detiene a mostrar las figuras
     imagenHoldMs: TELEPROMPTER_IMAGEN_HOLD_DEFAULT,
     descansoMin: 0, // aviso de descanso: apagado por defecto (la dueña decide)
@@ -273,7 +274,7 @@ export const useSettings = create<SettingsStore>()(
     },
     {
       name: "riel-settings-v1",
-      version: 16,
+      version: 17,
       migrate: migrateSettings,
       // el vocabulario no persiste aquí: es data, vive en la BD (change
       // cfg-y-biblioteca-por-carpeta); el localStorage queda como caché de
@@ -481,6 +482,9 @@ function teleprompterMigrado(viejo: unknown): typeof defaultSettings.teleprompte
   }
   delete out.speedPreset; // el ajuste viejo no debe volver a persistirse
   delete out.flujoContinuo; // jubilado: el cruce ya no se anuncia, sin opción
+  if (out.headingStyle !== "coreografiados" && out.headingStyle !== "texto") {
+    out.headingStyle = "coreografiados";
+  }
   return out as unknown as typeof defaultSettings.teleprompter;
 }
 
