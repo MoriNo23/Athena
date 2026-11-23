@@ -37,7 +37,7 @@ if (typeof Map.prototype.getOrInsertComputed !== "function") {
   Map.prototype.getOrInsertComputed = function (k, f) { if (!this.has(k)) this.set(k, f(k)); return this.get(k); };
 }
 if (typeof Promise.try !== "function") {
-  Promise.try = function (f) { try { return Promise.resolve(f()); } catch (e) { return Promise.reject(e); } };
+  Promise.try = function (f, ...a) { try { return Promise.resolve(f(...a)); } catch (e) { return Promise.reject(e); } };
 }
 if (typeof URL.parse !== "function") {
   URL.parse = function (u, base) { try { return new URL(u, base); } catch { return null; } };

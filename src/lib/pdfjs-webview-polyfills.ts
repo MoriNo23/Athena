@@ -33,18 +33,18 @@ if (typeof urlCtor.parse !== "function") {
 }
 
 type PromiseConTry = PromiseConstructor & {
-  try?: <T>(fn: () => T | Promise<T>) => Promise<T>;
+  try?: <T, A extends unknown[]>(fn: (...args: A) => T | Promise<T>, ...args: A) => Promise<T>;
 };
 
 const promiseCtor = Promise as PromiseConTry;
 
 if (typeof promiseCtor.try !== "function") {
-  // shortcut: solo necesita el caso sin argumentos que usa pdf.js. Quitar
-  // cuando el WebView mínimo soportado ya traiga Promise.try.
+  // pdf.js pasa argumentos: `Promise.try(handler, data)`. Sin el rest, el
+  // handler recibe undefined y explota al desestructurar `docId`.
   Object.defineProperty(promiseCtor, "try", {
-    value: function <T>(fn: () => T | Promise<T>): Promise<T> {
+    value: function <T, A extends unknown[]>(fn: (...args: A) => T | Promise<T>, ...args: A): Promise<T> {
       try {
-        return Promise.resolve(fn());
+        return Promise.resolve(fn(...args));
       } catch (e) {
         return Promise.reject(e);
       }
