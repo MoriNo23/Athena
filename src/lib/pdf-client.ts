@@ -1,7 +1,7 @@
 "use client";
 
 import "./map-get-or-insert-polyfill";
-import "./url-parse-polyfill";
+import "./pdfjs-webview-polyfills";
 import type * as PdfjsModule from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 
