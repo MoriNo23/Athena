@@ -26,13 +26,13 @@
 - [x] 4.1 Actualizar TypeScript 6.0.3 (7 bloqueado por `typescript-eslint`), Vite 8, `@vitejs/plugin-react` 6 y ESLint 10 con `bun update`; verificar `bun.lock` y que no hay dependencias nuevas de runtime.
 - [x] 4.2 Adaptar `tsconfig.json`, `vite.config.ts` y `eslint.config.mjs` a las APIs nuevas; verificar `bunx tsc --noEmit` y `bun run lint` en verde sin relajar `strict`.
 - [x] 4.3 Corregir los errores de tipos que TypeScript 7 detecte en `src/`; verificar `bun test` y `bun run build`.
-- [ ] 4.4 Subir la versión a 2.1.11 y abrir el PR; verificar los cuatro comandos de calidad y que el diff no toca `server/api.ts` ni `public/athena-offline.js`.
+- [x] 4.4 Subir la versión a 2.1.11 y abrir el PR; verificar los cuatro comandos de calidad y que el diff no toca `server/api.ts` ni `public/athena-offline.js`.
 
 ## 5. Integración
 
-- [ ] 5.1 Verificar que los tres PRs se mergean en orden y que cada tag `v2.1.9`, `v2.1.10` y `v2.1.11` apunta a su commit; comprobarlo en GitHub Releases.
-- [ ] 5.2 Verificar que `bun install --frozen-lockfile` funciona desde cero con el `bun.lock` final y que `bun test` sigue en verde salvo el fallo viejo de `tests/archive/`.
-- [ ] 5.3 Revisar las release notes: mencionar los tres parches, el cambio de Capacitor 8 y la auditoría de polyfills de pdf.js.
+- [x] 5.1 Verificar que los tres PRs se mergean en orden y que cada tag `v2.1.9`, `v2.1.10` y `v2.1.11` apunta a su commit; comprobarlo en GitHub Releases.
+- [x] 5.2 Verificar que `bun install --frozen-lockfile` funciona desde cero con el `bun.lock` final y que `bun test` sigue en verde salvo el fallo viejo de `tests/archive/`.
+- [x] 5.3 Revisar las release notes: mencionar los tres parches, el cambio de Capacitor 8 y la auditoría de polyfills de pdf.js.
 
 ## Workflow follow-up
 
