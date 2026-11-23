@@ -8,6 +8,7 @@ import {
   teleprompterPageOffsets,
   teleprompterPrunableLimit,
   teleprompterRewind,
+  lastLineFirstIndex,
   TELEPROMPTER_COMMA_PAUSE_LETTERS,
   TELEPROMPTER_HEADING_PAUSE_LETTERS,
   TELEPROMPTER_IMAGE_CHAR,
@@ -170,5 +171,18 @@ describe("columna viva: offsets por página (teleprompter-cruce-sin-evento)", ()
     // muda al final de la ventana: no hay ancla detrás — nada podable
     const conCola = teleprompterPageOffsets([10, 8, 0]); // [0,10,18,18]
     expect(teleprompterPrunableLimit(conCola, 18)).toBe(1);
+  });
+});
+
+describe("última línea visible", () => {
+  test("lastLineFirstIndex: localiza el primer carácter del último renglón", () => {
+    const tops = [0, 0, 0, 0, 22, 22];
+    expect(lastLineFirstIndex(tops)).toBe(4);
+    // con offset de página: el índice vuelve al flujo global
+    expect(lastLineFirstIndex(tops, 100)).toBe(104);
+    // subpíxel: una línea sigue siendo una línea
+    expect(lastLineFirstIndex([0.4, 0.2, 0.6, 23.1])).toBe(3);
+    // sin medida: el primer carácter de la página
+    expect(lastLineFirstIndex([])).toBe(0);
   });
 });

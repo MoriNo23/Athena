@@ -466,6 +466,8 @@ export const pt: Record<string, string> = {
   "tp.aria": "Teleprompter",
   "tp.status": "Página {page} de {total} · {speed}",
   "tp.statusShort": "pág. {page}/{total}",
+  "tp.statusShortToday": "pág. {page}/{total} · hoje {today}/{goal}",
+  "tp.pageRead": "Página lida · hoje {today}/{goal}",
   "tp.rest.suggest": "Você lê há {minutes} min",
   "tp.rest.ask": "Uma pausa de 20 s?",
   "tp.rest.tip": "Olhe algo a uns seis metros durante este instante: seus olhos agradecem (regra 20-20-20).",

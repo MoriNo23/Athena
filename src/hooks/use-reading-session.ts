@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { computeStreak, groupSessionsByDay, dayKey } from "@/core/reading";
+import { computeStreak, groupSessionsByDay, dayKey, shouldMarkPage } from "@/core/reading";
 
 type Pending = { pages: number; seconds: number };
 
@@ -35,10 +35,14 @@ function takePending(
 export function useReadingSession(opts: {
   bookId: string;
   initialPage: number;
+  /** página visible ahora mismo: el dwell corre sobre ella */
+  currentPage: number;
+  /** lectura manual: cuenta por dwell. El teleprompter marca al terminar la página */
+  dwellEnabled: boolean;
   pauseEnabled: boolean;
   pauseMinutes: number;
 }) {
-  const { bookId, initialPage, pauseEnabled, pauseMinutes } = opts;
+  const { bookId, initialPage, currentPage, dwellEnabled, pauseEnabled, pauseMinutes } = opts;
 
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const [todayStats, setTodayStats] = useState({ streak: 0, pagesToday: 0, minutesToday: 0 });
@@ -56,6 +60,19 @@ export function useReadingSession(opts: {
   // volcado al servidor y el par de la cabecera no puede menguar al guardar.
   const bookBaseRef = useRef(0);
   const bookLiveRef = useRef(0);
+  // Página marcada como leída en ESTA sesión: un mismo número nunca suma dos
+  // veces, aunque se rebobine y se vuelva a terminar.
+  const markedRef = useRef(new Set<number>());
+  const pageRef = useRef(currentPage);
+  const dwellRef = useRef({ page: currentPage, ms: 0 });
+  const dwellEnabledRef = useRef(dwellEnabled);
+
+  useEffect(() => {
+    pageRef.current = currentPage;
+  }, [currentPage]);
+  useEffect(() => {
+    dwellEnabledRef.current = dwellEnabled;
+  }, [dwellEnabled]);
 
   // ---------- Pausas en cortes naturales ----------
   const [pauseArmed, setPauseArmed] = useState(false);
@@ -131,25 +148,28 @@ export function useReadingSession(opts: {
     [flushSave]
   );
 
-  /** Registro de un giro de página: cuenta páginas leídas y arma el diálogo de pausa */
+  /**
+   * ÚNICO punto que suma páginas: el dwell de lectura manual o el final de
+   * página del teleprompter. Idempotente por página y sesión; guarda al instante
+   * para que el contador de hoy no dependa del próximo volcado.
+   */
+  const markPageRead = useCallback(
+    (page: number) => {
+      if (markedRef.current.has(page)) return;
+      markedRef.current.add(page);
+      pending.current.pages += 1;
+      bookLiveRef.current += 1;
+      setBookPagesToday(bookBaseRef.current + bookLiveRef.current);
+      void flushSave();
+    },
+    [flushSave]
+  );
+
+  /** Registro de un giro de página: mueve la posición y arma el diálogo de pausa.
+      Girar NO cuenta páginas — eso lo decide markPageRead. */
   const turn = useCallback((page: number, prev: number, silent: boolean, getRecap: () => string, noPause = false) => {
-    if (silent) {
-      // Salto silencioso (riel, peek, input, sync): no cuenta páginas leídas
-      lastSavedPage.current = page;
-      pending.current.pages = 0;
-    } else {
-      // registrar delta positivo desde la marca alta: solo cuentan páginas nuevas
-      const delta = page - lastSavedPage.current;
-      if (delta > 0) {
-        pending.current.pages += delta;
-        // La marca alta avanza AQUÍ y no solo en el volcado: dos giros dentro de
-        // la ventana de debounce cuentan 1+1 (no el delta acumulado 1+2).
-        lastSavedPage.current = page;
-        // hoy del libro: mismas reglas de conteo (los saltos silenciosos no suman)
-        bookLiveRef.current += delta;
-        setBookPagesToday(bookBaseRef.current + bookLiveRef.current);
-      }
-    }
+    // posición: el riel, la ETA y los hitos siguen el giro; el contador no.
+    lastSavedPage.current = page;
 
     // pausa en corte natural: al girar la página con la sesión cumplida
     // (los saltos silenciosos no abren el diálogo; tampoco los giros que
@@ -195,6 +215,22 @@ export function useReadingSession(opts: {
       sessionSecRef.current = next;
       setSessionSeconds(next);
 
+      // dwell de lectura manual: el tiempo solo corre sobre la página actual
+      // y con la pestaña visible (la comprobación de visibility es arriba).
+      const page = pageRef.current;
+      const dwell = dwellRef.current;
+      if (dwell.page !== page) {
+        dwell.page = page;
+        dwell.ms = 0;
+      }
+      dwell.ms += 1000;
+      if (
+        dwellEnabledRef.current &&
+        shouldMarkPage({ page, msOnPage: dwell.ms, marked: markedRef.current, visible: true })
+      ) {
+        markPageRead(page);
+      }
+
       // pausa en cortes naturales: se arma al cumplir la sesión objetivo
       const cfg = pauseCfgRef.current;
       if (!cfg.enabled) {
@@ -209,7 +245,7 @@ export function useReadingSession(opts: {
       }
     }, 1000);
     return () => clearInterval(id);
-  }, [flushSave]);
+  }, [flushSave, markPageRead]);
 
   // Guardar al salir del lector
   useEffect(() => {
@@ -242,5 +278,6 @@ export function useReadingSession(opts: {
     cancelScheduledSave,
     scheduleSave,
     turn,
+    markPageRead,
   };
 }

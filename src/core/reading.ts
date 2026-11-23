@@ -141,6 +141,23 @@ export function progressPct(book: BookDTO): number {
   return Math.max(0, Math.round(((book.currentPage - 1) / book.totalPages) * 100));
 }
 
+/** Tiempo mínimo con la página a la vista para darla por leída (ms). */
+export const PAGE_READ_MIN_MS = 15_000;
+
+/**
+ * ¿Toca marcar la página como leída? Solo con la pestaña visible, pasado el
+ * dwell mínimo y si la sesión aún no la marcó (idempotente por página).
+ * La navegación NO entra aquí: moverse no es leer.
+ */
+export function shouldMarkPage(opts: {
+  page: number;
+  msOnPage: number;
+  marked: ReadonlySet<number>;
+  visible: boolean;
+}): boolean {
+  return opts.visible && opts.msOnPage >= PAGE_READ_MIN_MS && !opts.marked.has(opts.page);
+}
+
 /** Límites de página de cada tramo del riel (hitos) */
 export function milestonePages(totalPages: number, segments: number): number[] {
   const out: number[] = [];

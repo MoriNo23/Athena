@@ -466,6 +466,8 @@ export const en: Record<string, string> = {
   "tp.aria": "Teleprompter",
   "tp.status": "Page {page} of {total} · {speed}",
   "tp.statusShort": "pg. {page}/{total}",
+  "tp.statusShortToday": "pg. {page}/{total} · today {today}/{goal}",
+  "tp.pageRead": "Page read · today {today}/{goal}",
   "tp.rest.suggest": "You've been reading for {minutes} min",
   "tp.rest.ask": "Take a 20 s break?",
   "tp.rest.tip": "Look at something about six meters away for a moment: your eyes will thank you (20-20-20 rule).",

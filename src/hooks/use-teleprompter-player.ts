@@ -7,6 +7,7 @@ import {
   teleprompterPageEnd,
   teleprompterPageContaining,
   teleprompterPrunableLimit,
+  lastLineFirstIndex,
   msPorUnidad,
   type TeleprompterBlock,
 } from "@/core/teleprompter";
@@ -30,8 +31,10 @@ interface UseTeleprompterPlayerOpts {
   /** hay fuente de bloques (doc cargado o extractor por página): sin ella no
       se construye ventana — evita clavar una ventana vacía sin recuperación */
   hasSource: boolean;
-  /** gira la página real del lector (cuenta como lectura y hitos salvo `silent`) */
+  /** gira la página real del lector (mueve el riel; NO cuenta páginas) */
   onGoToPage: (page: number, opts?: { silent?: boolean }) => void;
+  /** la página se terminó: el lector la da por leída (el conteo es idempotente) */
+  onPageRead?: (page: number) => void;
   stream: ReturnType<typeof import("@/core/teleprompter").buildTeleprompterStream>;
   /** offsets acumulados de caracteres por página de la ventana (el mapa del
       cruce sin evento: dónde empieza y acaba cada página en los spans) */
@@ -80,6 +83,7 @@ export function useTeleprompterPlayer({
   sourceKey,
   hasSource,
   onGoToPage,
+  onPageRead,
   stream,
   pageOffsets,
   pruneMeasure,
@@ -130,6 +134,61 @@ export function useTeleprompterPlayer({
   useEffect(() => {
     onGoToPageRef.current = onGoToPage;
   }, [onGoToPage]);
+  const onPageReadRef = useRef(onPageRead);
+  useEffect(() => {
+    onPageReadRef.current = onPageRead;
+  }, [onPageRead]);
+  // Páginas ya anunciadas como leídas por ESTE motor (la sesión además es
+  // idempotente). Y la última línea medida, cacheada mientras la ventana no
+  // cambie: medirla en cada letra obligaría al WebView a reflujar 60 veces/s.
+  const readFiredRef = useRef(new Set<number>());
+  const lastLineRef = useRef<{ page: number; first: number; offsets: number[] } | null>(null);
+
+  /** Da la página por leída una sola vez, por índice dentro de la ventana. */
+  const firePageRead = useCallback(
+    (pageIndex: number) => {
+      const cur = winRef.current;
+      if (!cur) return;
+      const page = cur.start + pageIndex;
+      if (readFiredRef.current.has(page)) return;
+      readFiredRef.current.add(page);
+      onPageReadRef.current?.(page);
+    },
+    [winRef]
+  );
+
+  /**
+   * Marca la página cuando el encendido alcanza la primera letra de su última
+   * línea visible (medida sobre los spans reales del DOM). La caché se invalida
+   * al cambiar la ventana —append/poda reasientan los índices—; al cambiar la
+   * fuente de letra dentro de la página, la línea puede moverse un renglón.
+   */
+  const markIfLastLine = useCallback(
+    (litIndex: number) => {
+      const cur = winRef.current;
+      const spans = spansRef.current;
+      if (!cur || spans.length === 0) return;
+      const at = Math.max(0, litIndex);
+      const k = teleprompterPageContaining(pageOffsets, at);
+      const from = pageOffsets[k] ?? 0;
+      const end = Math.min(pageOffsets[k + 1] ?? 0, spans.length);
+      if (end <= from) return; // página muda: no hay última línea que medir
+      const page = cur.start + k;
+      let first: number;
+      if (lastLineRef.current?.page === page && lastLineRef.current.offsets === pageOffsets) {
+        first = lastLineRef.current.first;
+      } else {
+        // shortcut: se mide al entrar en la página, no en cada letra; cambiar
+        // el tamaño de letra a mitad de página puede mover el umbral un renglón.
+        const tops = spans.slice(from, end).map((s) => s.getBoundingClientRect().top);
+        first = from + lastLineFirstIndex(tops);
+        lastLineRef.current = { page, first, offsets: pageOffsets };
+      }
+      if (at >= first) firePageRead(k);
+    },
+    [firePageRead, pageOffsets, spansRef, winRef]
+  );
+
   // Próximo paso del motor: instante en que vence y a qué letra corresponde.
   // Si el efecto se reinicia (cualquier dependencia que cambie) la espera ya
   // transcurrida no se pierde: una pausa larga no puede quedar siempre a medias.
@@ -324,6 +383,9 @@ export function useTeleprompterPlayer({
           syncHeadings(end);
           litRef.current = end;
           setLit(end);
+          // revelado instantáneo: la página entera se enciende de golpe, así
+          // que está terminada en cuanto aparece.
+          markIfLastLine(end - 1);
         } else if (
           win.start + teleprompterPageContaining(pageOffsets, litRef.current) < numPages
         ) {
@@ -375,6 +437,8 @@ export function useTeleprompterPlayer({
       if (pruneFront() > 0) return;
       if (i >= spans.length) {
         if (atWindowGap()) return;
+        // sin última línea medible (final del flujo): la página se agotó.
+        firePageRead(crossedRef.current);
         setBookDone(true);
         return;
       }
@@ -384,6 +448,8 @@ export function useTeleprompterPlayer({
       if (!auto) {
         const end = pageOffsets[crossedRef.current + 1];
         if (end != null && i >= end) {
+          // agotada sin Auto: se marca aunque la medición no hubiera llegado
+          firePageRead(crossedRef.current);
           setPageDone(true);
           return;
         }
@@ -405,6 +471,7 @@ export function useTeleprompterPlayer({
       i = end;
       litRef.current = i;
       setLit(i);
+      markIfLastLine(i - 1);
 
       schedule(delayAt(i));
     };
@@ -434,7 +501,7 @@ export function useTeleprompterPlayer({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [win, stream, totalChars, pageOffsets, numPages, playing, pageDone, bookDone, auto, instante, tick, scrollToChar, pruneFront, crossBoundaries, scrollRef, spansRef]);
+  }, [win, stream, totalChars, pageOffsets, numPages, playing, pageDone, bookDone, auto, instante, tick, scrollToChar, pruneFront, crossBoundaries, markIfLastLine, firePageRead, scrollRef, spansRef]);
 
   // ---------- Auto: el revelado instantáneo descansa antes de seguir ----------
   useEffect(() => {
@@ -473,8 +540,9 @@ export function useTeleprompterPlayer({
     litRef.current = end;
     paintedRef.current = end;
     setLit(end);
+    markIfLastLine(end - 1);
     scrollToChar(end - 1);
-  }, [pageOffsets, scrollToChar, spansRef, stream, totalChars]);
+  }, [pageOffsets, scrollToChar, spansRef, stream, totalChars, markIfLastLine]);
 
   /** `Shift+→`: salto a la página siguiente. Sin cruce de DOM: enciende el
       resto de la página en curso (ya está en la columna), anuncia la
@@ -499,10 +567,12 @@ export function useTeleprompterPlayer({
     litRef.current = end;
     paintedRef.current = end;
     setLit(end);
+    // antes del cruce: `end` aún pertenece a la página que se estaba leyendo
+    markIfLastLine(end - 1);
     crossBoundaries(litRef.current);
     setPageDone(false);
     setPlaying(true);
-  }, [crossBoundaries, numPages, pageOffsets, setLit, spansRef, stream, totalChars, winRef]);
+  }, [crossBoundaries, numPages, pageOffsets, setLit, spansRef, stream, totalChars, winRef, markIfLastLine]);
 
   // ---------- rebobinado ----------
   const loadPreviousPage = useCallback(() => {
@@ -604,12 +674,13 @@ export function useTeleprompterPlayer({
     litRef.current = end;
     paintedRef.current = end;
     setLit(end);
+    markIfLastLine(end - 1);
     // Revelado completo SIN orden de vista: el resto del texto se enciende
     // donde está y la columna queda donde el lector lee. Con Auto viene el
     // compás de quietud (pageDone) y el flujo sigue solo; sin Auto, espera.
     if (win && win.start + crossedRef.current < numPages) setPageDone(true);
     else setBookDone(true);
-  }, [bookDone, pageDone, playing, win, crossBoundaries, numPages, pageOffsets, totalChars, stream, spansRef]);
+  }, [bookDone, pageDone, playing, win, crossBoundaries, numPages, pageOffsets, totalChars, stream, spansRef, markIfLastLine]);
 
   return { lit, playing, setPlaying, pageDone, bookDone, forward, rewindOne, stepForward, goToNextPage, goToPrevPage };
 }

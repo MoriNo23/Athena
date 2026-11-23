@@ -3,7 +3,7 @@
  * y porcentaje de progreso. Correr con `bun test src/lib/reading.test.ts`.
  */
 import { expect, test } from "bun:test";
-import { estimateFinishDate, milestonePages, progressPct } from "@/core/reading";
+import { estimateFinishDate, milestonePages, PAGE_READ_MIN_MS, progressPct, shouldMarkPage } from "@/core/reading";
 import type { BookDTO } from "@/core/types";
 
 /** libro mínimo para progressPct: solo importan totalPages y currentPage */
@@ -69,4 +69,21 @@ test("estimateFinishDate: días = ceil(restante / rate), mañana si cabe hoy", (
   expect((d1!.getTime() - hoy.getTime()) / 86_400_000).toBeGreaterThan(99);
   const d2 = estimateFinishDate({ totalPages: 300, currentPage: 299 }, 2); // 1 página → 1 día
   expect((d2!.getTime() - hoy.getTime()) / 86_400_000).toBeGreaterThan(0);
+});
+
+test("shouldMarkPage: solo cuenta tras el dwell, con pestaña visible y una vez por página", () => {
+  const marked = new Set<number>();
+  const base = { page: 7, marked, visible: true };
+  // recién entrado: no
+  expect(shouldMarkPage({ ...base, msOnPage: 0 })).toBe(false);
+  expect(shouldMarkPage({ ...base, msOnPage: PAGE_READ_MIN_MS - 1 })).toBe(false);
+  // dwell cumplido: sí
+  expect(shouldMarkPage({ ...base, msOnPage: PAGE_READ_MIN_MS })).toBe(true);
+  // pestaña oculta: el tiempo no corre
+  expect(shouldMarkPage({ ...base, msOnPage: PAGE_READ_MIN_MS, visible: false })).toBe(false);
+  // ya marcada en la sesión: no vuelve a contar
+  marked.add(7);
+  expect(shouldMarkPage({ ...base, msOnPage: PAGE_READ_MIN_MS * 4 })).toBe(false);
+  // otra página sigue contando
+  expect(shouldMarkPage({ ...base, page: 8, msOnPage: PAGE_READ_MIN_MS })).toBe(true);
 });
