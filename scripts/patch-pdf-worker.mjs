@@ -26,14 +26,21 @@ if (!existsSync(LIMPIO)) {
   process.exit(1);
 }
 
-const POLYFILL = `/* atena-polyfill: Map.getOrInsert/getOrInsertComputed (TC39 upsert) para
- * Chromium viejos. Inyectado por scripts/patch-pdf-worker.mjs — NO copiar
- * pdf.worker.min.mjs desde node_modules sin re-ejecutar ese script. */
+const POLYFILL = `/* atena-polyfill: Map.getOrInsert/getOrInsertComputed (TC39 upsert),
+ * Promise.try y URL.parse para Chromium viejos (WebView de Android).
+ * Inyectado por scripts/patch-pdf-worker.mjs — NO copiar pdf.worker.min.mjs
+ * desde node_modules sin re-ejecutar ese script. */
 if (typeof Map.prototype.getOrInsert !== "function") {
   Map.prototype.getOrInsert = function (k, v) { if (!this.has(k)) this.set(k, v); return this.get(k); };
 }
 if (typeof Map.prototype.getOrInsertComputed !== "function") {
   Map.prototype.getOrInsertComputed = function (k, f) { if (!this.has(k)) this.set(k, f(k)); return this.get(k); };
+}
+if (typeof Promise.try !== "function") {
+  Promise.try = function (f) { try { return Promise.resolve(f()); } catch (e) { return Promise.reject(e); } };
+}
+if (typeof URL.parse !== "function") {
+  URL.parse = function (u, base) { try { return new URL(u, base); } catch { return null; } };
 }
 `;
 
