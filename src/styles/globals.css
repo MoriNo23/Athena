@@ -1305,11 +1305,11 @@ blockquote + .epub-p {
 }
 
 /* ---------- Safe-area del chrome (A2 · apk-edge-to-edge) ----------
-   Con `android.adjustMarginsForEdgeToEdge: "auto"` Capacitor le pone márgenes
-   al WebView y estos env() valen 0; quedan como red de seguridad para que la
-   cabecera de la biblioteca y la del lector no queden bajo el notch si el
-   WebView llega a dibujar a pantalla completa. Se SUMAN al padding de la casa
-   (py-5 en biblioteca, py-1.5 en la cabecera del lector, pb-4 en el riel). */
+   Capacitor 8 eliminó `adjustMarginsForEdgeToEdge`: el WebView dibuja a
+   pantalla completa y estos env() son los que separan la cabecera de la
+   biblioteca y la del lector del notch y de la barra gestual. Se SUMAN al
+   padding de la casa (py-5 en biblioteca, py-1.5 en la cabecera del lector,
+   pb-4 en el riel). */
 .chrome-safe-top {
   padding-top: calc(1.25rem + env(safe-area-inset-top, 0px));
 }

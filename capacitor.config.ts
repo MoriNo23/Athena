@@ -18,13 +18,11 @@ import type { CapacitorConfig } from "@capacitor/cli";
  *   —que el sistema deja fuera del WebView— se veía blanco sobre la lectura
  *   sepia. Se acompaña de android:windowBackground en styles.xml: uno pinta
  *   el WebView, el otro la ventana nativa que lo rodea.
- * - android.adjustMarginsForEdgeToEdge "auto": en Android 15 (targetSdk 35)
- *   el sistema FUERZA edge-to-edge y Capacitor, por defecto, deja el WebView
- *   a pantalla completa (el default es "disable"). Con "auto" el WebView
- *   recibe los márgenes de systemBars|displayCutout, así el status bar y la
- *   barra gestual no se comen la cabecera de la biblioteca ni el riel
- *   inferior. El teleprompter y el dock ya pedían safe-area; ahora el resto
- *   de la app vive en el mismo marco.
+ * - Edge-to-edge: Capacitor 8 eliminó `adjustMarginsForEdgeToEdge`. El WebView
+ *   ocupa la pantalla completa y la app respeta la barra de estado y el recorte
+ *   con `env(safe-area-inset-*)` en CSS (ya lo hacían el teleprompter y el
+ *   dock). Para bloques nativos que lo necesiten, el plugin System Bars de
+ *   Capacitor sustituye la antigua opción de márgenes.
  */
 const config: CapacitorConfig = {
   appId: "com.morino23.athena",
@@ -38,7 +36,6 @@ const config: CapacitorConfig = {
   },
   android: {
     allowMixedContent: true,
-    adjustMarginsForEdgeToEdge: "auto",
   },
 };
 
