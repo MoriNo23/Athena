@@ -739,6 +739,12 @@ html:not(.dark) .athena-hero .seal-glow {
    hacia abajo, para que el texto no compita con el libro. El UI es legible a
    proposito y se puede ocultar a voluntad: cuando la inmersion se lo lleva,
    la banda se va con el. El padding respeta el notch (safe-area) del móvil. */
+.tp-overlay {
+  /* El progreso y los avisos se apoyan en la cabecera REAL, no en un número
+     fijo: en móvil el notch (safe-area) empuja la banda hacia abajo. */
+  --tp-chrome-top: calc(3.25rem + env(safe-area-inset-top, 0px));
+  --tp-notice-top: calc(4.25rem + env(safe-area-inset-top, 0px));
+}
 .tp-header {
   padding-top: max(12px, env(safe-area-inset-top));
   background: linear-gradient(
@@ -792,6 +798,10 @@ html:not(.dark) .athena-hero .seal-glow {
       color-mix(in oklab, var(--reader-bg) 88%, transparent) 62%,
       transparent 100%
     );
+  }
+  .tp-notice {
+    /* mismo parpadeo del WebView que ya se corrigió en cabecera y pie */
+    backdrop-filter: none;
   }
   .tp-ch.on {
     /* solo opacity: el color va directo, sin transición extra que repinte */
@@ -847,13 +857,17 @@ html:not(.dark) .athena-hero .seal-glow {
   padding-top: 40vh;
 }
 
-/* ---------- Aviso de cambio de página del Auto ---------- */
-/* Píldora centrada bajo la barra: «Pasando a la página N…» al acercarse al fin
-   de la página y «Página N · hoy a/b» al llegar. Nunca captura el puntero. */
+/* ---------- Avisos del teleprompter ---------- */
+/* Píldora centrada bajo la cabecera (safe-area incluida) para el descanso y
+   para «Página leída · hoy a/b». Nunca captura el puntero salvo el descanso. */
+/* Barra de progreso: debajo de la cabecera, respetando su safe-area. */
+.tp-progress {
+  top: var(--tp-chrome-top);
+}
 .tp-notice {
   position: absolute;
   left: 50%;
-  top: 4.25rem;
+  top: var(--tp-notice-top);
   z-index: 30;
   display: flex;
   align-items: center;
@@ -871,33 +885,9 @@ html:not(.dark) .athena-hero .seal-glow {
   overflow: hidden;
   transform: translateX(-50%);
 }
-/* barra de cuenta de la pausa de 2 s antes del cruce de página */
-.tp-notice-bar {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 2px;
-  width: 100%;
-  background: currentColor;
-  opacity: 0.5;
-  transform-origin: left center;
-  animation: tp-notice-count 2000ms linear both;
-}
-@keyframes tp-notice-count {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
-}
-/* anticipo: aparece y se queda hasta que la página cambia */
-.tp-notice-soon {
-  animation: tp-notice-in 320ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
-}
 /* llegada: entra, se sostiene y sale sola */
 .tp-notice-flash {
   animation: tp-notice-flash 2600ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
-}
-@keyframes tp-notice-in {
-  from { opacity: 0; transform: translate(-50%, -8px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
 }
 @keyframes tp-notice-flash {
   0% { opacity: 0; transform: translate(-50%, -8px); }
@@ -906,13 +896,8 @@ html:not(.dark) .athena-hero .seal-glow {
   100% { opacity: 0; transform: translate(-50%, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tp-notice-soon,
-  .tp-notice-flash,
-  .tp-notice-bar {
+  .tp-notice-flash {
     animation: none;
-  }
-  .tp-notice-bar {
-    transform: none;
   }
 }
 

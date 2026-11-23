@@ -866,7 +866,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
       <TeleprompterSettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} book={book} />
 
       {/* Progreso de la página (auto-ocultable) */}
-      <div className="tp-chrome absolute inset-x-0 top-[52px] z-20 px-5">
+      <div className="tp-chrome tp-progress absolute inset-x-0 z-20 px-5">
         <div
           className="h-1 w-full overflow-hidden rounded-full bg-foreground/10"
           role="progressbar"

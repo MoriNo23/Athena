@@ -49,6 +49,12 @@ export const TELEPROMPTER_PAREN_PAUSE_LETTERS = 2;
 /** Pausa leve al abrir/cerrar comillas de cita: la voz cambia de registro. */
 export const TELEPROMPTER_QUOTE_PAUSE_LETTERS = 2;
 
+/** Respiro breve antes de `¿` / `¡` (la voz prepara la pregunta o el grito). */
+export const TELEPROMPTER_OPEN_PAUSE_LETTERS = 2;
+
+/** Pausa entre dos bloques de cuerpo: el párrafo nuevo respira. */
+export const TELEPROMPTER_PARAGRAPH_PAUSE_LETTERS = 6;
+
 const PUNCT_STRONG = new Set([".", "!", "?", "…"]);
 const PUNCT_WEAK = new Set([",", ";", ":"]);
 const PUNCT_DASH = new Set(["—", "–"]);
@@ -132,10 +138,67 @@ export const TELEPROMPTER_SENTENCE_CARD_WORDS = 45;
 /** Tope de caracteres por tarjeta (por si una "frase" no encuentra su punto). */
 export const TELEPROMPTER_SENTENCE_CARD_CHARS = 360;
 
+/** Abreviaturas españolas frecuentes: su punto NO cierra frase. */
+const ABBREV = /\b(?:sra?\.|dra?\.|uds?\.|etc\.|ej\.|ee\.|uu\.)$/i;
+
+/**
+ * ¿El signo en `i` es puntuación de número o de abreviatura, no de frase?
+ * `1.500` y `3,14` no pausan ni cortan tarjeta; `Sr.`, `p. ej.` y `EE. UU.`
+ * tampoco. Un único helper para el timeline y para el partir-en-frases: así
+ * el respiro y el corte visual nunca se contradigan.
+ */
+function esPuntoNoFrase(chars: readonly string[], i: number): boolean {
+  const ch = chars[i];
+  if (ch === ",") return /\d/.test(chars[i - 1] ?? "") && /\d/.test(chars[i + 1] ?? "");
+  if (ch !== ".") return false;
+  if (/\d/.test(chars[i - 1] ?? "") && /\d/.test(chars[i + 1] ?? "")) return true;
+  const tras = chars[i + 1] ?? "";
+  if (!/(?:\s|$)/.test(tras)) return false;
+  const hastaAqui = chars.slice(Math.max(0, i - 16), i + 1).join("");
+  if (ABBREV.test(hastaAqui) || /\ba\.\s+c\.$/i.test(hastaAqui)) return true;
+  // p. ej. / a. C.: la primera letra también lleva punto
+  const sigue = chars.slice(i + 1, i + 6).join("").trimStart();
+  return /^(?:ej|c)\./i.test(sigue) && /\b[pa]\.$/i.test(hastaAqui);
+}
+
+/** La raya abre si empieza el bloque o sigue a un signo de apertura. */
+function esRayaApertura(chars: readonly string[], i: number): boolean {
+  const ch = chars[i];
+  if (ch !== "—" && ch !== "–") return false;
+  return i === 0 || /[¿¡,;:(«"“]/.test(chars[i - 1] ?? "");
+}
+
+/** Unidades que el carácter `i` paga ANTES de encenderse. */
+function pausaAntes(chars: readonly string[], i: number): number {
+  const ch = chars[i];
+  if (ch === "¿" || ch === "¡") return TELEPROMPTER_OPEN_PAUSE_LETTERS;
+  if (esRayaApertura(chars, i)) return TELEPROMPTER_DASH_PAUSE_LETTERS;
+  return 0;
+}
+
+/** Unidades de respiro que el carácter `i` deja para el SIGUIENTE. */
+function pausaTras(chars: readonly string[], i: number): number {
+  const ch = chars[i];
+  if (PUNCT_STRONG.has(ch)) {
+    return esPuntoNoFrase(chars, i) ? 0 : TELEPROMPTER_PERIOD_PAUSE_LETTERS;
+  }
+  if (PUNCT_WEAK.has(ch)) {
+    return esPuntoNoFrase(chars, i) ? 0 : TELEPROMPTER_COMMA_PAUSE_LETTERS;
+  }
+  if (PUNCT_DASH.has(ch)) {
+    // la raya de apertura ya pagó su respiro antes; la de cierre lo deja aquí
+    return esRayaApertura(chars, i) ? 0 : TELEPROMPTER_DASH_PAUSE_LETTERS;
+  }
+  if (PUNCT_PAREN.has(ch)) return TELEPROMPTER_PAREN_PAUSE_LETTERS;
+  if (PUNCT_QUOTE.has(ch)) return TELEPROMPTER_QUOTE_PAUSE_LETTERS;
+  return 0;
+}
+
 /** Parte un bloque de cuerpo en frases leídas en voz alta: el corte va tras
-    . ! ? … y sus cierres (» ” ') — nunca dentro de una palabra ni entre un
-    número y su coma decimal. Las frases se agrupan hasta los topes: una
-    tarjeta no es una frase suelta si el grupo aún se lee cómodo. */
+    . ! ? … y sus cierres (» ” ') — nunca dentro de una palabra, de un número
+    (`1.500`, `3,14`) ni de una abreviatura (`Sr.`, `p. ej.`). Las frases se
+    agrupan hasta los topes: una tarjeta no es una frase suelta si el grupo
+    aún se lee cómodo. */
 function partirEnFrases(text: string): string[] {
   const frases: string[] = [];
   let actual = "";
@@ -144,7 +207,7 @@ function partirEnFrases(text: string): string[] {
     const ch = chars[i];
     actual += ch;
     const esCierre = /[.!?…]/.test(ch);
-    if (!esCierre) continue;
+    if (!esCierre || esPuntoNoFrase(chars, i)) continue;
     // consumir cola de cierre: párrafos pueden traer .» o ." o ...
     let j = i + 1;
     while (j < chars.length && /[»”"')]/.test(chars[j])) {
@@ -187,6 +250,7 @@ export function buildTeleprompterStream(
   const out: TeleprompterStreamBlock[] = [];
   let pending = 0;
   let prevHeading = false; // el bloque anterior fue un título
+  let prevBody = false; // el bloque anterior fue cuerpo (párrafo, cita, lista)
 
   for (const block of blocks) {
     // tarjeta de imagen: UN paso, espera absoluta (no respira con la velocidad)
@@ -199,6 +263,7 @@ export function buildTeleprompterStream(
       pending = 0;
       out.push({ kind: block.kind, text: "", start, length: 1, heading: false, image: block.image });
       prevHeading = false;
+      prevBody = false;
       continue;
     }
     const text = block.text.replace(/\s+/g, " ").trim();
@@ -207,44 +272,40 @@ export function buildTeleprompterStream(
     // el bloque largo se parte en tarjetas por frase (lectura en voz alta);
     // los títulos se presentan enteros, como una sola tarjeta
     const tarjetas = heading || !porFrase ? [text] : tarjetasDeFrases(text);
+    const pausaParrafo = !heading && prevBody;
 
-    for (const tarjeta of tarjetas) {
-    const chars = Array.from(tarjeta);
-    const start = steps.length;
+    for (const [cardIdx, tarjeta] of tarjetas.entries()) {
+      const chars = Array.from(tarjeta);
+      const start = steps.length;
 
-    for (let j = 0; j < chars.length; j++) {
-      const char = chars[j];
-      let units = 1 + pending;
-      pending = 0;
-      if (heading) {
-        // Un título que sigue a otro título (p. ej. portadilla de capítulo y
-        // luego el título de la sección) NO acumula dos respiros: el del título
-        // anterior ya se esperó (`pending`), así que se cuenta una sola vez.
-        if (j === 0) {
-          // `units` ya incluye el respiro pendiente del título anterior
-          if (!prevHeading) units += TELEPROMPTER_HEADING_PAUSE_LETTERS;
-        } else units = 0; // el título se enciende de golpe
+      for (let j = 0; j < chars.length; j++) {
+        const char = chars[j];
+        // las pausas no se acumulan: gana la mayor (regla del timeline)
+        const parrafo =
+          !heading && cardIdx === 0 && j === 0 && pausaParrafo
+            ? TELEPROMPTER_PARAGRAPH_PAUSE_LETTERS
+            : 0;
+        let units = 1 + Math.max(pending, parrafo) + pausaAntes(chars, j);
+        pending = 0;
+        if (heading) {
+          // Un título que sigue a otro título (p. ej. portadilla de capítulo y
+          // luego el título de la sección) NO acumula dos respiros: el del
+          // título anterior ya se esperó (`pending`), así que se cuenta una.
+          if (j === 0) {
+            if (!prevHeading) units += TELEPROMPTER_HEADING_PAUSE_LETTERS;
+          } else units = 0; // el título se enciende de golpe
+        }
+        steps.push({ char, units });
+        if (heading) continue;
+        pending = Math.max(pending, pausaTras(chars, j));
       }
-      steps.push({ char, units });
-      if (heading) continue;
-      if (PUNCT_STRONG.has(char)) {
-        pending = Math.max(pending, TELEPROMPTER_PERIOD_PAUSE_LETTERS);
-      } else if (PUNCT_WEAK.has(char)) {
-        pending = Math.max(pending, TELEPROMPTER_COMMA_PAUSE_LETTERS);
-      } else if (PUNCT_DASH.has(char)) {
-        pending = Math.max(pending, TELEPROMPTER_DASH_PAUSE_LETTERS);
-      } else if (PUNCT_PAREN.has(char)) {
-        pending = Math.max(pending, TELEPROMPTER_PAREN_PAUSE_LETTERS);
-      } else if (PUNCT_QUOTE.has(char)) {
-        pending = Math.max(pending, TELEPROMPTER_QUOTE_PAUSE_LETTERS);
-      }
-    }
-    // el cuerpo no arranca hasta pasado el respiro del título
-    if (heading) pending = Math.max(pending, TELEPROMPTER_HEADING_PAUSE_LETTERS);
+      // el cuerpo no arranca hasta pasado el respiro del título
+      if (heading) pending = Math.max(pending, TELEPROMPTER_HEADING_PAUSE_LETTERS);
 
-    out.push({ kind: block.kind, text: tarjeta, start, length: chars.length, heading });
-    prevHeading = heading;
+      out.push({ kind: block.kind, text: tarjeta, start, length: chars.length, heading });
+      prevHeading = heading;
     }
+    prevBody = !heading;
   }
 
   const totalUnits = steps.reduce((acc, s) => acc + s.units, 0);

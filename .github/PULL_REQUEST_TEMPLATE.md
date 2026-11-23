@@ -11,8 +11,8 @@
 - [ ] `bunx tsc --noEmit` passes
 - [ ] `bun run lint` passes
 - [ ] `bun test` passes
-- [ ] If `prisma/schema.prisma` changed → migration included
-- [ ] If any `src/app/api/**` route changed → `public/athena-offline.js`
+- [ ] If `src/lib/db.ts` schema changed → its tests (including on-disk format) updated
+- [ ] If any `server/api.ts` route changed → `public/athena-offline.js`
       and `tests/offline-engine.test.ts` updated with the same contract
 - [ ] If reading UI changed → smoke-tested in the APK (not only desktop browser)
 - [ ] Keeps the product contract: local-first, no cloud, no accounts, no telemetry
