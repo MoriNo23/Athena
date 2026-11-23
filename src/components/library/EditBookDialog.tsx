@@ -232,12 +232,14 @@ export function EditBookDialog({ book, defaultGoal, open, onOpenChange, onSaved 
         delete extras.synopsis;
       }
       // `extras` ya viaja por PATCH /api/books/:id y se espeja en el motor
-      // offline: sin columna nueva y sin cambio de contrato.
-      await fetch(`/api/books/${book.id}`, {
+      // offline: sin columna nueva y sin cambio de contrato. Un fallo aquí no
+      // puede pintar en la tarjeta una sinopsis que no se guardó.
+      const extrasRes = await fetch(`/api/books/${book.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ extras }),
-      }).catch(() => undefined);
+      }).catch(() => null);
+      const extrasGuardado = extrasRes?.ok === true;
 
       onSaved({
         id: book.id,
@@ -245,11 +247,15 @@ export function EditBookDialog({ book, defaultGoal, open, onOpenChange, onSaved 
         author: (data.book.author ?? null) as string | null,
         coverPath: cover,
         dailyGoal: (data.book.dailyGoal ?? null) as number | null,
-        extras,
+        ...(extrasGuardado ? { extras } : {}),
       });
-      toast({ title: t("edit.savedToast"), description: metaValid ? t("edit.savedOk") : t("edit.savedNo") });
+      if (extrasGuardado) {
+        toast({ title: t("edit.savedToast"), description: metaValid ? t("edit.savedOk") : t("edit.savedNo") });
+      } else {
+        toast({ title: t("edit.saveError"), description: t("edit.tryAgain"), variant: "destructive" });
+      }
       // Portada automática: solo si el usuario especificó título + autor y la ficha cambió
-      if (changedMeta && metaValid) {
+      if (extrasGuardado && changedMeta && metaValid) {
         await runCoverSearch(false);
       }
       onOpenChange(false);
