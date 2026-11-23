@@ -2,15 +2,15 @@
 
 ## 1. Precondición
 
-- [ ] 1.1 Verificar que los PRs #7, #8 y #9 de `honest-reading-teleprompter` están mergeados en `main` y que `main` está actualizada; confirmar con `git log -1` y `openspec list`.
-- [ ] 1.2 Confirmar que la skill `dependency-updater` está instalada en `~/.agents/skills/dependency-updater` y leer su flujo antes de tocar dependencias; verificar que `bun outdated` lista los majors del proposal.
+- [x] 1.1 Verificar que los PRs #7, #8 y #9 de `honest-reading-teleprompter` están mergeados en `main` y que `main` está actualizada; confirmar con `git log -1` y `openspec list`.
+- [x] 1.2 Confirmar que la skill `dependency-updater` está instalada en `~/.agents/skills/dependency-updater` y leer su flujo antes de tocar dependencias; verificar que `bun outdated` lista los majors del proposal.
 
 ## 2. PR 2.1.9 · Librerías de runtime y polyfills
 
-- [ ] 2.1 Actualizar `pdfjs-dist` a 6.5.x, `lucide-react` a 1.x y `tailwind-merge` a 3.7.1 con `bun update`; verificar que `bun.lock` queda committed y que `tsc`, `lint` y `bun test` pasan.
-- [ ] 2.2 Corregir los imports de iconos que lucide 1.x haya renombrado; verificar con `bunx tsc --noEmit` sin errores.
-- [ ] 2.3 Auditar por CDP qué APIs faltan en el WebView Chrome 124 tras el upgrade (`Promise.try`, `URL.parse`, `Uint8Array.toHex`/`toBase64`, `withResolvers`, `getOrInsert`); verificar con un JSON de `typeof` por API.
-- [ ] 2.4 Quitar los polyfills que ya no hagan falta y añadir los nuevos que aparezcan en `src/lib/pdfjs-webview-polyfills.ts` y `scripts/patch-pdf-worker.mjs`; regenerar `public/pdf.worker.min.mjs` con `node scripts/patch-pdf-worker.mjs` y verificar que el PDF real abre en el APK.
+- [x] 2.1 Actualizar `pdfjs-dist` a 6.5.x, `lucide-react` a 1.x y `tailwind-merge` a 3.7.1 con `bun update`; verificar que `bun.lock` queda committed y que `tsc`, `lint` y `bun test` pasan.
+- [x] 2.2 Corregir los imports de iconos que lucide 1.x haya renombrado; verificar con `bunx tsc --noEmit` sin errores.
+- [x] 2.3 Auditar por CDP qué APIs faltan en el WebView Chrome 124 tras el upgrade (`Promise.try`, `URL.parse`, `Uint8Array.toHex`/`toBase64`, `withResolvers`, `getOrInsert`); verificar con un JSON de `typeof` por API.
+- [x] 2.4 Quitar los polyfills que ya no hagan falta y añadir los nuevos que aparezcan en `src/lib/pdfjs-webview-polyfills.ts` y `scripts/patch-pdf-worker.mjs`; regenerar `public/pdf.worker.min.mjs` con `node scripts/patch-pdf-worker.mjs` y verificar que el PDF real abre en el APK.
 - [ ] 2.5 Subir la versión a 2.1.9 y abrir el PR; verificar `bunx tsc --noEmit`, `bun run lint`, `bun test` y `bun run build`.
 
 ## 3. PR 2.1.10 · Capacitor 8 y APK
