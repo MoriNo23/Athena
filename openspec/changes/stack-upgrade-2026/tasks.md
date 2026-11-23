@@ -19,11 +19,11 @@
 - [x] 3.2 Adaptar `capacitor.config.ts` y `android/**` a los cambios rotos de Capacitor 8; verificar `bun run apk:sync` sin errores.
 - [x] 3.3 Compilar `gradlew assembleDebug` con JDK 21 y el SDK 35; verificar `BUILD SUCCESSFUL` y el APK resultante.
 - [x] 3.4 Instalar el APK en el AVD `athena-smoke`, abrir un PDF real de `/home/extra` y el teleprompter con un EPUB; verificar que renderiza y que el aviso de página leída sigue apareciendo.
-- [ ] 3.5 Subir la versión a 2.1.10 y abrir el PR; verificar `tsc`, `lint`, `bun test` y el humo de APK del PR.
+- [x] 3.5 Subir la versión a 2.1.10 y abrir el PR; verificar `tsc`, `lint`, `bun test` y el humo de APK del PR.
 
 ## 4. PR 2.1.11 · Toolchain
 
-- [ ] 4.1 Actualizar TypeScript 7, Vite 8, `@vitejs/plugin-react` 6 y ESLint 10 con `bun update`; verificar `bun.lock` y que no hay dependencias nuevas de runtime.
+- [ ] 4.1 Actualizar TypeScript 6.0.3 (7 bloqueado por `typescript-eslint`), Vite 8, `@vitejs/plugin-react` 6 y ESLint 10 con `bun update`; verificar `bun.lock` y que no hay dependencias nuevas de runtime.
 - [ ] 4.2 Adaptar `tsconfig.json`, `vite.config.ts` y `eslint.config.mjs` a las APIs nuevas; verificar `bunx tsc --noEmit` y `bun run lint` en verde sin relajar `strict`.
 - [ ] 4.3 Corregir los errores de tipos que TypeScript 7 detecte en `src/`; verificar `bun test` y `bun run build`.
 - [ ] 4.4 Subir la versión a 2.1.11 y abrir el PR; verificar los cuatro comandos de calidad y que el diff no toca `server/api.ts` ni `public/athena-offline.js`.

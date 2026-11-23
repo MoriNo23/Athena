@@ -56,7 +56,9 @@ Alternativa descartada: actualizar el proyecto Gradle a mano sin `cap sync`. Ya 
 
 ### D5 · Toolchain al final
 
-TypeScript 7, Vite 8 y ESLint 10 van en el último PR porque sus cambios de config no afectan al runtime del APK y porque dejarlos para el final permite aislar cualquier error de tipos. Se ejecutan `tsc`, `lint`, `test` y `bun run build`.
+TypeScript 6.0.3, Vite 8 y ESLint 10 van en el último PR porque sus cambios de config no afectan al runtime del APK y dejarlos al final permite aislar cualquier error de tipos. Se ejecutan `tsc`, `lint`, `test` y `bun run build`.
+
+TypeScript 7 queda fuera: `typescript-eslint` 8.73 declara `typescript <6.1` y con TS 7 el lint se cae antes de analizar nada. La única alternativa sería desactivar el lint tipado, que se descarta. Se revisitará cuando `typescript-eslint` soporte TS 7.
 
 ## Risks / Trade-offs
 
