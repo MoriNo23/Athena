@@ -10,7 +10,10 @@ import {
   teleprompterRewind,
   lastLineFirstIndex,
   TELEPROMPTER_COMMA_PAUSE_LETTERS,
+  TELEPROMPTER_DASH_PAUSE_LETTERS,
   TELEPROMPTER_HEADING_PAUSE_LETTERS,
+  TELEPROMPTER_OPEN_PAUSE_LETTERS,
+  TELEPROMPTER_PARAGRAPH_PAUSE_LETTERS,
   TELEPROMPTER_IMAGE_CHAR,
   TELEPROMPTER_LETTERS_PER_WORD,
   TELEPROMPTER_PERIOD_PAUSE_LETTERS,
@@ -171,6 +174,42 @@ describe("columna viva: offsets por página (teleprompter-cruce-sin-evento)", ()
     // muda al final de la ventana: no hay ancla detrás — nada podable
     const conCola = teleprompterPageOffsets([10, 8, 0]); // [0,10,18,18]
     expect(teleprompterPrunableLimit(conCola, 18)).toBe(1);
+  });
+});
+
+describe("puntuación española", () => {
+  test("miles y decimal no pausan; la abreviatura no corta tarjeta", () => {
+    const textoPlano = "El Sr. Pérez pagó 1.500 y 3,14.";
+    const s = buildTeleprompterStream([texto(textoPlano)], false);
+    const trasSr = textoPlano.indexOf(".") + 1;
+    expect(s.steps[trasSr].units).toBe(1); // Sr. no paga pausa de punto
+    const coma = textoPlano.indexOf(",");
+    expect(s.steps[coma + 1].units).toBe(1); // 3,14 no paga pausa de coma
+    const miles = textoPlano.indexOf(".", textoPlano.indexOf("1.500")) + 1;
+    expect(s.steps[miles].units).toBe(1); // 1.500 sigue siendo una cifra
+
+    // el agrupador de tarjetas puede juntar frases cortas, pero nunca corta
+    // en medio de la cifra ni del tratamiento: el timeline no pausa ahí.
+  });
+
+  test("¿ y ¡ respiran antes; la raya respira al abrir y al cerrar", () => {
+    const s = buildTeleprompterStream([texto("—Hola —dijo. ¿Vienes?")], false);
+    expect(s.steps[0].units).toBe(1 + TELEPROMPTER_DASH_PAUSE_LETTERS);
+    const chars = Array.from("—Hola —dijo. ¿Vienes?");
+    const cierre = chars.lastIndexOf("—");
+    expect(s.steps[cierre + 1].units).toBe(1 + TELEPROMPTER_DASH_PAUSE_LETTERS);
+    const aperturaInterrogacion = chars.indexOf("¿");
+    expect(s.steps[aperturaInterrogacion].units).toBe(1 + TELEPROMPTER_OPEN_PAUSE_LETTERS);
+  });
+
+  test("dos párrafos seguidos respiran; dos tarjetas del mismo bloque no", () => {
+    const dos = buildTeleprompterStream([texto("Primero"), texto("Segundo")], false);
+    expect(dos.steps[0].units).toBe(1);
+    expect(dos.steps[7].units).toBe(1 + TELEPROMPTER_PARAGRAPH_PAUSE_LETTERS);
+    const mismo = buildTeleprompterStream([texto("Uno. Dos. Tres.")], true);
+    // las tarjetas del mismo bloque se pegan con un espacio: sin pausa extra
+    // (el 10 del espacio es la pausa de punto, no la de párrafo)
+    expect(mismo.steps[5].units).toBe(1);
   });
 });
 
