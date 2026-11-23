@@ -142,6 +142,34 @@ export function TeleprompterSettingsSheet({ open, onOpenChange, book }: Teleprom
             />
           </div>
           <div className="grid gap-2">
+            <div>
+              <Label className="text-xs">{t("tp.sheet.headingStyle")}</Label>
+              <p className="text-[11px] text-muted-foreground">{t("tp.sheet.headingStyleHint")}</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t("tp.sheet.headingStyle")}>
+              <Button
+                size="sm"
+                variant={tpSet.headingStyle !== "texto" ? "default" : "outline"}
+                className="h-7 px-2.5 text-xs"
+                onClick={() => setTeleprompter({ headingStyle: "coreografiados" })}
+                aria-pressed={tpSet.headingStyle !== "texto"}
+                data-testid="tp-sheet-heading-coreografiados"
+              >
+                {t("tp.sheet.headingCoreografiados")}
+              </Button>
+              <Button
+                size="sm"
+                variant={tpSet.headingStyle === "texto" ? "default" : "outline"}
+                className="h-7 px-2.5 text-xs"
+                onClick={() => setTeleprompter({ headingStyle: "texto" })}
+                aria-pressed={tpSet.headingStyle === "texto"}
+                data-testid="tp-sheet-heading-texto"
+              >
+                {t("tp.sheet.headingTexto")}
+              </Button>
+            </div>
+          </div>
+          <div className="grid gap-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs">{t("config.tpFont")}</Label>
               <span className="text-xs font-medium tabular-nums text-foreground">

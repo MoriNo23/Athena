@@ -315,6 +315,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     scrollToChar: tpWin.scrollToChar,
     stageViewAnchor,
     auto,
+    plainHeadings: tpSet.headingStyle === "texto",
     wps: wps,
     tick: tpTick,
   });
@@ -582,6 +583,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
       aria-modal="true"
       aria-label={t("tp.aria")}
       data-testid="tp-overlay"
+      data-heading-style={tpSet.headingStyle}
       style={{ "--tp-font-scale": fontScale } as React.CSSProperties}
     >
       {/* Fondo del escenario: portada del libro o imagen propia, SIEMPRE con

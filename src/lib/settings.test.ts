@@ -38,6 +38,15 @@ describe("migración del store (v16: − flujoContinuo, + descansoMin)", () => {
     expect(tp.wps).toBe(2.5);
   });
 
+  test("v16 sin headingStyle cae a coreografiados; el valor texto se respeta", () => {
+    const viejo = migrateSettings({ teleprompter: { wps: 3 } }, 16);
+    expect((viejo.teleprompter as TeleprompterSettings).headingStyle).toBe("coreografiados");
+    const elegido = migrateSettings({ teleprompter: { headingStyle: "texto" } }, 16);
+    expect((elegido.teleprompter as TeleprompterSettings).headingStyle).toBe("texto");
+    const raro = migrateSettings({ teleprompter: { headingStyle: "inventado" } }, 16);
+    expect((raro.teleprompter as TeleprompterSettings).headingStyle).toBe("coreografiados");
+  });
+
   test("un estado sin bloque teleprompter cae en defaults de la casa", () => {
     const out = migrateSettings({}, 15);
     const tp = out.teleprompter as TeleprompterSettings;

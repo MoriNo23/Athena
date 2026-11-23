@@ -72,6 +72,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     fondoRuta: "",
     fondoFiltro: 55,
     tarjetasPorFrase: true,
+    headingStyle: "coreografiados",
     pausaImagen: true,
     imagenHoldMs: TELEPROMPTER_IMAGEN_HOLD_DEFAULT,
     descansoMin: 0,
@@ -219,6 +220,8 @@ export function saneaAjustes(raw: unknown): AppSettings & { modes: ModesFichero 
           : "",
       fondoFiltro: numIn(T.fondoFiltro, base.teleprompter.fondoFiltro, 0, 100),
       tarjetasPorFrase: boolIn(T.tarjetasPorFrase, base.teleprompter.tarjetasPorFrase),
+      headingStyle:
+        T.headingStyle === "texto" ? "texto" : base.teleprompter.headingStyle,
       pausaImagen: boolIn(T.pausaImagen, base.teleprompter.pausaImagen),
       descansoMin: numIn(T.descansoMin, base.teleprompter.descansoMin, 0, 120),
       imagenHoldMs: numIn(

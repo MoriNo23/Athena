@@ -95,6 +95,30 @@ export interface TeleprompterBlock {
 /** Pausa antes de un título y antes del cuerpo que lo sigue, en letras. */
 export const TELEPROMPTER_HEADING_PAUSE_LETTERS = 12;
 
+/** Coreografía del encabezado: entrada atenuada, fundido y silencio final (ms). */
+export const TELEPROMPTER_HEADING_ENTER_MS = 300;
+export const TELEPROMPTER_HEADING_FADE_MS = 900;
+export const TELEPROMPTER_HEADING_SILENCE_MS = 400;
+/** Tiempo mínimo que el motor mantiene un título antes del siguiente paso. */
+export const TELEPROMPTER_HEADING_FLOOR_MS =
+  TELEPROMPTER_HEADING_ENTER_MS + TELEPROMPTER_HEADING_FADE_MS + TELEPROMPTER_HEADING_SILENCE_MS;
+
+/**
+ * Espera real de un encabezado: el piso garantiza que la animación termine,
+ * y el término de tempo deja que un wps lento le dé más aire al título.
+ */
+export function headingHoldMs(wps: number): number {
+  return Math.max(
+    TELEPROMPTER_HEADING_FLOOR_MS,
+    TELEPROMPTER_HEADING_PAUSE_LETTERS * msPorUnidad(wps) + TELEPROMPTER_HEADING_SILENCE_MS
+  );
+}
+
+/** Duración del fundido compartida con el CSS (`--tp-heading-fade`). */
+export function headingFadeMs(wps: number): number {
+  return Math.max(TELEPROMPTER_HEADING_FADE_MS, TELEPROMPTER_HEADING_PAUSE_LETTERS * msPorUnidad(wps));
+}
+
 /** ms que vale una unidad de tempo a wps palabras/segundo.
     Función de conversión ÚNICA motor ↔ timeline (la espeja el player). */
 export function msPorUnidad(wps: number): number {
@@ -249,7 +273,6 @@ export function buildTeleprompterStream(
   const steps: TeleprompterStep[] = [];
   const out: TeleprompterStreamBlock[] = [];
   let pending = 0;
-  let prevHeading = false; // el bloque anterior fue un título
   let prevBody = false; // el bloque anterior fue cuerpo (párrafo, cita, lista)
 
   for (const block of blocks) {
@@ -262,7 +285,6 @@ export function buildTeleprompterStream(
       // se arrastra a través de la figura (la lámina respira por sí sola)
       pending = 0;
       out.push({ kind: block.kind, text: "", start, length: 1, heading: false, image: block.image });
-      prevHeading = false;
       prevBody = false;
       continue;
     }
@@ -288,12 +310,11 @@ export function buildTeleprompterStream(
         let units = 1 + Math.max(pending, parrafo) + pausaAntes(chars, j);
         pending = 0;
         if (heading) {
-          // Un título que sigue a otro título (p. ej. portadilla de capítulo y
-          // luego el título de la sección) NO acumula dos respiros: el del
-          // título anterior ya se esperó (`pending`), así que se cuenta una.
+          // Cada título tiene su propio respiro, incluso detrás de otro. Se
+          // usa max y no suma: el compás anterior no se duplica.
           if (j === 0) {
-            if (!prevHeading) units += TELEPROMPTER_HEADING_PAUSE_LETTERS;
-          } else units = 0; // el título se enciende de golpe
+            units = 1 + Math.max(pending, TELEPROMPTER_HEADING_PAUSE_LETTERS) + pausaAntes(chars, j);
+          } else units = 0; // el título se enciende como bloque, no letra a letra
         }
         steps.push({ char, units });
         if (heading) continue;
@@ -303,7 +324,6 @@ export function buildTeleprompterStream(
       if (heading) pending = Math.max(pending, TELEPROMPTER_HEADING_PAUSE_LETTERS);
 
       out.push({ kind: block.kind, text: tarjeta, start, length: chars.length, heading });
-      prevHeading = heading;
     }
     prevBody = !heading;
   }
