@@ -22,10 +22,11 @@ function leer(rel: string): string {
 describe("empaquetado móvil · capacitor.config.ts", () => {
   const cfg = leer("capacitor.config.ts");
 
-  test("edge-to-edge con márgenes (Android 15 / targetSdk 35)", () => {
-    // El default de Capacitor es "disable": el WebView quedaría a pantalla
-    // completa y el status bar se comería la cabecera.
-    expect(cfg).toContain('adjustMarginsForEdgeToEdge: "auto"');
+  test("edge-to-edge sin la opción eliminada en Capacitor 8", () => {
+    // Capacitor 8 quitó adjustMarginsForEdgeToEdge: el WebView va a pantalla
+    // completa y el safe-area se resuelve en CSS.
+    expect(cfg).not.toContain("adjustMarginsForEdgeToEdge:");
+    expect(leer("src/styles/globals.css")).toContain("env(safe-area-inset-top");
   });
 
   test("mixed content sigue permitido (la copia de la casa habla por http LAN)", () => {
