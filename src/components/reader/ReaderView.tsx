@@ -289,9 +289,14 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     cancelScheduledSave,
     scheduleSave,
     turn,
+    markPageRead,
   } = useReadingSession({
     bookId: book.id,
     initialPage: book.currentPage,
+    currentPage: pageNum,
+    // En el teleprompter la página se marca al llegar a su última línea, no
+    // por permanencia: a velocidad lenta 15 s no son ni un cuarto de página.
+    dwellEnabled: !tpOpen,
     pauseEnabled: modes.toggles.naturalPauses,
     pauseMinutes: modes.pauseMinutes,
   });
@@ -957,6 +962,7 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
           book={book}
           {...tpSource}
           onClose={tpClose}
+          onPageRead={markPageRead}
           todayPages={todayPagesShown}
           todayGoal={effectiveGoal}
         />

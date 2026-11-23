@@ -282,6 +282,20 @@ export function teleprompterPageEnd(offsets: number[], lit: number): number {
   return offsets[k + 1] ?? offsets[offsets.length - 1];
 }
 
+/**
+ * Primer índice de la última línea VISUAL de un tramo, a partir de las `top`
+ * de sus spans en orden de flujo. Los caracteres de una misma renglón
+ * comparten `top`; la tolerancia de 1 px absorbe el subpíxel. Se usa para dar
+ * la página por leída al encenderse su última línea y no un porcentaje fijo.
+ */
+export function lastLineFirstIndex(tops: readonly number[], from = 0): number {
+  if (tops.length === 0) return from;
+  const lastTop = tops[tops.length - 1];
+  let i = tops.length - 1;
+  while (i > 0 && Math.abs(tops[i - 1] - lastTop) <= 1) i -= 1;
+  return from + i;
+}
+
 /** Cuántas páginas del FRENTE de la ventana son podables en principio: solo
     las que ya quedaron superadas por el carácter activo (`lit >= ` su fin),
     tienen caracteres medibles (su pie existe en el DOM) y dejan como primera

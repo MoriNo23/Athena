@@ -68,8 +68,10 @@ interface TeleprompterOverlayProps {
    * mismo).
    */
   sourceKey: string;
-  /** gira la página real del lector (cuenta como lectura y hitos) */
+  /** gira la página real del lector (mueve el riel; NO cuenta páginas) */
   onGoToPage: (page: number, opts?: { silent?: boolean }) => void;
+  /** la página se terminó: el lector la marca como leída (idempotente) */
+  onPageRead: (page: number) => void;
   /** páginas de hoy de ESTE libro (mismo conteo que la cabecera del lector) */
   todayPages: number;
   /** meta efectiva del libro (propia o global) para el par de hoy */
@@ -143,6 +145,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   numPages,
   sourceKey,
   onGoToPage,
+  onPageRead,
   todayPages,
   todayGoal,
   onClose,
@@ -185,6 +188,22 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
   const [speedOpen, setSpeedOpen] = useState(false);
   /** P4: ajustes del teleprompter DENTRO del modo (tecla A) */
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Aviso de página leída: cuando el contador de hoy sube, una píldora efímera
+  // lo confirma. No captura el puntero, no mueve el texto y no pausa el flujo.
+  const [prevToday, setPrevToday] = useState(todayPages);
+  const [noticeSeq, setNoticeSeq] = useState(0);
+  const [noticeVisible, setNoticeVisible] = useState(false);
+  if (todayPages > prevToday) {
+    setPrevToday(todayPages);
+    setNoticeSeq((n) => n + 1);
+  }
+  useEffect(() => {
+    if (noticeSeq === 0) return;
+    setNoticeVisible(true);
+    const id = window.setTimeout(() => setNoticeVisible(false), 2600);
+    return () => window.clearTimeout(id);
+  }, [noticeSeq]);
 
   // Pantalla despierta: el teleprompter es el caso de uso de la lectura larga;
   // el overlay existe solo mientras el modo está abierto (con o sin F11).
@@ -286,6 +305,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
     sourceKey,
     hasSource: !!doc || !!getPageBlocks,
     onGoToPage,
+    onPageRead,
     stream,
     pageOffsets,
     pruneMeasure,
@@ -612,6 +632,20 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
         </div>
       )}
 
+      {/* Aviso de página leída: mismo sitio y forma que el de descanso, pero
+          nunca se solapan. La clave reinicia la animación en cada página. */}
+      {noticeVisible && !descansoVisible && (
+        <div
+          key={noticeSeq}
+          className="tp-notice tp-notice-flash"
+          role="status"
+          aria-live="polite"
+          data-testid="tp-page-notice"
+        >
+          <span>{t("tp.pageRead", { today: todayPages, goal: todayGoal })}</span>
+        </div>
+      )}
+
       {/* Barra superior: identidad + progreso + controles (auto-ocultable).
           Con fondo (peticion de la duena): la banda .tp-header da armonia con
           la lectura y el texto no compite con el libro. */}
@@ -621,7 +655,7 @@ export const TeleprompterOverlay = memo(function TeleprompterOverlay({
           {/* Móvil: estado corto en UNA línea (el completo envolvía a 3);
               desktop: el completo con velocidad */}
           <p className="truncate whitespace-nowrap text-xs text-muted-foreground sm:hidden" data-testid="tp-status-short">
-            {t("tp.statusShort", { page: pageNum, total: numPages })}
+            {t("tp.statusShortToday", { page: pageNum, total: numPages, today: todayPages, goal: todayGoal })}
           </p>
           <p className="hidden truncate whitespace-nowrap text-xs text-muted-foreground sm:block">
             {t("tp.status", {
