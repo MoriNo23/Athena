@@ -54,4 +54,35 @@ if (typeof promiseCtor.try !== "function") {
   });
 }
 
+type ByteArray = Uint8Array & {
+  toBase64?: () => string;
+  toHex?: () => string;
+};
+
+const bytesProto = Uint8Array.prototype as ByteArray;
+
+if (typeof bytesProto.toBase64 !== "function") {
+  Object.defineProperty(bytesProto, "toBase64", {
+    value: function (this: Uint8Array) {
+      let bin = "";
+      for (const b of this) bin += String.fromCharCode(b);
+      return btoa(bin);
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
+if (typeof bytesProto.toHex !== "function") {
+  Object.defineProperty(bytesProto, "toHex", {
+    value: function (this: Uint8Array) {
+      let hex = "";
+      for (const b of this) hex += b.toString(16).padStart(2, "0");
+      return hex;
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
 export {};

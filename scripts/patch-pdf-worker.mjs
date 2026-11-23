@@ -42,6 +42,12 @@ if (typeof Promise.try !== "function") {
 if (typeof URL.parse !== "function") {
   URL.parse = function (u, base) { try { return new URL(u, base); } catch { return null; } };
 }
+if (typeof Uint8Array.prototype.toHex !== "function") {
+  Uint8Array.prototype.toHex = function () { let s = ""; for (const b of this) s += b.toString(16).padStart(2, "0"); return s; };
+}
+if (typeof Uint8Array.prototype.toBase64 !== "function") {
+  Uint8Array.prototype.toBase64 = function () { let s = ""; for (const b of this) s += String.fromCharCode(b); return btoa(s); };
+}
 `;
 
 const limpio = readFileSync(LIMPIO, "utf8");
