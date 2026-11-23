@@ -11,14 +11,14 @@
 - [x] 2.2 Corregir los imports de iconos que lucide 1.x haya renombrado; verificar con `bunx tsc --noEmit` sin errores.
 - [x] 2.3 Auditar por CDP qué APIs faltan en el WebView Chrome 124 tras el upgrade (`Promise.try`, `URL.parse`, `Uint8Array.toHex`/`toBase64`, `withResolvers`, `getOrInsert`); verificar con un JSON de `typeof` por API.
 - [x] 2.4 Quitar los polyfills que ya no hagan falta y añadir los nuevos que aparezcan en `src/lib/pdfjs-webview-polyfills.ts` y `scripts/patch-pdf-worker.mjs`; regenerar `public/pdf.worker.min.mjs` con `node scripts/patch-pdf-worker.mjs` y verificar que el PDF real abre en el APK.
-- [ ] 2.5 Subir la versión a 2.1.9 y abrir el PR; verificar `bunx tsc --noEmit`, `bun run lint`, `bun test` y `bun run build`.
+- [x] 2.5 Subir la versión a 2.1.9 y abrir el PR; verificar `bunx tsc --noEmit`, `bun run lint`, `bun test` y `bun run build`.
 
 ## 3. PR 2.1.10 · Capacitor 8 y APK
 
-- [ ] 3.1 Actualizar `@capacitor/core`, `@capacitor/android` y `@capacitor/cli` a 8.x con `bun update`; verificar que `bun.lock` refleja las tres versiones.
-- [ ] 3.2 Adaptar `capacitor.config.ts` y `android/**` a los cambios rotos de Capacitor 8; verificar `bun run apk:sync` sin errores.
-- [ ] 3.3 Compilar `gradlew assembleDebug` con JDK 21 y el SDK 35; verificar `BUILD SUCCESSFUL` y el APK resultante.
-- [ ] 3.4 Instalar el APK en el AVD `athena-smoke`, abrir un PDF real de `/home/extra` y el teleprompter con un EPUB; verificar que renderiza y que el aviso de página leída sigue apareciendo.
+- [x] 3.1 Actualizar `@capacitor/core`, `@capacitor/android` y `@capacitor/cli` a 8.x con `bun update`; verificar que `bun.lock` refleja las tres versiones.
+- [x] 3.2 Adaptar `capacitor.config.ts` y `android/**` a los cambios rotos de Capacitor 8; verificar `bun run apk:sync` sin errores.
+- [x] 3.3 Compilar `gradlew assembleDebug` con JDK 21 y el SDK 35; verificar `BUILD SUCCESSFUL` y el APK resultante.
+- [x] 3.4 Instalar el APK en el AVD `athena-smoke`, abrir un PDF real de `/home/extra` y el teleprompter con un EPUB; verificar que renderiza y que el aviso de página leída sigue apareciendo.
 - [ ] 3.5 Subir la versión a 2.1.10 y abrir el PR; verificar `tsc`, `lint`, `bun test` y el humo de APK del PR.
 
 ## 4. PR 2.1.11 · Toolchain
