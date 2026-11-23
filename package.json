@@ -1,6 +1,6 @@
 {
   "name": "athena",
-  "version": "2.1.11",
+  "version": "2.1.12",
   "description": "Finish your books. Local-first reading app with a progress rail, streaks, finish badges and a letter-by-letter teleprompter mode.",
   "private": true,
   "scripts": {
