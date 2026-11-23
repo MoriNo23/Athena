@@ -173,6 +173,10 @@ export const es: Record<string, string> = {
   "edit.goalHint": "Vacío = usa el mínimo global ({n} pág).",
   "edit.searching": "Buscando…",
   "edit.searchCover": "Buscar portada",
+  "edit.synopsis": "Sinopsis",
+  "edit.synopsisPlaceholder": "Un resumen breve del libro…",
+  "edit.searchSynopsis": "Buscar sinopsis",
+  "edit.searchingSynopsis": "Buscando…",
   "edit.uploadImage": "Subir imagen…",
   "edit.save": "Guardar ficha",
 

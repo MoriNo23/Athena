@@ -9,7 +9,7 @@
 - [x] 1.5 Mostrar la píldora «Página leída · hoy N/meta» con `.tp-notice` + `.tp-notice-flash`, `role="status"`, `aria-live="polite"`, `pointer-events: none`, 2,6 s y clave por página; verificar que desaparece sola y que un toque sobre ella sigue pausando el flujo.
 - [x] 1.6 Dar prioridad al aviso de descanso sobre el de página y mostrar el contador «hoy» en móvil; verificar en viewport estrecho que no hay dos píldoras ni controles fuera de la barra.
 - [x] 1.7 Añadir las claves i18n en `es`, `en` y `pt`; verificar con `src/lib/i18n.test.ts`.
-- [ ] 1.8 Subir la versión a 2.1.6 y abrir el PR con la checklist de la casa; verificar `bunx tsc --noEmit`, `bun run lint`, `bun test` y humo en APK.
+- [x] 1.8 Subir la versión a 2.1.6 y abrir el PR con la checklist de la casa; verificar `bunx tsc --noEmit`, `bun run lint`, `bun test` y humo en APK.
 
 ## 2. PR 2 · Puntuación española y móvil (2.1.7)
 
@@ -20,7 +20,7 @@
 - [x] 2.5 Eliminar el CSS que siga huérfano (`.tp-notice-soon`, `.tp-notice-bar`, `tp-notice-count`) y corregir `.github/PULL_REQUEST_TEMPLATE.md` (quitar `prisma/schema.prisma` y `src/app/api/**`); verificar con `rg` que no quedan referencias y que la plantilla solo nombra rutas reales.
 - [x] 2.6 Añadir `.github/dependabot.yml` con `bun` (raíz, `bun.lock`) y `github-actions` (raíz): cadencia semanal, `open-pull-requests-limit: 5`, parches y menores agrupados y prefijo `chore(deps)` para respetar Conventional Commits; verificar que GitHub lo lee en Insights → Dependency graph → Dependabot.
 - [x] 2.7 Dejar `gradle` (`/android`) fuera a propósito: las versiones las fija Capacitor y un salto automático rompe el APK. Un PR de Dependabot que cambie dependencias de runtime sube parche en el mismo PR (cada push a `main` publica release).
-- [ ] 2.8 Subir la versión a 2.1.7 y abrir el PR; verificar `bunx tsc --noEmit`, `bun run lint`, `bun test` y humo en APK.
+- [x] 2.8 Subir la versión a 2.1.7 y abrir el PR; verificar `bunx tsc --noEmit`, `bun run lint`, `bun test` y humo en APK.
 
 ## 3. PR 3 · Sinopsis automática (2.1.8)
 
@@ -30,12 +30,12 @@
 - [x] 3.4 Añadir textarea de sinopsis y botón «Buscar sinopsis» en `EditBookDialog.tsx`, con `source: "manual"` al editar; verificar que una edición manual no se pisa y que el botón vuelve a proponer texto.
 - [x] 3.5 Mostrar la sinopsis con `line-clamp-2` en `BookCard.tsx` sin reservar hueco si falta; verificar en móvil que la tarjeta conserva altura y controles.
 - [x] 3.6 Añadir las claves i18n en `es`, `en` y `pt`; verificar con `src/lib/i18n.test.ts`.
-- [ ] 3.7 Subir la versión a 2.1.8 y abrir el PR; verificar `bunx tsc --noEmit`, `bun run lint`, `bun test` y humo en APK (sinopsis visible offline tras la primera descarga).
+- [x] 3.7 Subir la versión a 2.1.8 y abrir el PR; verificar `bunx tsc --noEmit`, `bun run lint`, `bun test` y humo en APK (sinopsis visible offline tras la primera descarga).
 
 ## 4. Integración
 
 - [x] 4.1 Verificar que `server/api.ts`, `public/athena-offline.js` y `tests/offline-engine.test.ts` no cambian de contrato y que la sinopsis viaja dentro de `extras` en web y APK.
-- [ ] 4.2 Verificar el recorrido completo en APK: leer una página manual (dwell), terminarla en teleprompter (última línea), ver el aviso y el contador, y reabrir sin conexión con la sinopsis cacheada.
+- [ ] 4.2 Verificar el recorrido completo en APK: leer una página manual (dwell), terminarla en teleprompter (última línea), ver el aviso y el contador, y reabrir sin conexión con la sinopsis cacheada. (Hecho: dwell, última línea, aviso y contador en APK; falta reverificar la sinopsis cacheada sin conexión en el APK.)
 - [ ] 4.3 Revisar las release notes de 2.1.6, 2.1.7 y 2.1.8: mencionar el cambio de conteo y la petición de red de la sinopsis (solo título y autor).
 
 ## Workflow follow-up

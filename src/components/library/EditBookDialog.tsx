@@ -11,10 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useCoverManager } from "@/hooks/use-cover-manager";
 import { useI18n } from "@/lib/i18n";
+import { searchSynopsis } from "@/lib/book-metadata";
+import type { BookExtras, BookSynopsis } from "@/core/types";
 import { BadgeCheck, BookOpen, ImagePlus, Loader2, Search, Sparkles } from "lucide-react";
 
 interface EditBookDialogProps {
@@ -25,6 +28,7 @@ interface EditBookDialogProps {
     coverPath: string | null;
     /** meta diaria propia del libro; null = hereda el mínimo global */
     dailyGoal: number | null;
+    extras?: BookExtras | null;
   } | null;
   /** mínimo diario global (placeholder y herencia del campo de meta) */
   defaultGoal: number;
@@ -37,6 +41,7 @@ interface EditBookDialogProps {
     author: string | null;
     coverPath: string | null;
     dailyGoal?: number | null;
+    extras?: BookExtras;
   }) => void;
 }
 
@@ -138,15 +143,23 @@ export function EditBookDialog({ book, defaultGoal, open, onOpenChange, onSaved 
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [goalValue, setGoalValue] = useState<number | null>(null);
+  const [synopsisDraft, setSynopsisDraft] = useState("");
+  const [searchingSynopsis, setSearchingSynopsis] = useState(false);
   const [saving, setSaving] = useState(false);
   // evita re-buscar la portada en cada guardado si la ficha no cambió
   const metaSnapshot = useRef<{ title: string; author: string }>({ title: "", author: "" });
+  // la sinopsis encontrada manda hasta que el lector la toca a mano
+  const synopsisSourceRef = useRef<BookSynopsis["source"] | null>(null);
+  const manualSynopsisRef = useRef(false);
 
   useEffect(() => {
     if (!open || !book) return;
     setTitle(book.title);
     setAuthor(book.author ?? "");
     setGoalValue(book.dailyGoal);
+    setSynopsisDraft(book.extras?.synopsis?.text ?? "");
+    synopsisSourceRef.current = book.extras?.synopsis?.source ?? null;
+    manualSynopsisRef.current = false;
     metaSnapshot.current = { title: book.title, author: book.author ?? "" };
     setSaving(false);
   }, [open, book]);
@@ -160,7 +173,23 @@ export function EditBookDialog({ book, defaultGoal, open, onOpenChange, onSaved 
   });
 
   const metaValid = !!title.trim() && !!author.trim();
-  const busy = saving || searching || importing;
+  const busy = saving || searching || importing || searchingSynopsis;
+
+  /** Acción explícita: propone un texto; guardarlo sigue siendo decisión del lector. */
+  const buscarSinopsis = async () => {
+    if (!title.trim()) return;
+    setSearchingSynopsis(true);
+    try {
+      const hit = await searchSynopsis(title, author);
+      if (hit) {
+        setSynopsisDraft(hit.text);
+        synopsisSourceRef.current = hit.source;
+        manualSynopsisRef.current = false;
+      }
+    } finally {
+      setSearchingSynopsis(false);
+    }
+  };
 
   const save = async () => {
     if (!book) return;
@@ -180,16 +209,53 @@ export function EditBookDialog({ book, defaultGoal, open, onOpenChange, onSaved 
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? t("edit.errorSaving"));
+
+      // La edición manual manda; la búsqueda automática solo entra cuando
+      // cambió la ficha y aún no había sinopsis (nunca pisa texto del lector).
+      const extras: BookExtras = { ...(book.extras ?? {}) };
+      let draft = synopsisDraft.trim();
+      if (!draft && changedMeta && !book.extras?.synopsis) {
+        const hit = await searchSynopsis(trimmed, author.trim());
+        if (hit) {
+          draft = hit.text;
+          synopsisSourceRef.current = hit.source;
+        }
+      }
+      if (draft) {
+        extras.synopsis = {
+          text: draft,
+          source: manualSynopsisRef.current
+            ? "manual"
+            : synopsisSourceRef.current ?? book.extras?.synopsis?.source ?? "manual",
+        };
+      } else {
+        delete extras.synopsis;
+      }
+      // `extras` ya viaja por PATCH /api/books/:id y se espeja en el motor
+      // offline: sin columna nueva y sin cambio de contrato. Un fallo aquí no
+      // puede pintar en la tarjeta una sinopsis que no se guardó.
+      const extrasRes = await fetch(`/api/books/${book.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extras }),
+      }).catch(() => null);
+      const extrasGuardado = extrasRes?.ok === true;
+
       onSaved({
         id: book.id,
         title: data.book.title as string,
         author: (data.book.author ?? null) as string | null,
         coverPath: cover,
         dailyGoal: (data.book.dailyGoal ?? null) as number | null,
+        ...(extrasGuardado ? { extras } : {}),
       });
-      toast({ title: t("edit.savedToast"), description: metaValid ? t("edit.savedOk") : t("edit.savedNo") });
+      if (extrasGuardado) {
+        toast({ title: t("edit.savedToast"), description: metaValid ? t("edit.savedOk") : t("edit.savedNo") });
+      } else {
+        toast({ title: t("edit.saveError"), description: t("edit.tryAgain"), variant: "destructive" });
+      }
       // Portada automática: solo si el usuario especificó título + autor y la ficha cambió
-      if (changedMeta && metaValid) {
+      if (extrasGuardado && changedMeta && metaValid) {
         await runCoverSearch(false);
       }
       onOpenChange(false);
@@ -244,6 +310,39 @@ export function EditBookDialog({ book, defaultGoal, open, onOpenChange, onSaved 
           <EligibilityBadge metaValid={metaValid} />
 
           <GoalField book={book} defaultGoal={defaultGoal} onChange={setGoalValue} />
+
+          <div className="grid gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="edit-synopsis">{t("edit.synopsis")}</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs"
+                onClick={() => void buscarSinopsis()}
+                disabled={busy || !title.trim()}
+                data-testid="edit-search-synopsis"
+              >
+                {searchingSynopsis ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Search className="h-3.5 w-3.5" />
+                )}
+                {searchingSynopsis ? t("edit.searchingSynopsis") : t("edit.searchSynopsis")}
+              </Button>
+            </div>
+            <Textarea
+              id="edit-synopsis"
+              rows={3}
+              value={synopsisDraft}
+              onChange={(e) => {
+                setSynopsisDraft(e.target.value);
+                manualSynopsisRef.current = true;
+              }}
+              placeholder={t("edit.synopsisPlaceholder")}
+              data-testid="edit-synopsis"
+            />
+          </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button

@@ -35,6 +35,7 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
   // comparar solo páginas dejaba a los libros terminados en "seguir leyendo" + ETA.
   const done = book.finishedAt != null || (!sinContar && book.currentPage >= book.totalPages);
   const sinFichero = Boolean(book.fileMissingAt);
+  const synopsis = book.extras?.synopsis?.text?.trim();
 
   const rate = useMemo(() => pickDailyRate(groupSessionsByDay(book.sessions)), [book.sessions]);
   const eta = useMemo(() => (rate ? estimateFinishDate(book, rate.pages) : null), [book, rate]);
@@ -89,6 +90,11 @@ export function BookCard({ book, segments, theme, onOpen, onDelete, onEdit, onRe
           <div className="min-w-0">
             <h3 className="line-clamp-2 font-display text-lg font-semibold leading-snug">{book.title}</h3>
             <p className="truncate text-sm text-muted-foreground">{book.author || t("card.unknownAuthor")}</p>
+            {synopsis && (
+              <p className="mt-1.5 line-clamp-2 text-xs text-muted-foreground" data-testid="card-synopsis">
+                {synopsis}
+              </p>
+            )}
             {(book.badge || sinFichero) && (
               <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 {book.badge && (
