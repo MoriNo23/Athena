@@ -23,9 +23,9 @@
 
 ## 4. PR 2.1.11 · Toolchain
 
-- [ ] 4.1 Actualizar TypeScript 6.0.3 (7 bloqueado por `typescript-eslint`), Vite 8, `@vitejs/plugin-react` 6 y ESLint 10 con `bun update`; verificar `bun.lock` y que no hay dependencias nuevas de runtime.
-- [ ] 4.2 Adaptar `tsconfig.json`, `vite.config.ts` y `eslint.config.mjs` a las APIs nuevas; verificar `bunx tsc --noEmit` y `bun run lint` en verde sin relajar `strict`.
-- [ ] 4.3 Corregir los errores de tipos que TypeScript 7 detecte en `src/`; verificar `bun test` y `bun run build`.
+- [x] 4.1 Actualizar TypeScript 6.0.3 (7 bloqueado por `typescript-eslint`), Vite 8, `@vitejs/plugin-react` 6 y ESLint 10 con `bun update`; verificar `bun.lock` y que no hay dependencias nuevas de runtime.
+- [x] 4.2 Adaptar `tsconfig.json`, `vite.config.ts` y `eslint.config.mjs` a las APIs nuevas; verificar `bunx tsc --noEmit` y `bun run lint` en verde sin relajar `strict`.
+- [x] 4.3 Corregir los errores de tipos que TypeScript 7 detecte en `src/`; verificar `bun test` y `bun run build`.
 - [ ] 4.4 Subir la versión a 2.1.11 y abrir el PR; verificar los cuatro comandos de calidad y que el diff no toca `server/api.ts` ni `public/athena-offline.js`.
 
 ## 5. Integración
