@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useImmersiveWake } from "@/hooks/use-immersive-wake";
 import { useReaderHotkeys } from "@/hooks/use-reader-hotkeys";
 import { useBookExtras } from "@/hooks/use-book-extras";
+import { searchSynopsis } from "@/lib/book-metadata";
 import { useBookMilestones } from "@/hooks/use-book-milestones";
 import { useReadingSession } from "@/hooks/use-reading-session";
 import { useFinishBadge } from "@/hooks/use-finish-badge";
@@ -300,6 +301,24 @@ export function ReaderView({ book, onBack, onBookChange }: ReaderViewProps) {
     pauseEnabled: modes.toggles.naturalPauses,
     pauseMinutes: modes.pauseMinutes,
   });
+
+  // Sinopsis automática al abrir: solo si hay título y aún no hay sinopsis.
+  // La clave del ref evita repetir la búsqueda en cada tick del cronómetro;
+  // si falla, se reintenta al volver a abrir el libro, nunca en bucle.
+  const sinopsisBuscadaRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!book.title || extras.synopsis) return;
+    const key = `${book.id}:${book.title}:${book.author ?? ""}`;
+    if (sinopsisBuscadaRef.current === key) return;
+    sinopsisBuscadaRef.current = key;
+    let alive = true;
+    void searchSynopsis(book.title, book.author ?? "").then((hit) => {
+      if (alive && hit) patchExtras({ synopsis: hit });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [book.id, book.title, book.author, extras.synopsis, patchExtras]);
 
   const { registerFinish } = useFinishBadge({
     bookId: book.id,

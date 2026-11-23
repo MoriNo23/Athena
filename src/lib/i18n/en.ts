@@ -173,6 +173,10 @@ export const en: Record<string, string> = {
   "edit.goalHint": "Empty = uses the global minimum ({n} pg).",
   "edit.searching": "Searching…",
   "edit.searchCover": "Find cover",
+  "edit.synopsis": "Synopsis",
+  "edit.synopsisPlaceholder": "A short summary of the book…",
+  "edit.searchSynopsis": "Find synopsis",
+  "edit.searchingSynopsis": "Searching…",
   "edit.uploadImage": "Upload image…",
   "edit.save": "Save details",
 

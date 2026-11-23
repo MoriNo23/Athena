@@ -123,7 +123,14 @@ export interface LockedNote {
   createdAt: string;
 }
 
+/** Sinopsis del libro: se busca en cliente y se guarda en `extras`. */
+export interface BookSynopsis {
+  text: string;
+  source: "googlebooks" | "openlibrary" | "manual";
+}
+
 export interface BookExtras {
+  synopsis?: BookSynopsis;
   xray?: XrayCard[];
   pause?: { recap: string; pausesTaken: number };
   prediction?: { text: string; savedAt: string };

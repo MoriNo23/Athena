@@ -444,6 +444,7 @@ export function LibraryView({ onOpen }: LibraryViewProps) {
             author: saved.author,
             coverPath: saved.coverPath,
             ...(saved.dailyGoal !== undefined ? { dailyGoal: saved.dailyGoal } : {}),
+            ...(saved.extras ? { extras: saved.extras } : {}),
           })
         }
       />
