@@ -15,6 +15,9 @@ export function useEpubBook(filePath: string | null) {
   const [loading, setLoading] = useState(filePath != null);
   const [error, setError] = useState<string | null>(null);
   const bookRef = useRef<EpubBook | null>(null);
+  /** Carga en curso: getPageBlocks la espera para no devolver una página vacía
+      si el teleprompter se abre antes de que acabe el parseo. */
+  const loadRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     bookRef.current = book;
@@ -22,6 +25,8 @@ export function useEpubBook(filePath: string | null) {
 
   useEffect(() => {
     if (!filePath) {
+      bookRef.current = null;
+      loadRef.current = null;
       setBook(null);
       setLoading(false);
       setError(null);
@@ -32,13 +37,14 @@ export function useEpubBook(filePath: string | null) {
     setError(null);
     setBook(null);
 
-    (async () => {
+    const load = (async () => {
       try {
         const res = await fetch(filePath);
         if (!res.ok) throw new Error("No se pudo descargar el EPUB. Puede haberse movido o borrado.");
         const data = await res.arrayBuffer();
         const parsed = await parseEpub(data);
         if (cancelled) return;
+        bookRef.current = parsed;
         setBook(parsed);
       } catch (e) {
         if (cancelled) return;
@@ -47,6 +53,7 @@ export function useEpubBook(filePath: string | null) {
         if (!cancelled) setLoading(false);
       }
     })();
+    loadRef.current = load;
 
     return () => {
       cancelled = true;
@@ -58,6 +65,7 @@ export function useEpubBook(filePath: string | null) {
       ya las resolvió a dataURL dentro del presupuesto; las descartadas no
       llegan aquí). El toggle pausaImagen las filtra después la ventana. */
   const getPageBlocks = useCallback(async (p: number): Promise<TeleprompterBlock[]> => {
+    if (loadRef.current) await loadRef.current;
     const pages = bookRef.current?.pages;
     if (!pages) return [];
     const page = pages[Math.min(Math.max(1, p), pages.length) - 1];
